@@ -1,0 +1,117 @@
+@import "tailwindcss";
+
+/*
+  Design tokens for Norvilah Cakes.
+  Everything here is named so components never reach for an arbitrary
+  hex value, radius or easing curve. See NORVILAH_CLAUDE_CODE_BRIEF.md
+  section 4 for the source of these values.
+*/
+@theme {
+  /* Colour */
+  --color-plaster: #e2bfb5;
+  --color-rose: #d1a89c;
+  --color-clay: #8e685e;
+  --color-cream: #f6ebe3;
+  --color-cocoa: #3a241f;
+  --color-berry: #8e2f44;
+  --color-wood: #cb9d79;
+  --color-ink: #4a322c;
+
+  /* Type families */
+  --font-display: var(--font-fraunces);
+  --font-body: var(--font-hanken);
+  --font-script: var(--font-sacramento);
+
+  /*
+    Fluid type scale. Each token hits exactly the brief's mobile value at
+    a 390px viewport and the desktop value at 1280px, interpolating
+    smoothly between rather than jumping at a breakpoint.
+  */
+  --text-hero: clamp(2.75rem, calc(2.75rem + 2.5 * (100vw - 390px) / 890), 5.25rem);
+  --text-hero--line-height: 0.95;
+  --text-heading: clamp(2rem, calc(2rem + 1.25 * (100vw - 390px) / 890), 3.25rem);
+  --text-heading--line-height: 1.05;
+  --text-product: clamp(1.25rem, calc(1.25rem + 0.25 * (100vw - 390px) / 890), 1.5rem);
+  --text-product--line-height: 1.2;
+  --text-lead: clamp(1.0625rem, calc(1.0625rem + 0.125 * (100vw - 390px) / 890), 1.1875rem);
+  --text-lead--line-height: 1.6;
+  --text-body: 1rem;
+  --text-body--line-height: 1.65;
+  --text-small: 0.875rem;
+  --text-small--line-height: 1.5;
+  --text-script: clamp(1.5rem, calc(1.5rem + 0.5 * (100vw - 390px) / 890), 2rem);
+
+  /* Radii. Buttons are pills, panels are 24px. The arch is its own shape. */
+  --radius-pill: 999px;
+  --radius-panel: 24px;
+
+  /* Motion */
+  --ease-reveal: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Shadow, always warm, never grey */
+  --shadow-warm: 0 16px 32px -12px rgba(58, 36, 31, 0.12);
+  --shadow-warm-lg: 0 24px 48px -16px rgba(58, 36, 31, 0.18);
+
+  /* Content measure */
+  --container-content: 1280px;
+}
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+
+  body {
+    background-color: var(--color-cream);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-berry);
+    outline-offset: 3px;
+  }
+}
+
+@layer components {
+  /*
+    The arch: a rectangle whose top is a perfect semicircle.
+    border-radius clamps a corner pair to at most the box's own edge
+    length, so asking for 50vw on both top corners always collapses to
+    exactly half the element's own width (a true semicircle) for any
+    element narrower than the viewport, i.e. every arch on this site.
+  */
+  .arch {
+    aspect-ratio: 2 / 3;
+    border-radius: 50vw 50vw 0 0;
+    overflow: hidden;
+  }
+
+  /*
+    Same self-clamping trick as .arch, mirrored onto the bottom corners
+    only, with no fixed aspect ratio — used for the mobile nav drawer,
+    whose height is driven by its content, not a 2:3 box.
+  */
+  .arch-bottom {
+    border-radius: 0 0 50vw 50vw;
+  }
+
+  .font-display-soft {
+    font-variation-settings: "SOFT" 40;
+  }
+
+  .measure {
+    max-width: 60ch;
+  }
+}
