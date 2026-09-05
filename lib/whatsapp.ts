@@ -44,3 +44,34 @@ export function buildWhatsAppEnquiryLink(occasion: Occasion | null): string {
   const message = buildEnquiryMessage(occasion);
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 }
+
+export type EnquiryFormData = {
+  name: string;
+  phone: string;
+  email: string;
+  details: string;
+  occasion: Occasion | null;
+};
+
+// Turns the on-site enquiry form into the WhatsApp message. Phase 2/3:
+// this same form data should also be POSTed to the backend so the
+// enquiry is stored and shows up as a notification when the owner logs
+// into her account — there's no server yet, so for now the only place
+// the enquiry goes is this WhatsApp message.
+export function buildEnquiryMessageFromForm(data: EnquiryFormData): string {
+  const label = data.occasion ? occasionLabel(data.occasion).toLowerCase() : "general";
+  const lines = [
+    `Hi Norvilah, I would like to enquire about a ${label} order.`,
+    `Name: ${data.name}`,
+    `WhatsApp number: ${data.phone}`,
+  ];
+  if (data.email.trim()) {
+    lines.push(`Email: ${data.email}`);
+  }
+  lines.push(`Details: ${data.details}`);
+  return lines.join("\n");
+}
+
+export function buildWhatsAppLink(message: string): string {
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}

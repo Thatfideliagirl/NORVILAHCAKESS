@@ -7,6 +7,7 @@ import { NAV_LINKS } from "@/lib/nav-links";
 import { useCartCount } from "@/store/cart";
 import { useScrollPast } from "@/lib/use-scroll-past";
 import MobileDrawer from "@/components/MobileDrawer";
+import Logo from "@/components/Logo";
 
 export default function NavBar() {
   const scrolled = useScrollPast(80);
@@ -23,13 +24,12 @@ export default function NavBar() {
         }`}
       >
         <div className="mx-auto flex max-w-content items-center justify-between px-6 py-4 lg:px-11">
-          <Link
-            href="/"
-            className={`font-display text-xl transition-colors duration-300 ${
-              scrolled ? "text-berry" : "text-cream drop-shadow-[0_1px_6px_rgba(58,36,31,0.45)]"
-            }`}
-          >
-            Norvilah Cakes
+          <Link href="/">
+            <Logo
+              textClassName={`text-xl transition-colors duration-300 ${
+                scrolled ? "text-berry" : "text-cream drop-shadow-[0_1px_6px_rgba(58,36,31,0.45)]"
+              }`}
+            />
           </Link>
 
           <nav

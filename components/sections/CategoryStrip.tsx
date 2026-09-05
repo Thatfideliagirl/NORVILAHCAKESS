@@ -4,7 +4,6 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import Arch from "@/components/Arch";
-import ScriptAccent from "@/components/ScriptAccent";
 import { categories, type Category } from "@/data/categories";
 import { revealContainer, revealUp } from "@/lib/motion";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
@@ -54,12 +53,6 @@ export default function CategoryStrip() {
       </motion.div>
 
       <motion.div variants={revealUp} className="relative mx-auto mt-12 max-w-content">
-        <ScriptAccent
-          text="Different cravings, same happiness"
-          rotate={6}
-          className="pointer-events-none absolute -top-12 right-6 hidden w-56 md:block lg:right-11"
-        />
-
         {reducedMotion ? (
           <div className="flex snap-x snap-mandatory gap-5 overflow-x-auto px-6 pb-4 [scrollbar-width:none] md:gap-6 lg:mx-auto lg:max-w-content [&::-webkit-scrollbar]:hidden">
             {categories.map((category) => (

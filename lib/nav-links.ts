@@ -4,6 +4,6 @@ export const NAV_LINKS = [
   { label: "Home", href: "/" },
   { label: "Menu", href: "/menu" },
   { label: "Events", href: "/#celebrating" },
-  { label: "Questions", href: "/#questions" },
+  { label: "FAQs", href: "/#questions" },
   { label: "Contact", href: "/#contact" },
 ];

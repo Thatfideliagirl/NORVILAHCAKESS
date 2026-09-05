@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { X } from "lucide-react";
 import { NAV_LINKS } from "@/lib/nav-links";
+import Logo from "@/components/Logo";
 
 export default function MobileDrawer({
   open,
@@ -35,9 +36,7 @@ export default function MobileDrawer({
             aria-modal="true"
           >
             <div className="flex items-center justify-between px-6">
-              <span className="font-display text-xl text-berry">
-                Norvilah Cakes
-              </span>
+              <Logo textClassName="text-xl text-berry" />
               <button
                 type="button"
                 aria-label="Close menu"

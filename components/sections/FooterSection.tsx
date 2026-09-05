@@ -3,6 +3,7 @@ import { Music2 } from "lucide-react";
 import { NAV_LINKS } from "@/lib/nav-links";
 import { InstagramIcon, WhatsAppIcon } from "@/components/BrandIcons";
 import { buildWhatsAppEnquiryLink } from "@/lib/whatsapp";
+import Logo from "@/components/Logo";
 
 const SOCIALS = [
   { label: "Instagram", href: "https://instagram.com/norvilahcake", Icon: InstagramIcon },
@@ -33,7 +34,7 @@ export default function FooterSection() {
       <div className="mx-auto max-w-content px-6 pb-16">
         <div className="grid gap-12 border-t border-plaster/15 pt-16 md:grid-cols-3">
           <div>
-            <p className="font-display text-product text-plaster">Norvilah Cakes</p>
+            <Logo textClassName="text-product text-plaster" />
             <p className="mt-2 font-body text-small text-plaster/70">
               Good food. Brighter days.
             </p>

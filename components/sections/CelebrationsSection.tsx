@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import Arch from "@/components/Arch";
-import { OCCASIONS, buildWhatsAppEnquiryLink, type Occasion } from "@/lib/whatsapp";
+import EnquiryForm from "@/components/EnquiryForm";
+import { OCCASIONS, type Occasion } from "@/lib/whatsapp";
 import { revealContainer, revealUp } from "@/lib/motion";
 
 export default function CelebrationsSection() {
   const [selected, setSelected] = useState<Occasion | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
 
   return (
     <motion.section
@@ -34,8 +36,9 @@ export default function CelebrationsSection() {
             What are we celebrating?
           </h2>
           <p className="measure mt-4 font-body text-lead text-plaster/80">
-            Birthdays, parties, corporate events, or just a good reason to
-            celebrate. Custom orders and event catering, made memorable.
+            Birthdays, parties, corporate events, or just because — we love a
+            good reason to celebrate. Custom orders and event catering, built
+            around you, made to be remembered.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
@@ -63,14 +66,29 @@ export default function CelebrationsSection() {
             })}
           </div>
 
-          <a
-            href={buildWhatsAppEnquiryLink(selected)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-8 inline-block rounded-pill bg-plaster px-8 py-3.5 font-body font-medium text-cocoa transition-colors duration-200 hover:bg-cream"
-          >
-            Make an enquiry
-          </a>
+          {!formOpen && (
+            <button
+              type="button"
+              onClick={() => setFormOpen(true)}
+              className="mt-8 inline-block rounded-pill bg-plaster px-8 py-3.5 font-body font-medium text-cocoa transition-colors duration-200 hover:bg-cream"
+            >
+              Make an enquiry
+            </button>
+          )}
+
+          <AnimatePresence initial={false}>
+            {formOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+                className="overflow-hidden"
+              >
+                <EnquiryForm occasion={selected} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
         <motion.div variants={revealUp} className="relative mx-auto hidden w-full max-w-sm md:block">
