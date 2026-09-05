@@ -57,3 +57,30 @@ export const categories: Category[] = [
     order: 7,
   },
 ];
+
+// The full menu page sidebar shows more categories than the homepage
+// strip does. Same 7 above, plus three more the homepage never surfaces.
+export const menuCategories: Category[] = [
+  ...categories,
+  {
+    slug: "greek-yoghurt",
+    name: "Greek Yoghurt",
+    image: "/products/greek-yoghurt.jpg",
+    blurb: "Thick, tangy, and protein-rich.",
+    order: 8,
+  },
+  {
+    slug: "small-chops",
+    name: "Small Chops",
+    image: "/products/small-chops.jpg",
+    blurb: "A mixed tray for sharing.",
+    order: 9,
+  },
+  {
+    slug: "granola",
+    name: "Granola",
+    image: "/products/granola.jpg",
+    blurb: "Toasted, honeyed, and crunchy.",
+    order: 10,
+  },
+];

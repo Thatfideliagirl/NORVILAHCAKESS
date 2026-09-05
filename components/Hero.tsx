@@ -1,28 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
-import { useAllowsVideo } from "@/lib/use-network-quality";
-import { useMediaQuery } from "@/lib/use-media-query";
 import { useScrollPast } from "@/lib/use-scroll-past";
 import { revealContainer, revealUp } from "@/lib/motion";
 
-const READY_STATE_HAVE_FUTURE_DATA = 3;
-const VIDEO_TIMEOUT_MS = 2500;
-
 export default function Hero() {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [videoPlaying, setVideoPlaying] = useState(false);
   const reducedMotion = usePrefersReducedMotion();
-  const isMobile = useMediaQuery("(max-width: 767px)");
-  const allowsVideo = useAllowsVideo();
   const scrolled = useScrollPast(80);
-
-  const shouldAttemptVideo = !reducedMotion && !(isMobile && !allowsVideo);
 
   const containerVariants = reducedMotion
     ? { hidden: {}, show: { transition: { staggerChildren: 0 } } }
@@ -31,65 +19,17 @@ export default function Hero() {
     ? { hidden: { opacity: 0 }, show: { opacity: 1, transition: { duration: 0.3 } } }
     : revealUp;
 
-  useEffect(() => {
-    const videoEl = videoRef.current;
-    if (!shouldAttemptVideo || !videoEl) return;
-
-    let cancelled = false;
-
-    const onReady = () => {
-      if (cancelled || videoEl.readyState < READY_STATE_HAVE_FUTURE_DATA) return;
-      setVideoPlaying(true);
-      videoEl.play().catch(() => {});
-    };
-
-    videoEl.addEventListener("canplay", onReady);
-    videoEl.addEventListener("loadeddata", onReady);
-    onReady();
-
-    const abandonTimer = setTimeout(() => {
-      if (cancelled || videoEl.readyState >= READY_STATE_HAVE_FUTURE_DATA) return;
-      // Not ready in time: give up quietly and keep the poster. No spinner.
-      videoEl.pause();
-      videoEl.removeAttribute("src");
-      videoEl.load();
-    }, VIDEO_TIMEOUT_MS);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(abandonTimer);
-      videoEl.removeEventListener("canplay", onReady);
-      videoEl.removeEventListener("loadeddata", onReady);
-    };
-  }, [shouldAttemptVideo]);
-
   return (
     <section className="relative h-screen min-h-[620px] max-h-[900px] w-full overflow-hidden bg-cocoa">
       <div className="absolute inset-0">
         <Image
-          src="/norvilah-hero-poster.jpg"
+          src="/hero-still.jpg"
           alt="A pink celebration cake, a strawberry parfait, cupcakes, waffles and a meat pie arranged on a flour-dusted wooden table."
           fill
           priority
           sizes="100vw"
           className="object-cover"
         />
-        {shouldAttemptVideo && (
-          <video
-            ref={videoRef}
-            muted
-            playsInline
-            preload="metadata"
-            poster="/norvilah-hero-poster.jpg"
-            aria-hidden="true"
-            className={`absolute inset-0 size-full object-cover transition-opacity duration-500 ${
-              videoPlaying ? "opacity-100" : "opacity-0"
-            }`}
-          >
-            <source src="/norvilah-hero.webm" type="video/webm" />
-            <source src="/norvilah-hero.mp4" type="video/mp4" />
-          </video>
-        )}
       </div>
 
       {/* Desktop: copy sits left, so the scrim darkens the wall from the

@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, ShoppingBag } from "lucide-react";
+import { Menu, ShoppingBag, User } from "lucide-react";
 import { NAV_LINKS } from "@/lib/nav-links";
-import { useCartCount } from "@/store/cart";
+import { useCartCount, useCartHydration } from "@/store/cart";
 import { useScrollPast } from "@/lib/use-scroll-past";
 import MobileDrawer from "@/components/MobileDrawer";
 import Logo from "@/components/Logo";
@@ -13,6 +13,7 @@ export default function NavBar() {
   const scrolled = useScrollPast(80);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const cartCount = useCartCount();
+  useCartHydration();
 
   return (
     <>
@@ -49,6 +50,16 @@ export default function NavBar() {
           </nav>
 
           <div className="flex items-center gap-4">
+            <Link
+              href="/account"
+              aria-label="Account"
+              className={`hidden size-11 items-center justify-center transition-colors duration-300 md:flex ${
+                scrolled ? "text-ink" : "text-cream drop-shadow-[0_1px_6px_rgba(58,36,31,0.45)]"
+              }`}
+            >
+              <User className="size-5" strokeWidth={1.5} />
+            </Link>
+
             <Link
               href="/cart"
               aria-label={`Cart, ${cartCount} item${cartCount === 1 ? "" : "s"}`}

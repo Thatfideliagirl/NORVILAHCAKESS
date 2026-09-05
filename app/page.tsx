@@ -1,4 +1,3 @@
-import NavBar from "@/components/NavBar";
 import Hero from "@/components/Hero";
 import CategoryStrip from "@/components/sections/CategoryStrip";
 import BrandMoment from "@/components/sections/BrandMoment";
@@ -11,7 +10,6 @@ import FooterSection from "@/components/sections/FooterSection";
 export default function Home() {
   return (
     <>
-      <NavBar />
       <main>
         <Hero />
         <CategoryStrip />

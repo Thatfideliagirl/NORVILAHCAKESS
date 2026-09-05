@@ -26,10 +26,9 @@ export type Product = {
 };
 
 // All prices below are placeholders confirmed by the client and must be
-// replaced before launch. categorySlug for granola and small-chops has
-// no matching entry in data/categories.ts yet, since neither appears in
-// the phase 1 landing page category strip; add them there when the
-// phase 2 menu page ships.
+// replaced before launch. The exact catalogue, names, descriptions and
+// variants will be supplied later — this is a working structure, not
+// final business data.
 export const products: Product[] = [
   {
     id: "cake-celebration",
@@ -146,12 +145,23 @@ export const products: Product[] = [
     featured: false,
   },
   {
+    id: "greek-yoghurt-500",
+    slug: "greek-yoghurt",
+    name: "Greek Yoghurt, 500ml",
+    categorySlug: "greek-yoghurt",
+    description: "Thick, tangy Greek yoghurt, made in house.",
+    image: "/products/greek-yoghurt.jpg",
+    priceNaira: 3000, // placeholder
+    available: true,
+    featured: false,
+  },
+  {
     id: "granola-250",
     slug: "granola",
     name: "Granola, 250g",
     categorySlug: "granola",
     description: "Toasted, honeyed granola, great over yoghurt or parfait.",
-    image: "/products/milky-yoghurt.jpg",
+    image: "/products/granola.jpg",
     priceNaira: 5500, // placeholder
     available: true,
     featured: false,
@@ -162,7 +172,7 @@ export const products: Product[] = [
     name: "Small Chops Tray",
     categorySlug: "small-chops",
     description: "A mixed tray of savoury small chops, perfect for events.",
-    image: "/products/meat-pies.jpg",
+    image: "/products/small-chops.jpg",
     priceNaira: 15000, // placeholder
     available: true,
     featured: false,

@@ -97,8 +97,8 @@ export default function CelebrationsSection() {
             className="absolute inset-0 scale-125 rounded-full bg-berry/30 blur-3xl"
           />
           <Arch
-            src="/products/cakes.jpg"
-            alt="A pink celebration cake topped with fresh strawberries and daisies."
+            src="/celebrations.jpg"
+            alt="A spread of parfaits, cupcakes and meat pies laid out for an event, with candles and flowers alongside."
             sizes="(min-width: 768px) 384px, 0px"
             className="relative"
           />

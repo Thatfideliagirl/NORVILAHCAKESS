@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
-import { X } from "lucide-react";
+import { User, X } from "lucide-react";
 import { NAV_LINKS } from "@/lib/nav-links";
 import Logo from "@/components/Logo";
 
@@ -55,7 +55,15 @@ export default function MobileDrawer({
               ))}
             </nav>
 
-            <div className="mt-8 flex justify-center">
+            <div className="mt-8 flex items-center justify-center gap-4">
+              <Link
+                href="/account"
+                onClick={onClose}
+                aria-label="Account"
+                className="flex size-11 items-center justify-center text-ink"
+              >
+                <User className="size-5" strokeWidth={1.5} />
+              </Link>
               <Link
                 href="/menu"
                 onClick={onClose}

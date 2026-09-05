@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Fraunces, Hanken_Grotesk, Sacramento } from "next/font/google";
 import GrainOverlay from "@/components/GrainOverlay";
 import SmoothScroll from "@/components/SmoothScroll";
+import NavBar from "@/components/NavBar";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -37,7 +38,7 @@ export const metadata: Metadata = {
       "More than treats. Moments of happiness. Cakes, parfaits, waffles and more, made fresh to order in Lagos.",
     url: siteUrl,
     siteName: "Norvilah Cakes",
-    images: ["/norvilah-hero-poster.jpg"],
+    images: ["/hero-still.jpg"],
     locale: "en_NG",
     type: "website",
   },
@@ -45,7 +46,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Norvilah Cakes",
     description: "Freshly made, beautifully packaged. Order on WhatsApp today.",
-    images: ["/norvilah-hero-poster.jpg"],
+    images: ["/hero-still.jpg"],
   },
 };
 
@@ -67,7 +68,10 @@ export default function RootLayout({
     >
       <body className="bg-cream text-ink antialiased">
         <GrainOverlay />
-        <SmoothScroll>{children}</SmoothScroll>
+        <SmoothScroll>
+          <NavBar />
+          {children}
+        </SmoothScroll>
       </body>
     </html>
   );
