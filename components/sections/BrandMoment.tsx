@@ -14,7 +14,7 @@ export default function BrandMoment() {
     <section className="bg-cream py-24 md:py-40">
       <div className="mx-auto grid max-w-content items-center gap-12 px-6 md:grid-cols-2 md:gap-12 lg:gap-20">
         <div className="order-2 md:order-1">
-          <p className="font-body text-small uppercase tracking-[0.12em] text-clay">
+          <p className="inline-block w-fit rounded-pill bg-rose/60 px-4 py-1.5 font-body text-small uppercase tracking-[0.12em] text-berry">
             A little about Norvilah
           </p>
           <h2 className="mt-4 font-display text-heading leading-[1.05] text-ink">

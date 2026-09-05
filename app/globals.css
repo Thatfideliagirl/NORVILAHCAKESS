@@ -76,6 +76,11 @@
   h3,
   h4 {
     font-family: var(--font-display);
+    /* Tailwind's preflight resets the browser's default heading
+       boldness to `inherit`, so every heading was quietly rendering at
+       body-text weight despite the distinct display font. Give
+       headings real presence back. */
+    font-weight: 600;
   }
 
   :focus-visible {

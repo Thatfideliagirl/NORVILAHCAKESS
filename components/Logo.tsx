@@ -12,7 +12,7 @@ export default function Logo({ textClassName }: { textClassName: string }) {
         alt=""
         width={40}
         height={18}
-        className="h-4 w-auto md:h-[18px]"
+        className="h-6 w-auto md:h-7"
         aria-hidden="true"
       />
       <span className={`font-display ${textClassName}`}>Norvilah Cakes</span>

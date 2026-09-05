@@ -2,10 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { motion } from "framer-motion";
 import { Search } from "lucide-react";
 import { products } from "@/data/products";
 import { menuCategories } from "@/data/categories";
 import { filterAndSortProducts, SORT_OPTIONS, type SortOption } from "@/lib/menu";
+import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
+import { revealContainer, revealUp } from "@/lib/motion";
 import CategorySidebar from "@/components/menu/CategorySidebar";
 import ProductRow from "@/components/menu/ProductRow";
 import ProductDetailModal from "@/components/menu/ProductDetailModal";
@@ -13,6 +16,14 @@ import ProductDetailModal from "@/components/menu/ProductDetailModal";
 export default function MenuExperience() {
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get("category") ?? "all";
+  const reducedMotion = usePrefersReducedMotion();
+
+  const containerVariants = reducedMotion
+    ? { hidden: {}, show: { transition: { staggerChildren: 0 } } }
+    : revealContainer;
+  const itemVariants = reducedMotion
+    ? { hidden: { opacity: 0 }, show: { opacity: 1, transition: { duration: 0.3 } } }
+    : revealUp;
 
   const [category, setCategory] = useState(initialCategory);
   const [query, setQuery] = useState("");
@@ -35,15 +46,20 @@ export default function MenuExperience() {
   return (
     <section className="bg-cream py-12 md:py-16">
       <div className="mx-auto max-w-content px-6 lg:px-11">
-        <div className="grid gap-8 md:grid-cols-[220px_1fr] md:gap-12">
-          <div className="md:sticky md:top-28 md:self-start">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="grid gap-8 md:grid-cols-[220px_1fr] md:gap-12"
+        >
+          <motion.div variants={itemVariants} className="md:sticky md:top-28 md:self-start">
             <CategorySidebar selected={category} onSelect={setCategory} />
-          </div>
+          </motion.div>
 
-          <div>
+          <motion.div variants={itemVariants}>
             <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <p className="font-body text-small uppercase tracking-[0.12em] text-clay">
+                <p className="inline-block w-fit rounded-pill bg-rose/60 px-4 py-1.5 font-body text-small uppercase tracking-[0.12em] text-berry">
                   Explore Our Menu
                 </p>
                 <h2 className="mt-2 font-display text-product text-berry sm:text-heading">
@@ -97,8 +113,8 @@ export default function MenuExperience() {
                 ))
               )}
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </div>
 
       <ProductDetailModal

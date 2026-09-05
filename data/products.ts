@@ -21,6 +21,12 @@ export type Product = {
   image: string;
   priceNaira: number; // base price, or the lowest variant
   variants?: Variant[];
+  // Left undefined until the client supplies real, product-specific
+  // copy: these are food-safety-sensitive (allergens, health claims)
+  // and must never be guessed. The product modal only renders these
+  // sections when they're actually present.
+  healthBenefits?: string[];
+  ingredients?: string[];
   available: boolean;
   featured: boolean;
 };

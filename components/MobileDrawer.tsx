@@ -36,7 +36,7 @@ export default function MobileDrawer({
             aria-modal="true"
           >
             <div className="flex items-center justify-between px-6">
-              <Logo textClassName="text-xl text-berry" />
+              <Logo textClassName="text-2xl text-berry" />
               <button
                 type="button"
                 aria-label="Close menu"

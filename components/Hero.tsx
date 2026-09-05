@@ -80,7 +80,7 @@ export default function Hero() {
             which reaches AA with the glow above. */}
         <motion.p
           variants={itemVariants}
-          className="font-body text-small uppercase tracking-[0.12em] text-ink"
+          className="inline-block w-fit rounded-pill bg-cream/90 px-4 py-1.5 font-body text-small uppercase tracking-[0.12em] text-ink shadow-warm"
         >
           Freshly made, beautifully packaged
         </motion.p>

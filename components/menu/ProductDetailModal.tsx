@@ -44,7 +44,7 @@ function ProductDetailPanel({
       aria-modal="true"
       aria-label={product.name}
       onClick={(e) => e.stopPropagation()}
-      className="relative flex max-h-[92vh] w-full max-w-3xl flex-col overflow-y-auto rounded-t-panel bg-cream md:flex-row md:rounded-panel"
+      className="relative flex max-h-[92vh] w-full max-w-4xl flex-col overflow-y-auto rounded-t-panel bg-cream md:flex-row md:rounded-panel"
     >
       <button
         type="button"
@@ -55,7 +55,7 @@ function ProductDetailPanel({
         <X className="size-5" strokeWidth={1.5} />
       </button>
 
-      <div className="relative h-64 w-full shrink-0 md:h-auto md:w-1/2">
+      <div className="relative h-72 w-full shrink-0 md:h-auto md:w-1/2">
         <Image
           src={product.image}
           alt={product.name}
@@ -127,6 +127,33 @@ function ProductDetailPanel({
             })}
           </div>
         )}
+
+        {(product.healthBenefits?.length || product.ingredients?.length) ? (
+          <div className="mt-6 flex flex-col gap-3">
+            {product.healthBenefits && product.healthBenefits.length > 0 && (
+              <div className="rounded-panel bg-rose/40 p-4">
+                <h3 className="font-body text-small font-semibold uppercase tracking-[0.08em] text-berry">
+                  Health Benefits
+                </h3>
+                <ul className="mt-2 flex flex-col gap-1 font-body text-small text-ink/80">
+                  {product.healthBenefits.map((benefit) => (
+                    <li key={benefit}>{benefit}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {product.ingredients && product.ingredients.length > 0 && (
+              <div className="rounded-panel bg-plaster/50 p-4">
+                <h3 className="font-body text-small font-semibold uppercase tracking-[0.08em] text-clay">
+                  Ingredients
+                </h3>
+                <p className="mt-2 font-body text-small text-ink/80">
+                  {product.ingredients.join(", ")}
+                </p>
+              </div>
+            )}
+          </div>
+        ) : null}
 
         <div className="mt-8 flex items-center gap-4">
           <QuantityStepper quantity={quantity} onChange={setQuantity} size="large" />
