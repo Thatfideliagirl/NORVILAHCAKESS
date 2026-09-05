@@ -28,7 +28,7 @@ export default function MenuHero() {
           fill
           priority
           sizes="100vw"
-          className="object-cover"
+          className="object-cover object-[28%_center]"
         />
       </div>
 
@@ -36,7 +36,7 @@ export default function MenuHero() {
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(to right, rgba(58,36,31,0.6) 0%, rgba(58,36,31,0.15) 55%, rgba(58,36,31,0) 75%)",
+            "linear-gradient(to right, rgba(58,36,31,0.68) 0%, rgba(58,36,31,0.2) 45%, rgba(58,36,31,0) 65%)",
         }}
       />
       <div

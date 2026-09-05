@@ -28,7 +28,7 @@ export default function Hero() {
           fill
           priority
           sizes="100vw"
-          className="object-cover"
+          className="object-cover object-[18%_center] md:object-[30%_center]"
         />
       </div>
 
@@ -39,14 +39,14 @@ export default function Hero() {
         className="absolute inset-0 hidden md:block"
         style={{
           background:
-            "linear-gradient(to right, rgba(58,36,31,0.55) 0%, rgba(58,36,31,0) 55%)",
+            "linear-gradient(to right, rgba(58,36,31,0.62) 0%, rgba(58,36,31,0) 62%)",
         }}
       />
       <div
-        className="absolute inset-y-0 left-0 hidden w-full max-w-2xl md:block"
+        className="absolute inset-y-0 left-0 hidden w-full max-w-md md:block"
         style={{
           background:
-            "radial-gradient(60% 55% at 30% 55%, rgba(246,235,227,0.55) 0%, rgba(246,235,227,0) 100%)",
+            "radial-gradient(65% 60% at 25% 55%, rgba(246,235,227,0.6) 0%, rgba(246,235,227,0) 100%)",
         }}
       />
 
@@ -57,7 +57,7 @@ export default function Hero() {
         className="absolute inset-0 md:hidden"
         style={{
           background:
-            "linear-gradient(to top, rgba(58,36,31,0.8) 0%, rgba(58,36,31,0.35) 45%, rgba(58,36,31,0) 70%)",
+            "linear-gradient(to top, rgba(58,36,31,0.88) 0%, rgba(58,36,31,0.55) 50%, rgba(58,36,31,0.1) 78%)",
         }}
       />
       <div
@@ -68,11 +68,12 @@ export default function Hero() {
         }}
       />
 
+      <div className="relative z-10 mx-auto h-full max-w-content">
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="relative z-10 mx-auto flex h-full max-w-content flex-col justify-end px-6 pb-20 md:justify-center md:px-0 md:pb-0 md:pl-[88px] md:w-[40%]"
+        className="flex h-full flex-col justify-end px-6 pb-20 md:max-w-[440px] md:justify-center md:px-0 md:pb-0 md:pl-11"
       >
         {/* Brief specifies clay for this label; measured against the
             actual poster frame, clay never clears ~2.7:1 against the
@@ -113,6 +114,7 @@ export default function Hero() {
           </Link>
         </motion.div>
       </motion.div>
+      </div>
 
       <div
         className={`absolute bottom-6 left-6 z-10 flex items-center gap-2 text-cream transition-opacity duration-300 md:left-11 ${
