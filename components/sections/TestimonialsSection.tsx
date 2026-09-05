@@ -3,7 +3,6 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Star } from "lucide-react";
-import Arch from "@/components/Arch";
 import { revealContainer, revealUp } from "@/lib/motion";
 
 // Placeholder reviews, to be replaced with real ones (brief section 6).
@@ -11,20 +10,26 @@ const TESTIMONIALS = [
   {
     quote: "The parfaits are everything. So fresh and delicious.",
     name: "Teni A.",
-    image: "/products/parfaits.jpg",
   },
   {
     quote:
       "Ordered for my sister birthday and it was perfect. Beautiful and tastes amazing.",
     name: "Chioma K.",
-    image: "/products/cakes.jpg",
   },
   {
     quote: "Best meat pies in Lagos. Everyone at my event loved it.",
     name: "Daniel O.",
-    image: "/products/meat-pies.jpg",
   },
 ];
+
+function initials(name: string): string {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+}
 
 export default function TestimonialsSection() {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -89,12 +94,12 @@ export default function TestimonialsSection() {
               key={testimonial.name}
               className="flex w-[85%] shrink-0 snap-start gap-5 rounded-panel bg-plaster p-6 shadow-warm md:w-[420px]"
             >
-              <Arch
-                src={testimonial.image}
-                alt=""
-                sizes="88px"
-                className="w-16 shrink-0 md:w-20"
-              />
+              <span
+                aria-hidden="true"
+                className="flex size-16 shrink-0 items-center justify-center rounded-full bg-rose font-display text-product text-berry md:size-20"
+              >
+                {initials(testimonial.name)}
+              </span>
               <div>
                 <div className="flex gap-0.5 text-berry">
                   {Array.from({ length: 5 }).map((_, i) => (
