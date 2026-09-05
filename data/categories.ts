@@ -1,3 +1,4 @@
+export type { Category } from "./products";
 import type { Category } from "./products";
 
 // The seven categories shown in the section 2 scroll strip, in display

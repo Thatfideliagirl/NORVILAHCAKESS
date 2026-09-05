@@ -115,3 +115,26 @@
     max-width: 60ch;
   }
 }
+
+@layer utilities {
+  /*
+    The category strip in section 2, at the client's request, runs
+    continuously end to end rather than sitting still for the user to
+    scroll. Two identical copies of the row sit side by side and the
+    whole thing translates by exactly one copy's width, so it loops
+    with no visible seam. Paused on hover/focus, and skipped entirely
+    for prefers-reduced-motion (see components/sections/CategoryStrip.tsx).
+  */
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  .animate-marquee {
+    animation: marquee 32s linear infinite;
+  }
+}

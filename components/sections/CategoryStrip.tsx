@@ -5,10 +5,37 @@ import { motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import Arch from "@/components/Arch";
 import ScriptAccent from "@/components/ScriptAccent";
-import { categories } from "@/data/categories";
+import { categories, type Category } from "@/data/categories";
 import { revealContainer, revealUp } from "@/lib/motion";
+import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
+
+function CategoryCard({ category }: { category: Category }) {
+  return (
+    <Link
+      href={`/menu?category=${category.slug}`}
+      className="group block w-[150px] shrink-0 md:w-[180px] lg:w-[220px]"
+    >
+      <Arch
+        src={category.image}
+        alt={`${category.name}: ${category.blurb}`}
+        sizes="(min-width: 1024px) 220px, (min-width: 768px) 180px, 150px"
+        imageClassName="transition-transform duration-[450ms] ease-out group-hover:scale-105"
+      />
+      <div className="mt-4 flex items-center justify-between">
+        <span className="font-display text-product text-ink transition-transform duration-[450ms] ease-out group-hover:translate-x-1">
+          {category.name}
+        </span>
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-full border border-clay text-berry">
+          <ArrowUpRight className="size-4" strokeWidth={1.5} />
+        </span>
+      </div>
+    </Link>
+  );
+}
 
 export default function CategoryStrip() {
+  const reducedMotion = usePrefersReducedMotion();
+
   return (
     <motion.section
       variants={revealContainer}
@@ -32,30 +59,24 @@ export default function CategoryStrip() {
           rotate={6}
           className="pointer-events-none absolute -top-12 right-6 hidden w-56 md:block lg:right-11"
         />
-        <div className="flex snap-x snap-mandatory gap-5 overflow-x-auto px-6 pb-4 [scrollbar-width:none] md:gap-6 lg:mx-auto lg:max-w-content [&::-webkit-scrollbar]:hidden">
-          {categories.map((category) => (
-            <Link
-              key={category.slug}
-              href={`/menu?category=${category.slug}`}
-              className="group block w-[150px] shrink-0 snap-start md:w-[180px] lg:w-[220px]"
-            >
-              <Arch
-                src={category.image}
-                alt={`${category.name}: ${category.blurb}`}
-                sizes="(min-width: 1024px) 220px, (min-width: 768px) 180px, 150px"
-                imageClassName="transition-transform duration-[450ms] ease-out group-hover:scale-105"
-              />
-              <div className="mt-4 flex items-center justify-between">
-                <span className="font-display text-product text-ink transition-transform duration-[450ms] ease-out group-hover:translate-x-1">
-                  {category.name}
-                </span>
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-full border border-clay text-berry">
-                  <ArrowUpRight className="size-4" strokeWidth={1.5} />
-                </span>
+
+        {reducedMotion ? (
+          <div className="flex snap-x snap-mandatory gap-5 overflow-x-auto px-6 pb-4 [scrollbar-width:none] md:gap-6 lg:mx-auto lg:max-w-content [&::-webkit-scrollbar]:hidden">
+            {categories.map((category) => (
+              <div key={category.slug} className="snap-start">
+                <CategoryCard category={category} />
               </div>
-            </Link>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="overflow-hidden">
+            <div className="flex w-max animate-marquee gap-5 px-6 pb-4 hover:[animation-play-state:paused] focus-within:[animation-play-state:paused] md:gap-6">
+              {[...categories, ...categories].map((category, i) => (
+                <CategoryCard key={`${category.slug}-${i}`} category={category} />
+              ))}
+            </div>
+          </div>
+        )}
       </motion.div>
 
       <motion.div variants={revealUp} className="mt-12 flex justify-center px-6">
