@@ -27,7 +27,7 @@ export default function NavBar() {
         <div className="mx-auto flex max-w-content items-center justify-between px-6 py-4 lg:px-11">
           <Link href="/">
             <Logo
-              textClassName={`text-2xl transition-colors duration-300 ${
+              textClassName={`text-2xl md:text-[1.75rem] transition-colors duration-300 ${
                 scrolled ? "text-berry" : "text-cream drop-shadow-[0_1px_6px_rgba(58,36,31,0.45)]"
               }`}
             />

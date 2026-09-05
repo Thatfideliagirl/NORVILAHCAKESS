@@ -22,10 +22,11 @@ export type Product = {
   priceNaira: number; // base price, or the lowest variant
   variants?: Variant[];
   // Left undefined until the client supplies real, product-specific
-  // copy: these are food-safety-sensitive (allergens, health claims)
-  // and must never be guessed. The product modal only renders these
-  // sections when they're actually present.
-  healthBenefits?: string[];
+  // copy: these are food-safety-sensitive (allergens, nutrition) and
+  // must never be guessed. "benefits" is deliberately framed as
+  // good-to-know info, not a medical claim -- no "boosts immunity"
+  // style copy. The product modal only renders these when present.
+  benefits?: string[];
   ingredients?: string[];
   available: boolean;
   featured: boolean;

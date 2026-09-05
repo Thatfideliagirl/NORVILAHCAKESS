@@ -17,7 +17,7 @@ export default function FooterSection() {
   return (
     <section id="contact" className="bg-cocoa">
       <div className="mx-auto max-w-content px-6 py-24 text-center md:py-40">
-        <h2 className="font-display text-heading text-plaster">
+        <h2 className="font-display text-subheading text-plaster">
           Still thinking about it?
         </h2>
         <p className="mt-3 font-body text-lead text-plaster/80">
@@ -69,6 +69,12 @@ export default function FooterSection() {
               className="font-body text-small text-plaster/70 hover:text-plaster"
             >
               08166603466
+            </a>
+            <a
+              href="mailto:norvilah9@gmail.com"
+              className="font-body text-small text-plaster/70 hover:text-plaster"
+            >
+              norvilah9@gmail.com
             </a>
           </div>
         </div>

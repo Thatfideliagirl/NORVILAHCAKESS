@@ -41,7 +41,7 @@ export default function CategoryStrip() {
       initial="hidden"
       whileInView="show"
       viewport={{ once: true, amount: 0.2 }}
-      className="bg-cream py-24 md:py-40"
+      className="bg-cream py-24 md:py-32"
     >
       <motion.div variants={revealUp} className="mx-auto max-w-content px-6 text-center">
         <h2 className="font-display text-heading text-berry">

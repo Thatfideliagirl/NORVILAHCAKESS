@@ -55,7 +55,7 @@ export default function MenuHero() {
       >
         <motion.p
           variants={itemVariants}
-          className="inline-block w-fit rounded-pill bg-cream/90 px-4 py-1.5 font-body text-small uppercase tracking-[0.12em] text-ink shadow-warm"
+          className="inline-block w-fit rounded-pill bg-cream/90 px-4 py-1.5 font-body text-eyebrow font-medium uppercase tracking-[0.14em] text-ink shadow-warm"
         >
           Our Menu
         </motion.p>

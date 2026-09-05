@@ -44,7 +44,7 @@ export default function MenuExperience() {
       : menuCategories.find((c) => c.slug === category)?.name ?? "All Items";
 
   return (
-    <section className="bg-cream py-12 md:py-16">
+    <section className="relative z-10 -mt-6 rounded-t-[32px] bg-cream py-12 shadow-[0_-20px_32px_-28px_rgba(58,36,31,0.25)] md:-mt-10 md:py-16">
       <div className="mx-auto max-w-content px-6 lg:px-11">
         <motion.div
           variants={containerVariants}
@@ -59,10 +59,10 @@ export default function MenuExperience() {
           <motion.div variants={itemVariants}>
             <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <p className="inline-block w-fit rounded-pill bg-rose/60 px-4 py-1.5 font-body text-small uppercase tracking-[0.12em] text-berry">
+                <p className="inline-block w-fit rounded-pill bg-rose/60 px-4 py-1.5 font-body text-eyebrow font-medium uppercase tracking-[0.14em] text-berry">
                   Explore Our Menu
                 </p>
-                <h2 className="mt-2 font-display text-product text-berry sm:text-heading">
+                <h2 className="mt-2 font-display text-product text-berry sm:text-subheading">
                   {category === "all" ? "Treat Yourself to Something Special." : categoryName}
                 </h2>
               </div>

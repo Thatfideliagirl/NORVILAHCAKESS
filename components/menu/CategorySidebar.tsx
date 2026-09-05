@@ -37,7 +37,7 @@ export default function CategorySidebar({ selected, onSelect }: CategorySidebarP
         })}
       </div>
 
-      <ul className="hidden flex-col gap-1 md:flex">
+      <ul className="hidden flex-col gap-2 md:flex">
         {items.map((item) => {
           const isSelected = selected === item.slug;
           return (
@@ -49,7 +49,7 @@ export default function CategorySidebar({ selected, onSelect }: CategorySidebarP
                 className={`w-full rounded-panel px-4 py-3 text-left font-body text-small transition-colors duration-200 ${
                   isSelected
                     ? "bg-berry text-cream"
-                    : "text-ink hover:bg-plaster/60"
+                    : "bg-rose/20 text-ink hover:bg-rose/40"
                 }`}
               >
                 {item.name}

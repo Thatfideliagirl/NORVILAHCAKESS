@@ -55,13 +55,13 @@ function ProductDetailPanel({
         <X className="size-5" strokeWidth={1.5} />
       </button>
 
-      <div className="relative h-72 w-full shrink-0 md:h-auto md:w-1/2">
+      <div className="relative h-72 w-full shrink-0 bg-plaster/30 md:h-auto md:w-1/2">
         <Image
           src={product.image}
           alt={product.name}
           fill
           sizes="(min-width: 768px) 50vw, 100vw"
-          className="object-cover"
+          className="object-contain p-6 md:p-10"
         />
         {hasPrevious && (
           <button
@@ -128,15 +128,15 @@ function ProductDetailPanel({
           </div>
         )}
 
-        {(product.healthBenefits?.length || product.ingredients?.length) ? (
+        {(product.benefits?.length || product.ingredients?.length) ? (
           <div className="mt-6 flex flex-col gap-3">
-            {product.healthBenefits && product.healthBenefits.length > 0 && (
+            {product.benefits && product.benefits.length > 0 && (
               <div className="rounded-panel bg-rose/40 p-4">
                 <h3 className="font-body text-small font-semibold uppercase tracking-[0.08em] text-berry">
-                  Health Benefits
+                  Good to Know
                 </h3>
                 <ul className="mt-2 flex flex-col gap-1 font-body text-small text-ink/80">
-                  {product.healthBenefits.map((benefit) => (
+                  {product.benefits.map((benefit) => (
                     <li key={benefit}>{benefit}</li>
                   ))}
                 </ul>

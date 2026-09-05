@@ -60,7 +60,7 @@ export default function TestimonialsSection() {
       className="bg-cream py-24 md:py-40"
     >
       <motion.div variants={revealUp} className="mx-auto max-w-content px-6 text-center">
-        <h2 className="font-display text-heading text-berry">Cravings approved</h2>
+        <h2 className="font-display text-subheading text-berry">Cravings approved</h2>
         <p className="mt-3 font-body text-lead text-ink/70">
           Do not just take our word for it.
         </p>

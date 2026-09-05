@@ -45,7 +45,7 @@ export default function FaqSection() {
   return (
     <section id="questions" className="bg-cream py-24 md:py-40">
       <div className="mx-auto max-w-content px-6 text-center">
-        <h2 className="font-display text-heading text-berry">
+        <h2 className="font-display text-subheading text-berry">
           Questions, before you order
         </h2>
       </div>

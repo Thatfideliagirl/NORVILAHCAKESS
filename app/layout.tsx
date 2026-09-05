@@ -1,20 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Hanken_Grotesk, Sacramento } from "next/font/google";
+import { Cormorant_Garamond, Manrope, Sacramento } from "next/font/google";
 import GrainOverlay from "@/components/GrainOverlay";
 import SmoothScroll from "@/components/SmoothScroll";
 import NavBar from "@/components/NavBar";
 import "./globals.css";
 
-const fraunces = Fraunces({
+const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
-  variable: "--font-fraunces",
-  axes: ["SOFT", "opsz"],
+  variable: "--font-cormorant",
+  weight: ["500", "600", "700"],
   display: "swap",
 });
 
-const hanken = Hanken_Grotesk({
+const manrope = Manrope({
   subsets: ["latin"],
-  variable: "--font-hanken",
+  variable: "--font-manrope",
   display: "swap",
 });
 
@@ -64,7 +64,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${fraunces.variable} ${hanken.variable} ${sacramento.variable}`}
+      className={`${cormorant.variable} ${manrope.variable} ${sacramento.variable}`}
     >
       <body className="bg-cream text-ink antialiased">
         <GrainOverlay />
