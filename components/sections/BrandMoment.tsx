@@ -32,12 +32,11 @@ export default function BrandMoment() {
       {/* Mobile: image on top, text stacked below on plaster. */}
       <div className="relative aspect-[4/5] w-full md:hidden">
         <Image
-          src="/brand-section.jpg"
-          alt="A hand piping pink frosting onto a cupcake against a sunlit plaster wall."
+          src="/brand-section-mobile.jpg"
+          alt="A hand piping pink frosting onto a cupcake, with strawberries and white flowers alongside."
           fill
           sizes="100vw"
           className="object-cover"
-          style={{ objectPosition: "78% center" }}
         />
       </div>
       <div className="bg-plaster px-6 py-16 md:hidden">
