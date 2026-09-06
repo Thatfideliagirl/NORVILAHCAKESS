@@ -9,6 +9,7 @@ import { NAV_LINKS } from "@/lib/nav-links";
 import { useCartCount, useCartHydration } from "@/store/cart";
 import { useScrollPast } from "@/lib/use-scroll-past";
 import MobileDrawer from "@/components/MobileDrawer";
+import CartDropdown from "@/components/CartDropdown";
 import Logo from "@/components/Logo";
 
 // Pages with a full-bleed photo behind the header at scroll 0 -- every
@@ -21,6 +22,7 @@ export default function NavBar() {
   const pathname = usePathname();
   const scrolled = scrolledPast || !HERO_BACKDROP_ROUTES.includes(pathname);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
   const cartCount = useCartCount();
   useCartHydration();
 
@@ -69,8 +71,9 @@ export default function NavBar() {
               <User className="size-5" strokeWidth={1.5} />
             </Link>
 
-            <Link
-              href="/cart"
+            <button
+              type="button"
+              onClick={() => setCartOpen(true)}
               aria-label={`Cart, ${cartCount} item${cartCount === 1 ? "" : "s"}`}
               className={`relative flex size-11 items-center justify-center rounded-full transition-colors duration-300 ${
                 scrolled ? "text-ink" : "bg-cocoa/35 text-cream backdrop-blur-sm drop-shadow-[0_1px_3px_rgba(58,36,31,0.9)]"
@@ -91,7 +94,7 @@ export default function NavBar() {
                   </motion.span>
                 )}
               </AnimatePresence>
-            </Link>
+            </button>
 
             <Link
               href="/menu"
@@ -116,6 +119,7 @@ export default function NavBar() {
       </header>
 
       <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <CartDropdown open={cartOpen} onClose={() => setCartOpen(false)} />
     </>
   );
 }

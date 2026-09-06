@@ -487,3 +487,28 @@ insert into public.faqs (question, answer, sort_order) values
   ('Can I make a custom order?', 'Yes. Message us on WhatsApp with what you have in mind, and we will work out the details together.', 5),
   ('Can I pick up my order?', 'Yes, pickup is available. We will share the address and a pickup time once your order is confirmed.', 6)
 on conflict do nothing;
+
+-- =========================================================
+-- 12. RECEIPTS STORAGE
+-- A private bucket for the payment receipt a customer uploads when
+-- checking out on the website. Each file lives at
+-- "<customer_id>/<order_number>.<ext>" so the RLS policies below can
+-- tell whose file is whose from the path alone.
+-- =========================================================
+insert into storage.buckets (id, name, public)
+values ('receipts', 'receipts', false)
+on conflict (id) do nothing;
+
+drop policy if exists "receipts_owner_read" on storage.objects;
+create policy "receipts_owner_read" on storage.objects
+  for select using (
+    bucket_id = 'receipts'
+    and (auth.uid()::text = (storage.foldername(name))[1] or public.is_admin())
+  );
+
+drop policy if exists "receipts_owner_upload" on storage.objects;
+create policy "receipts_owner_upload" on storage.objects
+  for insert with check (
+    bucket_id = 'receipts'
+    and auth.uid()::text = (storage.foldername(name))[1]
+  );

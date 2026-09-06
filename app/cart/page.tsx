@@ -5,22 +5,8 @@ import Link from "next/link";
 import { Trash2 } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { formatNaira } from "@/lib/format";
-import { buildWhatsAppLink } from "@/lib/whatsapp";
 import { products } from "@/data/products";
 import QuantityStepper from "@/components/menu/QuantityStepper";
-
-function buildOrderMessage(
-  items: ReturnType<typeof useCartStore.getState>["items"],
-  total: number
-): string {
-  const lines = ["Hi Norvilah, I would like to place an order:", ""];
-  for (const item of items) {
-    const variant = item.variantLabel ? ` (${item.variantLabel})` : "";
-    lines.push(`${item.quantity} x ${item.name}${variant} — ${formatNaira(item.priceNaira * item.quantity)}`);
-  }
-  lines.push("", `Total: ${formatNaira(total)}`);
-  return lines.join("\n");
-}
 
 export default function CartPage() {
   const items = useCartStore((state) => state.items);
@@ -99,14 +85,12 @@ export default function CartPage() {
           <p className="font-display text-product text-ink">
             Total: <span className="text-berry">{formatNaira(total)}</span>
           </p>
-          <a
-            href={buildWhatsAppLink(buildOrderMessage(items, total))}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/checkout"
             className="rounded-pill bg-berry px-8 py-3.5 font-body font-medium text-cream transition-colors duration-200 hover:bg-cocoa"
           >
-            Order via WhatsApp
-          </a>
+            Checkout
+          </Link>
         </div>
       </div>
     </main>
