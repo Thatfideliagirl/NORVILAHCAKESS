@@ -1,8 +1,10 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { useAdminSession } from "@/lib/supabase/use-admin-session";
+import { markMessagesRead } from "@/lib/supabase/messages";
 import AdminErrorBanner from "@/components/admin/AdminErrorBanner";
 
 type Conversation = {
@@ -28,10 +30,19 @@ function fetchConversations() {
 }
 
 export default function AdminMessagesPage() {
+  return (
+    <Suspense fallback={null}>
+      <AdminMessagesContent />
+    </Suspense>
+  );
+}
+
+function AdminMessagesContent() {
   const { session } = useAdminSession();
+  const searchParams = useSearchParams();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(searchParams.get("open"));
 
   useEffect(() => {
     fetchConversations().then(({ data, error }) => {
@@ -117,6 +128,7 @@ function ConversationThread({ conversationId, adminId }: { conversationId: strin
 
   useEffect(() => {
     fetchMessages().then(({ data }) => setMessages(data ?? []));
+    markMessagesRead(conversationId, "customer");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);
 

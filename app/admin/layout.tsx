@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAdminSession } from "@/lib/supabase/use-admin-session";
+import Avatar from "@/components/Avatar";
+import NotificationBell from "@/components/NotificationBell";
 
 const NAV_GROUPS = [
   {
@@ -28,12 +30,13 @@ const NAV_GROUPS = [
     links: [
       { href: "/admin/delivery", label: "Delivery" },
       { href: "/admin/settings", label: "Settings" },
+      { href: "/admin/profile", label: "Profile" },
     ],
   },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { status } = useAdminSession();
+  const { status, profile } = useAdminSession();
   const pathname = usePathname();
 
   if (status === "loading") {
@@ -73,6 +76,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="flex min-h-screen bg-cream pt-16">
       <aside className="hidden w-60 shrink-0 border-r border-clay/15 bg-plaster/20 px-4 py-8 md:block">
+        <div className="mb-6 flex items-center justify-between gap-2 px-3">
+          <Link href="/admin/profile" className="flex items-center gap-3">
+            <Avatar url={profile?.avatar_url ?? null} name={profile?.full_name ?? null} size={40} />
+            <div>
+              <p className="font-body text-small font-semibold text-ink">
+                {profile?.full_name || "Admin"}
+              </p>
+              <p className="font-body text-xs text-ink/50">Super Admin</p>
+            </div>
+          </Link>
+          <Link href="/admin/messages">
+            <NotificationBell role="admin" />
+          </Link>
+        </div>
         <nav className="flex flex-col gap-8">
           {NAV_GROUPS.map((group) => (
             <div key={group.label}>

@@ -11,6 +11,7 @@ type Stats = {
   pendingOrders: number;
   totalCustomers: number;
   totalProducts: number;
+  revenue: number;
 };
 
 type RecentOrder = {
@@ -19,6 +20,25 @@ type RecentOrder = {
   status: string;
   total_naira: number;
   channel: string;
+  created_at: string;
+};
+
+type TopProduct = {
+  name: string;
+  quantity: number;
+};
+
+type UnreadMessage = {
+  id: string;
+  body: string;
+  created_at: string;
+  customerName: string | null;
+};
+
+type NewInquiry = {
+  id: string;
+  name: string;
+  occasion: string | null;
   created_at: string;
 };
 
@@ -62,6 +82,9 @@ function dayOfMonth(date: Date): string {
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
+  const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
+  const [unreadMessages, setUnreadMessages] = useState<UnreadMessage[]>([]);
+  const [newInquiries, setNewInquiries] = useState<NewInquiry[]>([]);
   const [signupCounts, setSignupCounts] = useState<{ label: string; dayNum: string; count: number }[]>(
     []
   );
@@ -100,6 +123,14 @@ export default function AdminDashboardPage() {
       .lte("created_at", range.to.toISOString())
       .order("created_at", { ascending: false })
       .limit(8);
+    let revenueQuery = supabase
+      .from("orders")
+      .select("total_naira")
+      .lte("created_at", range.to.toISOString());
+    let topProductsQuery = supabase
+      .from("order_items")
+      .select("product_name, quantity, orders!inner(created_at)")
+      .lte("orders.created_at", range.to.toISOString());
 
     if (range.from) {
       const fromIso = range.from.toISOString();
@@ -107,6 +138,8 @@ export default function AdminDashboardPage() {
       pendingQuery = pendingQuery.gte("created_at", fromIso);
       customersQuery = customersQuery.gte("created_at", fromIso);
       recentQuery = recentQuery.gte("created_at", fromIso);
+      revenueQuery = revenueQuery.gte("created_at", fromIso);
+      topProductsQuery = topProductsQuery.gte("orders.created_at", fromIso);
     }
 
     Promise.all([
@@ -115,20 +148,70 @@ export default function AdminDashboardPage() {
       customersQuery,
       supabase.from("products").select("id", { count: "exact", head: true }),
       recentQuery,
-    ]).then(([orders, pending, customers, products, recent]) => {
-      const firstError = [orders.error, pending.error, customers.error, products.error, recent.error].find(
-        (e) => e
-      );
+      revenueQuery,
+      topProductsQuery,
+    ]).then(([orders, pending, customers, products, recent, revenueRows, itemRows]) => {
+      const firstError = [
+        orders.error,
+        pending.error,
+        customers.error,
+        products.error,
+        recent.error,
+        revenueRows.error,
+        itemRows.error,
+      ].find((e) => e);
       if (firstError) setLoadError(firstError.message);
       setStats({
         totalOrders: orders.count ?? 0,
         pendingOrders: pending.count ?? 0,
         totalCustomers: customers.count ?? 0,
         totalProducts: products.count ?? 0,
+        revenue: (revenueRows.data ?? []).reduce((sum, row) => sum + row.total_naira, 0),
       });
       setRecentOrders(recent.data ?? []);
+
+      const totals = new Map<string, number>();
+      for (const row of itemRows.data ?? []) {
+        totals.set(row.product_name, (totals.get(row.product_name) ?? 0) + row.quantity);
+      }
+      setTopProducts(
+        Array.from(totals.entries())
+          .map(([name, quantity]) => ({ name, quantity }))
+          .sort((a, b) => b.quantity - a.quantity)
+          .slice(0, 5)
+      );
     });
   }, [range]);
+
+  useEffect(() => {
+    supabase
+      .from("messages")
+      .select("id, body, created_at, conversations(profiles(full_name))")
+      .eq("sender_type", "customer")
+      .is("read_at", null)
+      .order("created_at", { ascending: false })
+      .limit(5)
+      .returns<
+        { id: string; body: string; created_at: string; conversations: { profiles: { full_name: string | null } | null } | null }[]
+      >()
+      .then(({ data }) => {
+        setUnreadMessages(
+          (data ?? []).map((row) => ({
+            id: row.id,
+            body: row.body,
+            created_at: row.created_at,
+            customerName: row.conversations?.profiles?.full_name ?? null,
+          }))
+        );
+      });
+    supabase
+      .from("event_inquiries")
+      .select("id, name, occasion, created_at")
+      .eq("status", "new")
+      .order("created_at", { ascending: false })
+      .limit(5)
+      .then(({ data }) => setNewInquiries(data ?? []));
+  }, []);
 
   useEffect(() => {
     const since = new Date(startOfToday().getTime() - 13 * 86400000);
@@ -158,6 +241,7 @@ export default function AdminDashboardPage() {
 
   const cards = [
     { label: "Orders", value: stats?.totalOrders },
+    { label: "Revenue", value: stats ? formatNaira(stats.revenue) : undefined },
     { label: "Pending orders", value: stats?.pendingOrders },
     { label: "New customers", value: stats?.totalCustomers },
     { label: "Products (all time)", value: stats?.totalProducts },
@@ -209,7 +293,7 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {cards.map((card) => (
           <div key={card.label} className="rounded-panel bg-plaster/25 p-5">
             <p className="font-body text-small text-ink/60">{card.label}</p>
@@ -243,6 +327,62 @@ export default function AdminDashboardPage() {
               </span>
             </div>
           ))}
+        </div>
+      </div>
+
+      <div className="mt-10 grid gap-6 lg:grid-cols-2">
+        <div>
+          <p className="font-display text-product text-ink">Top products</p>
+          <div className="mt-4 flex flex-col gap-2 rounded-panel bg-cream p-5 shadow-warm">
+            {topProducts.length === 0 && (
+              <p className="py-4 text-center font-body text-small text-ink/50">
+                No sales in this range yet.
+              </p>
+            )}
+            {topProducts.map((product) => (
+              <div key={product.name} className="flex items-center justify-between font-body text-small">
+                <span className="text-ink">{product.name}</span>
+                <span className="text-ink/60">{product.quantity} sold</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="font-display text-product text-ink">Unread inquiries &amp; messages</p>
+          <div className="mt-4 flex flex-col gap-2 rounded-panel bg-cream p-5 shadow-warm">
+            {newInquiries.length === 0 && unreadMessages.length === 0 && (
+              <p className="py-4 text-center font-body text-small text-ink/50">All caught up.</p>
+            )}
+            {newInquiries.map((inquiry) => (
+              <Link
+                key={`inquiry-${inquiry.id}`}
+                href="/admin/inquiries"
+                className="flex items-center justify-between rounded-panel px-2 py-1.5 font-body text-small transition-colors hover:bg-plaster/30"
+              >
+                <span className="text-ink">
+                  {inquiry.occasion ? `${inquiry.occasion} inquiry` : "New inquiry"} · {inquiry.name}
+                </span>
+                <span className="shrink-0 rounded-pill bg-berry/15 px-3 py-1 text-xs font-semibold text-berry">
+                  New
+                </span>
+              </Link>
+            ))}
+            {unreadMessages.map((message) => (
+              <Link
+                key={`message-${message.id}`}
+                href="/admin/messages"
+                className="flex items-center justify-between gap-3 rounded-panel px-2 py-1.5 font-body text-small transition-colors hover:bg-plaster/30"
+              >
+                <span className="min-w-0 flex-1 truncate text-ink">
+                  {message.customerName ?? "Customer"}: {message.body}
+                </span>
+                <span className="shrink-0 rounded-pill bg-berry/15 px-3 py-1 text-xs font-semibold text-berry">
+                  Unread
+                </span>
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
 

@@ -542,3 +542,88 @@ create policy "product_images_admin_update" on storage.objects
 drop policy if exists "product_images_admin_delete" on storage.objects;
 create policy "product_images_admin_delete" on storage.objects
   for delete using (bucket_id = 'product-images' and public.is_admin());
+
+-- =========================================================
+-- 14. AVATARS STORAGE
+-- A public bucket any signed-in user (customer or admin) can upload
+-- their own profile photo to, at "<user_id>/<filename>" so RLS can
+-- tell whose file is whose from the path alone.
+-- =========================================================
+insert into storage.buckets (id, name, public)
+values ('avatars', 'avatars', true)
+on conflict (id) do nothing;
+
+drop policy if exists "avatars_public_read" on storage.objects;
+create policy "avatars_public_read" on storage.objects
+  for select using (bucket_id = 'avatars');
+
+drop policy if exists "avatars_owner_write" on storage.objects;
+create policy "avatars_owner_write" on storage.objects
+  for insert with check (
+    bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+drop policy if exists "avatars_owner_update" on storage.objects;
+create policy "avatars_owner_update" on storage.objects
+  for update using (
+    bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+-- =========================================================
+-- 15. SAVED ADDRESSES
+-- A customer's own address book, used at checkout so repeat orders
+-- don't need retyping. Independent of delivery_locations (the fee
+-- zones) -- this is the street address itself.
+-- =========================================================
+create table if not exists public.saved_addresses (
+  id uuid primary key default gen_random_uuid(),
+  customer_id uuid not null references public.profiles (id) on delete cascade,
+  label text not null default 'Home',
+  address text not null,
+  is_default boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+alter table public.saved_addresses enable row level security;
+
+drop policy if exists "saved_addresses_owner_all" on public.saved_addresses;
+create policy "saved_addresses_owner_all" on public.saved_addresses
+  for all using (customer_id = auth.uid() or public.is_admin())
+  with check (customer_id = auth.uid() or public.is_admin());
+
+-- =========================================================
+-- 16. FAVOURITES
+-- A customer's saved/wishlisted products, keyed by product slug (not
+-- the products table id) so a favourite still makes sense even for
+-- the static catalogue products that only exist in data/products.ts.
+-- =========================================================
+create table if not exists public.favourites (
+  id uuid primary key default gen_random_uuid(),
+  customer_id uuid not null references public.profiles (id) on delete cascade,
+  product_slug text not null,
+  created_at timestamptz not null default now(),
+  unique (customer_id, product_slug)
+);
+
+alter table public.favourites enable row level security;
+
+drop policy if exists "favourites_owner_all" on public.favourites;
+create policy "favourites_owner_all" on public.favourites
+  for all using (customer_id = auth.uid() or public.is_admin())
+  with check (customer_id = auth.uid() or public.is_admin());
+
+-- =========================================================
+-- 17. MESSAGES: MARK AS READ
+-- The messages table had no update policy, so a customer or admin
+-- opening a thread could never mark the other side's messages read
+-- (needed for the unread-count notification bell).
+-- =========================================================
+drop policy if exists "messages_update_via_conversation" on public.messages;
+create policy "messages_update_via_conversation" on public.messages
+  for update using (
+    exists (
+      select 1 from public.conversations c
+      where c.id = messages.conversation_id
+        and (c.customer_id = auth.uid() or public.is_admin())
+    )
+  );

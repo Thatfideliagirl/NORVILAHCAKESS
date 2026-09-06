@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, ShoppingBag } from "lucide-react";
+import { Check, Heart, ShoppingBag } from "lucide-react";
 import type { Product } from "@/data/products";
 import { useCartStore } from "@/store/cart";
 import { formatNaira } from "@/lib/format";
 import { priceLabel } from "@/lib/menu";
+import { useFavourites } from "@/lib/supabase/use-favourites";
 import QuantityStepper from "@/components/menu/QuantityStepper";
 
 export default function ProductRow({
@@ -18,9 +20,20 @@ export default function ProductRow({
   onOpen: () => void;
 }) {
   const addItem = useCartStore((state) => state.addItem);
+  const router = useRouter();
+  const { isLoggedIn, isFavourite, toggle } = useFavourites();
   const [variantId, setVariantId] = useState(product.variants?.[0]?.id);
   const [quantity, setQuantity] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
+
+  async function handleToggleFavourite(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!isLoggedIn) {
+      router.push("/account");
+      return;
+    }
+    toggle(product.slug);
+  }
 
   const selectedVariant = product.variants?.find((v) => v.id === variantId);
   const unitPrice = selectedVariant?.priceNaira ?? product.priceNaira;
@@ -56,6 +69,14 @@ export default function ProductRow({
           sizes="112px"
           className="object-cover"
         />
+        <button
+          type="button"
+          onClick={handleToggleFavourite}
+          aria-label={isFavourite(product.slug) ? "Remove from favourites" : "Save to favourites"}
+          className="absolute right-1.5 top-1.5 flex size-7 items-center justify-center rounded-full bg-cream/80 text-berry backdrop-blur-sm"
+        >
+          <Heart className={`size-3.5 ${isFavourite(product.slug) ? "fill-current" : ""}`} strokeWidth={1.75} />
+        </button>
       </div>
 
       <div className="min-w-0 flex-1">

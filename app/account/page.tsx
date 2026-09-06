@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 import { categories } from "@/data/categories";
@@ -18,7 +19,9 @@ const inputClasses =
   "w-full rounded-panel border border-clay/25 bg-cream px-4 py-3 font-body text-body text-ink placeholder:text-ink/40 focus-visible:border-berry";
 
 export default function AccountPage() {
+  const router = useRouter();
   const [session, setSession] = useState<Session | null | undefined>(undefined);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [mode, setMode] = useState<"signIn" | "signUp">("signIn");
   const [checkEmailFor, setCheckEmailFor] = useState<string | null>(null);
 
@@ -30,7 +33,24 @@ export default function AccountPage() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  if (session === undefined) {
+  useEffect(() => {
+    if (!session) {
+      Promise.resolve().then(() => setIsAdmin(null));
+      return;
+    }
+    supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", session.user.id)
+      .single()
+      .then(({ data }) => setIsAdmin(data?.role === "admin"));
+  }, [session]);
+
+  useEffect(() => {
+    if (isAdmin) router.replace("/admin");
+  }, [isAdmin, router]);
+
+  if (session === undefined || (session && isAdmin === null) || isAdmin) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-cream px-6 pt-24">
         <p className="font-body text-body text-ink/60">Loading...</p>

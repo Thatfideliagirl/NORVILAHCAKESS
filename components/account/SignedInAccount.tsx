@@ -3,10 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { Session } from "@supabase/supabase-js";
-import { Pencil } from "lucide-react";
+import { Heart, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { formatNaira } from "@/lib/format";
 import { OCCASIONS, type Occasion } from "@/lib/whatsapp";
+import { markMessagesRead } from "@/lib/supabase/messages";
+import Avatar from "@/components/Avatar";
+import NotificationBell from "@/components/NotificationBell";
+import ProfileSection from "@/components/account/ProfileSection";
 
 type Profile = {
   full_name: string | null;
@@ -14,6 +18,7 @@ type Profile = {
   phone: string | null;
   location: string | null;
   role: string | null;
+  avatar_url: string | null;
   created_at: string;
 };
 
@@ -25,12 +30,28 @@ type Order = {
   created_at: string;
 };
 
+const PAST_STATUSES = ["delivered", "cancelled"];
+
 type Inquiry = {
   id: string;
   occasion: string | null;
   event_date: string | null;
   status: string;
   created_at: string;
+};
+
+const OPEN_INQUIRY_STATUSES = ["new", "contacted", "in_progress"];
+
+type SavedAddress = {
+  id: string;
+  label: string;
+  address: string;
+  is_default: boolean;
+};
+
+type Favourite = {
+  id: string;
+  product_slug: string;
 };
 
 type Conversation = {
@@ -46,7 +67,7 @@ type Message = {
   created_at: string;
 };
 
-const TABS = ["Overview", "Orders", "Inquiries", "Messages", "Profile"] as const;
+const TABS = ["Overview", "My Orders", "My Inquiries", "Messages", "Addresses", "Favourites", "Profile Settings"] as const;
 type Tab = (typeof TABS)[number];
 
 const inputClasses =
@@ -58,17 +79,24 @@ export default function SignedInAccount({ session }: { session: Session }) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [inquiryFormOpen, setInquiryFormOpen] = useState(false);
+  const [addresses, setAddresses] = useState<SavedAddress[]>([]);
+  const [favourites, setFavourites] = useState<Favourite[]>([]);
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const messagesLoaded = useRef(false);
 
-  useEffect(() => {
-    supabase
+  function fetchProfile() {
+    return supabase
       .from("profiles")
-      .select("full_name, email, phone, location, role, created_at")
+      .select("full_name, email, phone, location, role, avatar_url, created_at")
       .eq("id", session.user.id)
       .single()
       .then(({ data }) => setProfile(data));
+  }
+
+  useEffect(() => {
+    fetchProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.user.id]);
 
   function fetchOrders() {
@@ -89,9 +117,28 @@ export default function SignedInAccount({ session }: { session: Session }) {
       .then(({ data }) => setInquiries(data ?? []));
   }
 
+  function fetchAddresses() {
+    return supabase
+      .from("saved_addresses")
+      .select("id, label, address, is_default")
+      .eq("customer_id", session.user.id)
+      .order("is_default", { ascending: false })
+      .then(({ data }) => setAddresses(data ?? []));
+  }
+
+  function fetchFavourites() {
+    return supabase
+      .from("favourites")
+      .select("id, product_slug")
+      .eq("customer_id", session.user.id)
+      .then(({ data }) => setFavourites(data ?? []));
+  }
+
   useEffect(() => {
     fetchOrders();
     fetchInquiries();
+    fetchAddresses();
+    fetchFavourites();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.user.id]);
 
@@ -114,26 +161,42 @@ export default function SignedInAccount({ session }: { session: Session }) {
           .eq("conversation_id", convo.id)
           .order("created_at", { ascending: true })
           .then(({ data }) => setMessages(data ?? []));
+        markMessagesRead(convo.id, "admin");
       });
   }, [tab, session.user.id]);
 
-  const totalSpent = orders.reduce((sum, order) => sum + order.total_naira, 0);
-  const openInquiries = inquiries.filter((i) => i.status !== "completed").length;
-  const memberSince = profile
-    ? new Date(profile.created_at).toLocaleDateString(undefined, { month: "long", year: "numeric" })
-    : "";
+  const activeOrders = orders.filter((o) => !PAST_STATUSES.includes(o.status)).length;
+  const pastOrders = orders.filter((o) => PAST_STATUSES.includes(o.status)).length;
+  const inquiriesInProgress = inquiries.filter((i) => OPEN_INQUIRY_STATUSES.includes(i.status)).length;
 
   return (
     <main className="min-h-screen bg-cream px-6 pb-24 pt-32">
       <div className="mx-auto max-w-content">
-        <p className="font-display text-heading text-berry">
-          Welcome, {profile?.full_name?.split(" ")[0] || "there"}{" "}
-          <span aria-hidden="true">👋</span>
-        </p>
-        <p className="mt-2 font-body text-lead text-ink/70">
-          {profile?.email}
-          {profile?.phone ? ` · ${profile.phone}` : ""}
-        </p>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Avatar url={profile?.avatar_url ?? null} name={profile?.full_name ?? null} size={56} />
+            <div>
+              <p className="font-display text-heading text-berry">
+                Welcome, {profile?.full_name?.split(" ")[0] || "there"}{" "}
+                <span aria-hidden="true">👋</span>
+              </p>
+              <p className="mt-1 font-body text-small text-ink/70">
+                {profile?.email}
+                {profile?.phone ? ` · ${profile.phone}` : ""}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <NotificationBell role="customer" />
+            <button
+              type="button"
+              onClick={() => setTab("Messages")}
+              className="hidden rounded-pill bg-berry px-5 py-2.5 font-body text-small font-medium text-cream sm:inline-block"
+            >
+              Need help? Chat with us
+            </button>
+          </div>
+        </div>
 
         {profile?.role === "admin" && (
           <Link
@@ -168,21 +231,24 @@ export default function SignedInAccount({ session }: { session: Session }) {
         <div className="mt-8">
           {tab === "Overview" && (
             <div>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                 <div className="rounded-panel bg-plaster/25 p-5">
-                  <p className="font-body text-small text-ink/60">Orders placed</p>
-                  <p className="mt-2 font-display text-product text-ink">{orders.length}</p>
+                  <p className="font-body text-small text-ink/60">Active orders</p>
+                  <p className="mt-2 font-display text-product text-ink">{activeOrders}</p>
                 </div>
                 <div className="rounded-panel bg-plaster/25 p-5">
-                  <p className="font-body text-small text-ink/60">Total spent</p>
-                  <p className="mt-2 font-display text-product text-ink">{formatNaira(totalSpent)}</p>
+                  <p className="font-body text-small text-ink/60">Inquiry in progress</p>
+                  <p className="mt-2 font-display text-product text-ink">{inquiriesInProgress}</p>
                 </div>
                 <div className="rounded-panel bg-plaster/25 p-5">
-                  <p className="font-body text-small text-ink/60">Open inquiries</p>
-                  <p className="mt-2 font-display text-product text-ink">{openInquiries}</p>
+                  <p className="font-body text-small text-ink/60">Past orders</p>
+                  <p className="mt-2 font-display text-product text-ink">{pastOrders}</p>
+                </div>
+                <div className="rounded-panel bg-plaster/25 p-5">
+                  <p className="font-body text-small text-ink/60">Saved items</p>
+                  <p className="mt-2 font-display text-product text-ink">{favourites.length}</p>
                 </div>
               </div>
-              <p className="mt-6 font-body text-small text-ink/50">Member since {memberSince}</p>
 
               {orders.length > 0 && (
                 <div className="mt-8">
@@ -203,7 +269,7 @@ export default function SignedInAccount({ session }: { session: Session }) {
             </div>
           )}
 
-          {tab === "Orders" && (
+          {tab === "My Orders" && (
             <div className="flex flex-col gap-3">
               {orders.length === 0 && <EmptyState text="No orders yet." />}
               {orders.map((order) => (
@@ -222,7 +288,7 @@ export default function SignedInAccount({ session }: { session: Session }) {
             </div>
           )}
 
-          {tab === "Inquiries" && (
+          {tab === "My Inquiries" && (
             <div>
               <div className="flex items-center justify-between">
                 <p className="font-display text-product text-ink">Your inquiries</p>
@@ -275,7 +341,15 @@ export default function SignedInAccount({ session }: { session: Session }) {
             />
           )}
 
-          {tab === "Profile" && profile && (
+          {tab === "Addresses" && (
+            <AddressesPanel session={session} addresses={addresses} onChanged={fetchAddresses} />
+          )}
+
+          {tab === "Favourites" && (
+            <FavouritesPanel favourites={favourites} onChanged={fetchFavourites} />
+          )}
+
+          {tab === "Profile Settings" && profile && (
             <ProfileSection userId={session.user.id} profile={profile} onSaved={setProfile} />
           )}
         </div>
@@ -506,109 +580,148 @@ function MessagesPanel({
   );
 }
 
-function ProfileSection({
-  userId,
-  profile,
-  onSaved,
+function AddressesPanel({
+  session,
+  addresses,
+  onChanged,
 }: {
-  userId: string;
-  profile: Profile;
-  onSaved: (profile: Profile) => void;
+  session: Session;
+  addresses: SavedAddress[];
+  onChanged: () => void;
 }) {
-  const [editing, setEditing] = useState(false);
-
-  if (!editing) {
-    return (
-      <div className="max-w-md rounded-panel bg-plaster/25 p-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="font-display text-product text-ink">{profile.full_name || "Add your name"}</p>
-            <p className="mt-1 font-body text-small text-ink/60">{profile.email}</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            aria-label="Edit profile"
-            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-cream text-ink/70 transition-colors hover:text-berry"
-          >
-            <Pencil className="size-4" strokeWidth={1.75} />
-          </button>
-        </div>
-        <dl className="mt-5 flex flex-col gap-2 font-body text-small text-ink/70">
-          <div className="flex justify-between">
-            <dt className="text-ink/50">Phone</dt>
-            <dd>{profile.phone || "-"}</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-ink/50">Location</dt>
-            <dd>{profile.location || "-"}</dd>
-          </div>
-        </dl>
-      </div>
-    );
-  }
-
-  return (
-    <ProfileForm
-      userId={userId}
-      profile={profile}
-      onSaved={(updated) => {
-        onSaved(updated);
-        setEditing(false);
-      }}
-      onCancel={() => setEditing(false)}
-    />
-  );
-}
-
-function ProfileForm({
-  userId,
-  profile,
-  onSaved,
-  onCancel,
-}: {
-  userId: string;
-  profile: Profile;
-  onSaved: (profile: Profile) => void;
-  onCancel: () => void;
-}) {
-  const [fullName, setFullName] = useState(profile.full_name ?? "");
-  const [phone, setPhone] = useState(profile.phone ?? "");
-  const [location, setLocation] = useState(profile.location ?? "");
+  const [label, setLabel] = useState("Home");
+  const [address, setAddress] = useState("");
   const [saving, setSaving] = useState(false);
 
-  async function onSubmit(e: React.FormEvent) {
+  async function addAddress(e: React.FormEvent) {
     e.preventDefault();
+    if (!address.trim()) return;
     setSaving(true);
-    await supabase
-      .from("profiles")
-      .update({ full_name: fullName, phone, location })
-      .eq("id", userId);
+    await supabase.from("saved_addresses").insert({
+      customer_id: session.user.id,
+      label: label.trim() || "Home",
+      address: address.trim(),
+      is_default: addresses.length === 0,
+    });
+    setLabel("Home");
+    setAddress("");
     setSaving(false);
-    onSaved({ ...profile, full_name: fullName, phone, location });
+    onChanged();
+  }
+
+  async function removeAddress(id: string) {
+    await supabase.from("saved_addresses").delete().eq("id", id);
+    onChanged();
+  }
+
+  async function makeDefault(id: string) {
+    await supabase.from("saved_addresses").update({ is_default: false }).eq("customer_id", session.user.id);
+    await supabase.from("saved_addresses").update({ is_default: true }).eq("id", id);
+    onChanged();
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex max-w-md flex-col gap-4">
-      <input value={fullName} onChange={(e) => setFullName(e.target.value)} className={inputClasses} placeholder="Full name" />
-      <input value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClasses} placeholder="Phone" />
-      <input value={location} onChange={(e) => setLocation(e.target.value)} className={inputClasses} placeholder="Location" />
-      <div className="flex items-center gap-3">
+    <div>
+      <form onSubmit={addAddress} className="flex flex-col gap-3 sm:flex-row">
+        <input
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder="Label (Home, Work...)"
+          className={`${inputClasses} sm:w-40`}
+        />
+        <input
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          placeholder="Full delivery address"
+          className={`${inputClasses} flex-1`}
+        />
         <button
           type="submit"
           disabled={saving}
-          className="rounded-pill bg-cocoa px-8 py-3 font-body font-medium text-cream disabled:opacity-60"
+          className="shrink-0 rounded-pill bg-cocoa px-6 py-3 font-body text-small font-medium text-cream disabled:opacity-60"
         >
-          {saving ? "Saving..." : "Save changes"}
+          Add
         </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="font-body text-small font-medium text-ink/60"
-        >
-          Cancel
-        </button>
+      </form>
+
+      <div className="mt-6 flex flex-col gap-3">
+        {addresses.length === 0 && <EmptyState text="No saved addresses yet." />}
+        {addresses.map((a) => (
+          <div key={a.id} className="flex items-center justify-between rounded-panel bg-plaster/25 p-5">
+            <div>
+              <p className="font-display text-body text-ink">
+                {a.label}
+                {a.is_default && (
+                  <span className="ml-2 rounded-pill bg-berry/15 px-3 py-1 text-xs font-semibold text-berry">
+                    Default
+                  </span>
+                )}
+              </p>
+              <p className="mt-1 font-body text-small text-ink/60">{a.address}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              {!a.is_default && (
+                <button
+                  type="button"
+                  onClick={() => makeDefault(a.id)}
+                  className="font-body text-small font-medium text-berry"
+                >
+                  Make default
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => removeAddress(a.id)}
+                aria-label="Remove address"
+                className="text-ink/40 transition-colors hover:text-berry"
+              >
+                <Trash2 className="size-4" strokeWidth={1.75} />
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
-    </form>
+    </div>
+  );
+}
+
+function FavouritesPanel({
+  favourites,
+  onChanged,
+}: {
+  favourites: Favourite[];
+  onChanged: () => void;
+}) {
+  async function remove(id: string) {
+    await supabase.from("favourites").delete().eq("id", id);
+    onChanged();
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      {favourites.length === 0 && (
+        <EmptyState text="No favourites yet — tap the heart on a product in the menu to save it here." />
+      )}
+      {favourites.map((favourite) => (
+        <div key={favourite.id} className="flex items-center justify-between rounded-panel bg-plaster/25 p-5">
+          <p className="font-body text-body capitalize text-ink">
+            {favourite.product_slug.replace(/-/g, " ")}
+          </p>
+          <div className="flex items-center gap-3">
+            <Link href="/menu" className="font-body text-small font-medium text-berry">
+              View in menu
+            </Link>
+            <button
+              type="button"
+              onClick={() => remove(favourite.id)}
+              aria-label="Remove favourite"
+              className="text-ink/40 transition-colors hover:text-berry"
+            >
+              <Heart className="size-4 fill-current" strokeWidth={1.75} />
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

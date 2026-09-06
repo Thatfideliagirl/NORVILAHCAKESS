@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { MessageCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import AdminErrorBanner from "@/components/admin/AdminErrorBanner";
 
@@ -26,8 +28,32 @@ function toCsv(customers: Customer[]): string {
 }
 
 export default function AdminCustomersPage() {
+  const router = useRouter();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [startingChatFor, setStartingChatFor] = useState<string | null>(null);
+
+  async function startChat(customerId: string) {
+    setStartingChatFor(customerId);
+    const { data: existing } = await supabase
+      .from("conversations")
+      .select("id")
+      .eq("customer_id", customerId)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    let conversationId = existing?.id;
+    if (!conversationId) {
+      const { data: created } = await supabase
+        .from("conversations")
+        .insert({ customer_id: customerId })
+        .select("id")
+        .single();
+      conversationId = created?.id;
+    }
+    setStartingChatFor(null);
+    if (conversationId) router.push(`/admin/messages?open=${conversationId}`);
+  }
 
   useEffect(() => {
     supabase
@@ -74,12 +100,13 @@ export default function AdminCustomersPage() {
               <th className="px-4 py-3 font-medium">Email</th>
               <th className="px-4 py-3 font-medium">Phone</th>
               <th className="px-4 py-3 font-medium">Location</th>
+              <th className="px-4 py-3 font-medium"></th>
             </tr>
           </thead>
           <tbody>
             {customers.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-ink/50">
+                <td colSpan={5} className="px-4 py-8 text-center text-ink/50">
                   No customers yet.
                 </td>
               </tr>
@@ -90,6 +117,17 @@ export default function AdminCustomersPage() {
                 <td className="px-4 py-3 text-ink/70">{customer.email}</td>
                 <td className="px-4 py-3 text-ink/70">{customer.phone ?? "-"}</td>
                 <td className="px-4 py-3 text-ink/70">{customer.location ?? "-"}</td>
+                <td className="px-4 py-3">
+                  <button
+                    type="button"
+                    onClick={() => startChat(customer.id)}
+                    disabled={startingChatFor === customer.id}
+                    aria-label={`Chat with ${customer.full_name ?? "customer"}`}
+                    className="flex size-8 items-center justify-center rounded-full bg-berry/10 text-berry transition-colors hover:bg-berry/20 disabled:opacity-60"
+                  >
+                    <MessageCircle className="size-4" strokeWidth={1.75} />
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
