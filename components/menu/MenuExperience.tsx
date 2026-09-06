@@ -4,10 +4,9 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Search } from "lucide-react";
-import { products } from "@/data/products";
 import { menuCategories } from "@/data/categories";
 import { filterAndSortProducts, SORT_OPTIONS, type SortOption } from "@/lib/menu";
-import { useProductImageOverrides } from "@/lib/supabase/product-images";
+import { useStorefrontProducts } from "@/lib/supabase/storefront-products";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 import { revealContainer, revealUp } from "@/lib/motion";
 import CategorySidebar from "@/components/menu/CategorySidebar";
@@ -30,19 +29,11 @@ export default function MenuExperience() {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortOption>("featured");
   const [activeProductId, setActiveProductId] = useState<string | null>(null);
-  const imageOverrides = useProductImageOverrides();
-
-  const productsWithImages = useMemo(
-    () =>
-      products.map((product) =>
-        imageOverrides[product.slug] ? { ...product, image: imageOverrides[product.slug] } : product
-      ),
-    [imageOverrides]
-  );
+  const products = useStorefrontProducts();
 
   const filteredProducts = useMemo(
-    () => filterAndSortProducts(productsWithImages, { category, query, sort }),
-    [productsWithImages, category, query, sort]
+    () => filterAndSortProducts(products, { category, query, sort }),
+    [products, category, query, sort]
   );
 
   const activeIndex = filteredProducts.findIndex((p) => p.id === activeProductId);

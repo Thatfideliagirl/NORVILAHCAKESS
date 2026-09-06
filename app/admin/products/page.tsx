@@ -20,6 +20,11 @@ type Product = {
   categories: { name: string } | null;
 };
 
+type Category = {
+  id: string;
+  name: string;
+};
+
 function fetchProducts() {
   return supabase
     .from("products")
@@ -30,12 +35,22 @@ function fetchProducts() {
     .returns<Product[]>();
 }
 
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
 const inputClasses =
   "w-full rounded-panel border border-clay/25 bg-cream px-3 py-2 font-body text-small text-ink";
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -43,6 +58,11 @@ export default function AdminProductsPage() {
       if (error) setLoadError(error.message);
       setProducts(data ?? []);
     });
+    supabase
+      .from("categories")
+      .select("id, name")
+      .order("sort_order")
+      .then(({ data }) => setCategories(data ?? []));
   }, []);
 
   async function toggleActive(product: Product) {
@@ -57,13 +77,35 @@ export default function AdminProductsPage() {
     setEditingId(null);
   }
 
+  function onAdded(created: Product) {
+    setProducts((current) => [...current, created].sort((a, b) => a.name.localeCompare(b.name)));
+    setAdding(false);
+  }
+
   return (
     <div>
-      <p className="font-display text-heading text-berry">Products</p>
-      <p className="mt-2 font-body text-body text-ink/60">
-        Turn a product off to hide it from the site without deleting it. Edit to update the
-        description, ingredients, or Good to Know copy.
-      </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="font-display text-heading text-berry">Products</p>
+          <p className="mt-2 font-body text-body text-ink/60">
+            Turn a product off to hide it from the site without deleting it. Edit to update the
+            description, ingredients, or Good to Know copy.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setAdding((current) => !current)}
+          className="shrink-0 rounded-pill bg-cocoa px-6 py-2.5 font-body text-small font-medium text-cream"
+        >
+          {adding ? "Close" : "Add Product"}
+        </button>
+      </div>
+
+      {adding && (
+        <div className="mt-6 rounded-panel bg-plaster/25 p-5">
+          <AddProductForm categories={categories} onAdded={onAdded} />
+        </div>
+      )}
 
       {loadError && <AdminErrorBanner message={loadError} />}
 
@@ -284,6 +326,182 @@ function EditProductForm({
         className="self-start rounded-pill bg-cocoa px-6 py-2 font-body text-small font-medium text-cream disabled:opacity-60"
       >
         {saving ? "Saving..." : "Save changes"}
+      </button>
+    </form>
+  );
+}
+
+function AddProductForm({
+  categories,
+  onAdded,
+}: {
+  categories: Category[];
+  onAdded: (product: Product) => void;
+}) {
+  const [name, setName] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [priceNaira, setPriceNaira] = useState("");
+  const [description, setDescription] = useState("");
+  const [ingredients, setIngredients] = useState("");
+  const [benefits, setBenefits] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const price = Number(priceNaira);
+    if (!name.trim() || !categoryId || !Number.isFinite(price) || price <= 0) {
+      setError("Please fill in a name, category and a valid price.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const slug = slugify(name);
+      let imageUrl: string | null = null;
+      if (imageFile) {
+        const ext = imageFile.name.split(".").pop();
+        const path = `${slug}-${Date.now()}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from("product-images")
+          .upload(path, imageFile);
+        if (uploadError) throw uploadError;
+        imageUrl = supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl;
+      }
+      const insertPayload = {
+        slug,
+        name: name.trim(),
+        category_id: categoryId,
+        description: description.trim() || null,
+        ingredients: ingredients
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+        benefits: benefits
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+        image_url: imageUrl,
+        price_naira: price,
+      };
+      const { data: created, error: insertError } = await supabase
+        .from("products")
+        .insert(insertPayload)
+        .select("id, slug, name, description, ingredients, benefits, image_url, price_naira, active, featured, categories(name)")
+        .single<Product>();
+      if (insertError) throw insertError;
+      onAdded(created);
+      setName("");
+      setCategoryId("");
+      setPriceNaira("");
+      setDescription("");
+      setIngredients("");
+      setBenefits("");
+      setImageFile(null);
+    } catch {
+      setError("Could not add this product. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="flex max-w-2xl flex-col gap-3">
+      <p className="font-body text-small font-semibold text-ink/70">New product</p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label className="font-body text-xs font-medium uppercase tracking-wide text-ink/50">
+            Name
+          </label>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className={`${inputClasses} mt-1`}
+          />
+        </div>
+        <div>
+          <label className="font-body text-xs font-medium uppercase tracking-wide text-ink/50">
+            Category
+          </label>
+          <select
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            className={`${inputClasses} mt-1`}
+          >
+            <option value="" disabled>
+              Choose a category
+            </option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <div>
+        <label className="font-body text-xs font-medium uppercase tracking-wide text-ink/50">
+          Photo
+        </label>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+          className="mt-1 font-body text-small text-ink"
+        />
+      </div>
+      <div>
+        <label className="font-body text-xs font-medium uppercase tracking-wide text-ink/50">
+          Description
+        </label>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={2}
+          className={`${inputClasses} mt-1 resize-none`}
+        />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label className="font-body text-xs font-medium uppercase tracking-wide text-ink/50">
+            Ingredients (comma separated)
+          </label>
+          <input
+            value={ingredients}
+            onChange={(e) => setIngredients(e.target.value)}
+            className={`${inputClasses} mt-1`}
+          />
+        </div>
+        <div>
+          <label className="font-body text-xs font-medium uppercase tracking-wide text-ink/50">
+            Good to Know (comma separated)
+          </label>
+          <input
+            value={benefits}
+            onChange={(e) => setBenefits(e.target.value)}
+            className={`${inputClasses} mt-1`}
+          />
+        </div>
+      </div>
+      <div className="w-40">
+        <label className="font-body text-xs font-medium uppercase tracking-wide text-ink/50">
+          Price (₦)
+        </label>
+        <input
+          value={priceNaira}
+          onChange={(e) => setPriceNaira(e.target.value)}
+          inputMode="numeric"
+          className={`${inputClasses} mt-1`}
+        />
+      </div>
+      {error && <p className="font-body text-small text-berry">{error}</p>}
+      <button
+        type="submit"
+        disabled={saving}
+        className="self-start rounded-pill bg-cocoa px-6 py-2 font-body text-small font-medium text-cream disabled:opacity-60"
+      >
+        {saving ? "Adding..." : "Add product"}
       </button>
     </form>
   );
