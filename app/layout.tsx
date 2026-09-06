@@ -3,6 +3,7 @@ import { Cormorant_Garamond, Manrope, Sacramento } from "next/font/google";
 import GrainOverlay from "@/components/GrainOverlay";
 import SmoothScroll from "@/components/SmoothScroll";
 import NavBar from "@/components/NavBar";
+import HelpButton from "@/components/HelpButton";
 import "./globals.css";
 
 const cormorant = Cormorant_Garamond({
@@ -71,6 +72,7 @@ export default function RootLayout({
         <SmoothScroll>
           <NavBar />
           {children}
+          <HelpButton />
         </SmoothScroll>
       </body>
     </html>

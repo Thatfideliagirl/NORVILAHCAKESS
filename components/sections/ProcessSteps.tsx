@@ -30,7 +30,7 @@ export default function ProcessSteps() {
         <h2 className="font-display text-heading text-berry">
           From craving to your door
         </h2>
-        <p className="mt-3 font-body text-lead text-ink/70">
+        <p className="mt-3 font-body text-lead font-medium text-ink/80">
           Simple. Quick. Delicious.
         </p>
       </div>
@@ -53,10 +53,10 @@ export default function ProcessSteps() {
                 <span className="font-display text-product text-berry">
                   {number}
                 </span>
-                <h3 className="mt-1 font-display text-product text-ink">
+                <h3 className="mt-1 font-display text-product font-semibold text-ink">
                   {title}
                 </h3>
-                <p className="mt-2 max-w-[28ch] font-body text-body text-ink/80 md:mx-auto">
+                <p className="mt-2 max-w-[28ch] font-body text-lead font-medium text-ink/85 md:mx-auto">
                   {body}
                 </p>
               </div>

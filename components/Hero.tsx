@@ -73,7 +73,7 @@ export default function Hero() {
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="flex h-full flex-col justify-end px-6 pb-20 md:max-w-[440px] md:justify-center md:px-0 md:pb-0 md:pl-11"
+        className="flex h-full flex-col justify-end px-6 pb-20 md:max-w-[440px] md:justify-center md:px-0 md:pb-0 md:pl-14"
       >
         {/* Brief specifies clay for this label; measured against the
             actual poster frame, clay never clears ~2.7:1 against the
@@ -93,19 +93,19 @@ export default function Hero() {
         </motion.h1>
         <motion.p
           variants={itemVariants}
-          className="mt-4 font-display text-product text-ink"
+          className="mt-4 font-display text-product font-semibold text-cocoa"
         >
           More than treats. Moments of happiness.
         </motion.p>
         <motion.p
           variants={itemVariants}
-          className="measure mt-4 font-body text-lead text-ink"
+          className="measure mt-4 font-body text-lead font-medium text-cocoa"
         >
           From indulgent cakes and creamy parfaits to savoury bites, we make
           everything fresh for your special moments, and the random cravings
           too.
         </motion.p>
-        <motion.div variants={itemVariants} className="mt-8">
+        <motion.div variants={itemVariants} className="mt-10">
           <Link
             href="/menu"
             className="inline-block rounded-pill bg-cocoa px-8 py-3.5 font-body font-medium text-cream transition-colors duration-200 hover:bg-ink active:scale-[0.99]"
@@ -122,7 +122,7 @@ export default function Hero() {
         }`}
         aria-hidden="true"
       >
-        <span className="font-body text-small uppercase tracking-[0.12em] drop-shadow-[0_1px_6px_rgba(58,36,31,0.45)]">
+        <span className="font-body text-small font-medium uppercase tracking-[0.12em] drop-shadow-[0_2px_8px_rgba(58,36,31,0.65)]">
           Scroll
         </span>
         <ChevronDown className="size-4 drop-shadow-[0_1px_6px_rgba(58,36,31,0.45)]" strokeWidth={1.5} />

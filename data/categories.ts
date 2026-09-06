@@ -83,4 +83,11 @@ export const menuCategories: Category[] = [
     blurb: "Toasted, honeyed, and crunchy.",
     order: 10,
   },
+  {
+    slug: "coconut-bread",
+    name: "Coconut Bread",
+    image: "/products/coconut-bread.jpg",
+    blurb: "Soft, moist, and delicately coconut.",
+    order: 11,
+  },
 ];

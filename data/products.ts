@@ -43,7 +43,7 @@ export const products: Product[] = [
     name: "Celebration Cake",
     categorySlug: "cakes",
     description:
-      "A layered celebration cake, finished by hand with buttercream and fresh fruit.",
+      "Moist, rich and beautifully crafted for birthdays, celebrations or simply treating yourself.",
     image: "/products/cakes.jpg",
     priceNaira: 25000, // placeholder
     variants: [
@@ -51,6 +51,8 @@ export const products: Product[] = [
       { id: "cake-8in", label: "8 inch", priceNaira: 38000 }, // placeholder
       { id: "cake-10in", label: "10 inch", priceNaira: 55000 }, // placeholder
     ],
+    ingredients: ["Flour", "Eggs", "Butter", "Milk", "Sugar"],
+    benefits: ["A delightful treat made for special moments and everyday celebrations."],
     available: true,
     featured: true,
   },
@@ -59,7 +61,8 @@ export const products: Product[] = [
     slug: "cupcake",
     name: "Cupcake",
     categorySlug: "cupcakes",
-    description: "Soft, moist cupcakes, single or boxed for sharing.",
+    description:
+      "Soft, fluffy cupcakes finished with creamy frosting and made for little moments of happiness.",
     image: "/products/cupcakes.jpg",
     priceNaira: 1200, // placeholder
     variants: [
@@ -67,6 +70,8 @@ export const products: Product[] = [
       { id: "cupcake-box6", label: "Box of 6", priceNaira: 7000 }, // placeholder
       { id: "cupcake-box12", label: "Box of 12", priceNaira: 13000 }, // placeholder
     ],
+    ingredients: ["Flour", "Eggs", "Milk", "Butter", "Sugar", "Frosting"],
+    benefits: ["A convenient individual treat that's perfect for sharing or enjoying on your own."],
     available: true,
     featured: false,
   },
@@ -75,7 +80,8 @@ export const products: Product[] = [
     slug: "strawberry-parfait",
     name: "Strawberry Parfait",
     categorySlug: "parfaits",
-    description: "Layered strawberry, cream and crunch, made fresh to order.",
+    description:
+      "Creamy yoghurt layered with fresh fruit, crunchy toppings and delicious goodness in every spoonful.",
     image: "/products/parfaits.jpg",
     priceNaira: 3500, // placeholder
     available: true,
@@ -86,7 +92,8 @@ export const products: Product[] = [
     slug: "mixed-berry-parfait",
     name: "Mixed Berry Parfait",
     categorySlug: "parfaits",
-    description: "A blend of berries layered with cream and granola crunch.",
+    description:
+      "Creamy yoghurt layered with fresh fruit, crunchy toppings and delicious goodness in every spoonful.",
     image: "/products/parfaits.jpg",
     priceNaira: 4000, // placeholder
     available: true,
@@ -97,7 +104,8 @@ export const products: Product[] = [
     slug: "greek-yoghurt-parfait",
     name: "Greek Yoghurt Parfait",
     categorySlug: "parfaits",
-    description: "Greek yoghurt layered with fruit and honeyed granola.",
+    description:
+      "Creamy yoghurt layered with fresh fruit, crunchy toppings and delicious goodness in every spoonful.",
     image: "/products/parfaits.jpg",
     priceNaira: 4500, // placeholder
     available: true,
@@ -108,9 +116,12 @@ export const products: Product[] = [
     slug: "waffles",
     name: "Waffles, Plate of 3",
     categorySlug: "waffles",
-    description: "Warm, golden waffles, made to order.",
+    description:
+      "Crisp on the outside, soft and fluffy inside, made for a delicious little treat.",
     image: "/products/waffles.jpg",
     priceNaira: 4000, // placeholder
+    ingredients: ["Flour", "Eggs", "Milk", "Butter", "Vanilla"],
+    benefits: ["A satisfying source of energy with a comforting, freshly made taste."],
     available: true,
     featured: true,
   },
@@ -145,9 +156,12 @@ export const products: Product[] = [
     slug: "milky-yoghurt",
     name: "Milky Yoghurt, 500ml",
     categorySlug: "milky-yoghurt",
-    description: "Cool, creamy milky yoghurt, made in house.",
+    description:
+      "Smooth, creamy and refreshing, made for an easy everyday indulgence.",
     image: "/products/milky-yoghurt.jpg",
     priceNaira: 2500, // placeholder
+    ingredients: ["Yoghurt", "Milk", "Natural sweeteners"],
+    benefits: ["A dairy-based option that provides protein and calcium."],
     available: true,
     featured: false,
   },
@@ -181,6 +195,20 @@ export const products: Product[] = [
     description: "A mixed tray of savoury small chops, perfect for events.",
     image: "/products/small-chops.jpg",
     priceNaira: 15000, // placeholder
+    available: true,
+    featured: false,
+  },
+  {
+    id: "coconut-bread-loaf",
+    slug: "coconut-bread",
+    name: "Coconut Bread Loaf",
+    categorySlug: "coconut-bread",
+    description:
+      "Soft, moist and delicately flavoured with coconut. A simple treat that's hard to resist.",
+    image: "/products/coconut-bread.jpg",
+    priceNaira: 6500, // placeholder
+    ingredients: ["Flour", "Coconut", "Eggs", "Milk", "Butter"],
+    benefits: ["Contains coconut and provides a satisfying, energy-rich snack."],
     available: true,
     featured: false,
   },

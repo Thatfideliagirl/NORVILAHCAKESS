@@ -28,14 +28,14 @@ export default function NavBar() {
           <Link href="/">
             <Logo
               textClassName={`text-2xl md:text-[1.75rem] transition-colors duration-300 ${
-                scrolled ? "text-berry" : "text-cream drop-shadow-[0_1px_6px_rgba(58,36,31,0.45)]"
+                scrolled ? "text-berry" : "text-cream drop-shadow-[0_2px_8px_rgba(58,36,31,0.65)]"
               }`}
             />
           </Link>
 
           <nav
-            className={`hidden items-center gap-8 font-body text-small transition-colors duration-300 md:flex ${
-              scrolled ? "text-ink" : "text-cream drop-shadow-[0_1px_6px_rgba(58,36,31,0.45)]"
+            className={`hidden items-center gap-8 font-body text-body font-medium transition-colors duration-300 md:flex ${
+              scrolled ? "text-ink" : "text-cream drop-shadow-[0_2px_8px_rgba(58,36,31,0.65)]"
             }`}
           >
             {NAV_LINKS.map((link) => (
@@ -54,7 +54,7 @@ export default function NavBar() {
               href="/account"
               aria-label="Account"
               className={`hidden size-11 items-center justify-center transition-colors duration-300 md:flex ${
-                scrolled ? "text-ink" : "text-cream drop-shadow-[0_1px_6px_rgba(58,36,31,0.45)]"
+                scrolled ? "text-ink" : "text-cream drop-shadow-[0_2px_8px_rgba(58,36,31,0.65)]"
               }`}
             >
               <User className="size-5" strokeWidth={1.5} />
@@ -64,7 +64,7 @@ export default function NavBar() {
               href="/cart"
               aria-label={`Cart, ${cartCount} item${cartCount === 1 ? "" : "s"}`}
               className={`relative flex size-11 items-center justify-center transition-colors duration-300 ${
-                scrolled ? "text-ink" : "text-cream drop-shadow-[0_1px_6px_rgba(58,36,31,0.45)]"
+                scrolled ? "text-ink" : "text-cream drop-shadow-[0_2px_8px_rgba(58,36,31,0.65)]"
               }`}
             >
               <ShoppingBag className="size-5" strokeWidth={1.5} />
@@ -88,7 +88,7 @@ export default function NavBar() {
               aria-expanded={drawerOpen}
               onClick={() => setDrawerOpen(true)}
               className={`flex size-11 items-center justify-center transition-colors duration-300 md:hidden ${
-                scrolled ? "text-ink" : "text-cream drop-shadow-[0_1px_6px_rgba(58,36,31,0.45)]"
+                scrolled ? "text-ink" : "text-cream drop-shadow-[0_2px_8px_rgba(58,36,31,0.65)]"
               }`}
             >
               <Menu className="size-6" strokeWidth={1.5} />
