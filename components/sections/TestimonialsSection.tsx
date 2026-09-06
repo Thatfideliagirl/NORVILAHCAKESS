@@ -84,14 +84,16 @@ export default function TestimonialsSection() {
           <ChevronRight className="size-5" strokeWidth={1.5} />
         </button>
 
-        <div
+        <motion.div
           ref={trackRef}
           onScroll={onScroll}
+          variants={revealContainer}
           className="flex snap-x snap-mandatory gap-6 overflow-x-auto px-6 pb-2 [scrollbar-width:none] lg:px-16 [&::-webkit-scrollbar]:hidden"
         >
           {TESTIMONIALS.map((testimonial) => (
-            <div
+            <motion.div
               key={testimonial.name}
+              variants={revealUp}
               className="flex w-[85%] shrink-0 snap-start gap-5 rounded-panel bg-plaster p-6 shadow-warm md:w-[420px]"
             >
               <span
@@ -113,9 +115,9 @@ export default function TestimonialsSection() {
                   {testimonial.name}
                 </p>
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
 
         <div className="mt-6 flex justify-center gap-2 lg:hidden">
           {TESTIMONIALS.map((testimonial, i) => (

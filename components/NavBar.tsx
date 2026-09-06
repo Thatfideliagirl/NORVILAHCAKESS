@@ -63,11 +63,11 @@ export default function NavBar() {
             <Link
               href="/cart"
               aria-label={`Cart, ${cartCount} item${cartCount === 1 ? "" : "s"}`}
-              className={`relative flex size-11 items-center justify-center transition-colors duration-300 ${
-                scrolled ? "text-ink" : "text-cream drop-shadow-[0_2px_8px_rgba(58,36,31,0.65)]"
+              className={`relative flex size-11 items-center justify-center rounded-full transition-colors duration-300 ${
+                scrolled ? "text-ink" : "bg-cocoa/35 text-cream backdrop-blur-sm drop-shadow-[0_2px_8px_rgba(58,36,31,0.65)]"
               }`}
             >
-              <ShoppingBag className="size-5" strokeWidth={1.5} />
+              <ShoppingBag className="size-5" strokeWidth={1.75} />
               {cartCount > 0 && (
                 <span className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-berry text-[10px] font-semibold text-cream">
                   {cartCount}

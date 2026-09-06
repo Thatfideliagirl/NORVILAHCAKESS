@@ -32,11 +32,11 @@ export default function CelebrationsSection() {
 
       <div className="relative mx-auto grid max-w-content gap-12 px-6 md:grid-cols-2 md:items-center md:gap-16">
         <motion.div variants={revealUp}>
-          <h2 className="font-display text-heading text-plaster">
+          <h2 className="font-display text-heading text-plaster md:text-[3.5rem]">
             What are we celebrating?
           </h2>
           <p className="measure mt-4 font-body text-lead text-plaster/80">
-            Birthdays, parties, corporate events, or just because — we love a
+            Birthdays, parties, corporate events, or just because, we love a
             good reason to celebrate. Custom orders and event catering, built
             around you, made to be remembered.
           </p>
