@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 import { formatNaira } from "@/lib/format";
@@ -10,6 +11,7 @@ type Profile = {
   email: string | null;
   phone: string | null;
   location: string | null;
+  role: string | null;
 };
 
 type Order = {
@@ -47,7 +49,7 @@ export default function SignedInAccount({ session }: { session: Session }) {
   useEffect(() => {
     supabase
       .from("profiles")
-      .select("full_name, email, phone, location")
+      .select("full_name, email, phone, location, role")
       .eq("id", session.user.id)
       .single()
       .then(({ data }) => setProfile(data));
@@ -91,6 +93,15 @@ export default function SignedInAccount({ session }: { session: Session }) {
           {profile?.email}
           {profile?.phone ? ` · ${profile.phone}` : ""}
         </p>
+
+        {profile?.role === "admin" && (
+          <Link
+            href="/admin"
+            className="mt-4 inline-block rounded-pill bg-cocoa px-6 py-2.5 font-body text-small font-medium text-cream transition-colors duration-200 hover:bg-ink"
+          >
+            Go to Admin Dashboard
+          </Link>
+        )}
 
         <div className="mt-8 flex gap-2 overflow-x-auto">
           {TABS.map((t) => (
