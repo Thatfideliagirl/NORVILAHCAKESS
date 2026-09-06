@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Menu, ShoppingBag, User } from "lucide-react";
 import { NAV_LINKS } from "@/lib/nav-links";
 import { useCartCount, useCartHydration } from "@/store/cart";
@@ -9,8 +10,15 @@ import { useScrollPast } from "@/lib/use-scroll-past";
 import MobileDrawer from "@/components/MobileDrawer";
 import Logo from "@/components/Logo";
 
+// Pages with a full-bleed photo behind the header at scroll 0 -- every
+// other route (cart, account, admin) has a plain light background, so
+// the transparent/cream-text header treatment would be unreadable there.
+const HERO_BACKDROP_ROUTES = ["/", "/menu"];
+
 export default function NavBar() {
-  const scrolled = useScrollPast(80);
+  const scrolledPast = useScrollPast(80);
+  const pathname = usePathname();
+  const scrolled = scrolledPast || !HERO_BACKDROP_ROUTES.includes(pathname);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const cartCount = useCartCount();
   useCartHydration();

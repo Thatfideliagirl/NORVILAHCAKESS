@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 import { categories } from "@/data/categories";
+import SignedInAccount from "@/components/account/SignedInAccount";
 
 const HOW_HEARD_OPTIONS = [
   "Instagram",
@@ -16,16 +17,8 @@ const HOW_HEARD_OPTIONS = [
 const inputClasses =
   "w-full rounded-panel border border-clay/25 bg-cream px-4 py-3 font-body text-body text-ink placeholder:text-ink/40 focus-visible:border-berry";
 
-type Profile = {
-  full_name: string | null;
-  email: string | null;
-  phone: string | null;
-  location: string | null;
-};
-
 export default function AccountPage() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
-  const [profile, setProfile] = useState<Profile | null>(null);
   const [mode, setMode] = useState<"signIn" | "signUp">("signIn");
   const [checkEmailFor, setCheckEmailFor] = useState<string | null>(null);
 
@@ -37,16 +30,6 @@ export default function AccountPage() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    if (!session) return;
-    supabase
-      .from("profiles")
-      .select("full_name, email, phone, location")
-      .eq("id", session.user.id)
-      .single()
-      .then(({ data }) => setProfile(data));
-  }, [session]);
-
   if (session === undefined) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-cream px-6 pt-24">
@@ -56,37 +39,7 @@ export default function AccountPage() {
   }
 
   if (session) {
-    return (
-      <main className="min-h-screen bg-cream px-6 pb-24 pt-32">
-        <div className="mx-auto max-w-content">
-          <p className="font-display text-heading text-berry">
-            Welcome, {profile?.full_name?.split(" ")[0] || "there"}
-            {" "}
-            <span aria-hidden="true">👋</span>
-          </p>
-          <p className="mt-2 font-body text-lead text-ink/70">
-            {profile?.email}
-            {profile?.phone ? ` · ${profile.phone}` : ""}
-          </p>
-
-          <div className="mt-10 rounded-panel bg-plaster/25 p-6">
-            <p className="font-body text-body text-ink/80">
-              Your orders, inquiries, and messages will show up here once
-              that part of the account is built. For now, this confirms
-              your sign-in is real and connected.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => supabase.auth.signOut()}
-            className="mt-8 rounded-pill border border-clay px-8 py-3 font-body font-medium text-ink transition-colors duration-200 hover:bg-clay/10"
-          >
-            Sign out
-          </button>
-        </div>
-      </main>
-    );
+    return <SignedInAccount session={session} />;
   }
 
   if (checkEmailFor) {
