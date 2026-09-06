@@ -122,7 +122,7 @@ export default function Hero() {
         }`}
         aria-hidden="true"
       >
-        <span className="font-body text-small font-medium uppercase tracking-[0.12em] drop-shadow-[0_2px_8px_rgba(58,36,31,0.65)]">
+        <span className="font-body text-small font-medium uppercase tracking-[0.12em] drop-shadow-[0_1px_3px_rgba(58,36,31,0.9)]">
           Scroll
         </span>
         <ChevronDown className="size-4 drop-shadow-[0_1px_6px_rgba(58,36,31,0.45)]" strokeWidth={1.5} />

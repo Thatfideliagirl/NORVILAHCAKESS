@@ -148,9 +148,14 @@ function SignInForm() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) setError(error.message);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) setError(error.message);
+    } catch {
+      setError("Could not reach the account service. Check your connection and try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -205,25 +210,30 @@ function SignUpForm({ onSignedUp }: { onSignedUp: (email: string) => void }) {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-          phone,
-          location,
-          how_heard: howHeard,
-          preferences,
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            phone,
+            location,
+            how_heard: howHeard,
+            preferences,
+          },
         },
-      },
-    });
-    setLoading(false);
-    if (error) {
-      setError(error.message);
-      return;
+      });
+      if (error) {
+        setError(error.message);
+        return;
+      }
+      onSignedUp(email);
+    } catch {
+      setError("Could not reach the account service. Check your connection and try again.");
+    } finally {
+      setLoading(false);
     }
-    onSignedUp(email);
   };
 
   return (
