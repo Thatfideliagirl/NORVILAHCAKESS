@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 import { Menu, ShoppingBag, User } from "lucide-react";
 import { NAV_LINKS } from "@/lib/nav-links";
 import { useCartCount, useCartHydration } from "@/store/cart";
@@ -76,11 +77,20 @@ export default function NavBar() {
               }`}
             >
               <ShoppingBag className="size-5" strokeWidth={1.75} />
-              {cartCount > 0 && (
-                <span className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-berry text-[10px] font-semibold text-cream">
-                  {cartCount}
-                </span>
-              )}
+              <AnimatePresence>
+                {cartCount > 0 && (
+                  <motion.span
+                    key={cartCount}
+                    initial={{ scale: 0.4, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.4, opacity: 0 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                    className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-berry text-[10px] font-semibold text-cream"
+                  >
+                    {cartCount}
+                  </motion.span>
+                )}
+              </AnimatePresence>
             </Link>
 
             <Link

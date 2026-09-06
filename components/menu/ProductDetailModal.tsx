@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ChevronLeft, ChevronRight, ShoppingBag, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, ShoppingBag, X } from "lucide-react";
 import type { Product } from "@/data/products";
 import { useCartStore } from "@/store/cart";
 import { formatNaira } from "@/lib/format";
@@ -30,9 +30,23 @@ function ProductDetailPanel({
   const addItem = useCartStore((state) => state.addItem);
   const [variantId, setVariantId] = useState(product.variants?.[0]?.id);
   const [quantity, setQuantity] = useState(1);
+  const [justAdded, setJustAdded] = useState(false);
 
   const selectedVariant = product.variants?.find((v) => v.id === variantId);
   const unitPrice = selectedVariant?.priceNaira ?? product.priceNaira;
+
+  function handleAddToCart() {
+    addItem({
+      productId: product.id,
+      variantId: selectedVariant?.id,
+      name: product.name,
+      variantLabel: selectedVariant?.label,
+      priceNaira: unitPrice,
+      quantity,
+    });
+    setJustAdded(true);
+    setTimeout(() => setJustAdded(false), 1500);
+  }
 
   return (
     <motion.div
@@ -157,23 +171,42 @@ function ProductDetailPanel({
 
         <div className="mt-8 flex items-center gap-4">
           <QuantityStepper quantity={quantity} onChange={setQuantity} size="large" />
-          <button
+          <motion.button
             type="button"
-            onClick={() =>
-              addItem({
-                productId: product.id,
-                variantId: selectedVariant?.id,
-                name: product.name,
-                variantLabel: selectedVariant?.label,
-                priceNaira: unitPrice,
-                quantity,
-              })
-            }
+            onClick={handleAddToCart}
+            whileTap={{ scale: 0.95 }}
+            animate={justAdded ? { scale: [1, 1.06, 1] } : { scale: 1 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
             className="flex flex-1 items-center justify-center gap-2 rounded-pill bg-berry px-6 py-3.5 font-body font-medium text-cream transition-colors duration-200 hover:bg-cocoa"
           >
-            <ShoppingBag className="size-4" strokeWidth={1.75} />
-            Add to Cart
-          </button>
+            <AnimatePresence mode="wait" initial={false}>
+              {justAdded ? (
+                <motion.span
+                  key="added"
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 6 }}
+                  transition={{ duration: 0.18 }}
+                  className="flex items-center gap-2"
+                >
+                  <Check className="size-4" strokeWidth={2} />
+                  Added
+                </motion.span>
+              ) : (
+                <motion.span
+                  key="add"
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 6 }}
+                  transition={{ duration: 0.18 }}
+                  className="flex items-center gap-2"
+                >
+                  <ShoppingBag className="size-4" strokeWidth={1.75} />
+                  Add to Cart
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </motion.button>
         </div>
       </div>
     </motion.div>
