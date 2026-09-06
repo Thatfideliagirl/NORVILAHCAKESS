@@ -159,7 +159,7 @@ export default function CheckoutPage() {
           subtotal_naira: subtotal,
           delivery_fee_naira: fee,
           total_naira: total,
-          payment_status: "awaiting_confirmation",
+          payment_status: "unpaid",
         })
         .select("id")
         .single();

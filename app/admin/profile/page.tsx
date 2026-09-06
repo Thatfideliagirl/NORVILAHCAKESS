@@ -10,6 +10,7 @@ type Profile = {
   email: string | null;
   phone: string | null;
   location: string | null;
+  about: string | null;
   avatar_url: string | null;
 };
 
@@ -21,7 +22,7 @@ export default function AdminProfilePage() {
     if (!session) return;
     supabase
       .from("profiles")
-      .select("full_name, email, phone, location, avatar_url")
+      .select("full_name, email, phone, location, about, avatar_url")
       .eq("id", session.user.id)
       .single()
       .then(({ data }) => setProfile(data));

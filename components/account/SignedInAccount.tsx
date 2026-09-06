@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { Session } from "@supabase/supabase-js";
-import { Heart, Trash2 } from "lucide-react";
+import { Heart, LogOut, Menu, X } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { supabase } from "@/lib/supabase/client";
 import { formatNaira } from "@/lib/format";
 import { OCCASIONS, type Occasion } from "@/lib/whatsapp";
@@ -11,12 +12,14 @@ import { markMessagesRead } from "@/lib/supabase/messages";
 import Avatar from "@/components/Avatar";
 import NotificationBell from "@/components/NotificationBell";
 import ProfileSection from "@/components/account/ProfileSection";
+import OrderDetailModal from "@/components/OrderDetailModal";
 
 type Profile = {
   full_name: string | null;
   email: string | null;
   phone: string | null;
   location: string | null;
+  about: string | null;
   role: string | null;
   avatar_url: string | null;
   created_at: string;
@@ -28,6 +31,7 @@ type Order = {
   status: string;
   total_naira: number;
   created_at: string;
+  order_items: { id: string }[];
 };
 
 const PAST_STATUSES = ["delivered", "cancelled"];
@@ -41,13 +45,6 @@ type Inquiry = {
 };
 
 const OPEN_INQUIRY_STATUSES = ["new", "contacted", "in_progress"];
-
-type SavedAddress = {
-  id: string;
-  label: string;
-  address: string;
-  is_default: boolean;
-};
 
 type Favourite = {
   id: string;
@@ -67,7 +64,7 @@ type Message = {
   created_at: string;
 };
 
-const TABS = ["Overview", "My Orders", "My Inquiries", "Messages", "Addresses", "Favourites", "Profile Settings"] as const;
+const TABS = ["Overview", "My Orders", "My Inquiries", "Messages", "Favourites", "Profile Settings"] as const;
 type Tab = (typeof TABS)[number];
 
 const inputClasses =
@@ -76,19 +73,20 @@ const inputClasses =
 export default function SignedInAccount({ session }: { session: Session }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [tab, setTab] = useState<Tab>("Overview");
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [inquiryFormOpen, setInquiryFormOpen] = useState(false);
-  const [addresses, setAddresses] = useState<SavedAddress[]>([]);
   const [favourites, setFavourites] = useState<Favourite[]>([]);
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
   const messagesLoaded = useRef(false);
 
   function fetchProfile() {
     return supabase
       .from("profiles")
-      .select("full_name, email, phone, location, role, avatar_url, created_at")
+      .select("full_name, email, phone, location, about, role, avatar_url, created_at")
       .eq("id", session.user.id)
       .single()
       .then(({ data }) => setProfile(data));
@@ -102,7 +100,7 @@ export default function SignedInAccount({ session }: { session: Session }) {
   function fetchOrders() {
     return supabase
       .from("orders")
-      .select("id, order_number, status, total_naira, created_at")
+      .select("id, order_number, status, total_naira, created_at, order_items(id)")
       .eq("customer_id", session.user.id)
       .order("created_at", { ascending: false })
       .then(({ data }) => setOrders(data ?? []));
@@ -117,15 +115,6 @@ export default function SignedInAccount({ session }: { session: Session }) {
       .then(({ data }) => setInquiries(data ?? []));
   }
 
-  function fetchAddresses() {
-    return supabase
-      .from("saved_addresses")
-      .select("id, label, address, is_default")
-      .eq("customer_id", session.user.id)
-      .order("is_default", { ascending: false })
-      .then(({ data }) => setAddresses(data ?? []));
-  }
-
   function fetchFavourites() {
     return supabase
       .from("favourites")
@@ -137,7 +126,6 @@ export default function SignedInAccount({ session }: { session: Session }) {
   useEffect(() => {
     fetchOrders();
     fetchInquiries();
-    fetchAddresses();
     fetchFavourites();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.user.id]);
@@ -169,200 +157,285 @@ export default function SignedInAccount({ session }: { session: Session }) {
   const pastOrders = orders.filter((o) => PAST_STATUSES.includes(o.status)).length;
   const inquiriesInProgress = inquiries.filter((i) => OPEN_INQUIRY_STATUSES.includes(i.status)).length;
 
+  const navItems = (
+    <nav className="flex flex-col gap-1">
+      {TABS.map((t) => (
+        <button
+          key={t}
+          type="button"
+          onClick={() => {
+            setTab(t);
+            setDrawerOpen(false);
+          }}
+          className={`rounded-panel px-3 py-2 text-left font-body text-small font-medium transition-colors ${
+            tab === t ? "bg-berry text-cream" : "text-ink/80 hover:bg-plaster/60"
+          }`}
+        >
+          {t}
+        </button>
+      ))}
+      <Link
+        href="/menu"
+        onClick={() => setDrawerOpen(false)}
+        className="rounded-panel px-3 py-2 font-body text-small font-medium text-ink/80 transition-colors hover:bg-plaster/60"
+      >
+        Menu
+      </Link>
+    </nav>
+  );
+
   return (
-    <main className="min-h-screen bg-cream px-6 pb-24 pt-32">
-      <div className="mx-auto max-w-content">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <Avatar url={profile?.avatar_url ?? null} name={profile?.full_name ?? null} size={56} />
-            <div>
-              <p className="font-display text-heading text-berry">
-                Welcome, {profile?.full_name?.split(" ")[0] || "there"}{" "}
-                <span aria-hidden="true">👋</span>
-              </p>
-              <p className="mt-1 font-body text-small text-ink/70">
-                {profile?.email}
-                {profile?.phone ? ` · ${profile.phone}` : ""}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <NotificationBell role="customer" onSelectMessage={() => setTab("Messages")} />
-            <button
-              type="button"
-              onClick={() => setTab("Messages")}
-              className="hidden rounded-pill bg-berry px-5 py-2.5 font-body text-small font-medium text-cream sm:inline-block"
-            >
-              Need help? Chat with us
-            </button>
-          </div>
-        </div>
-
-        {profile?.role === "admin" && (
-          <Link
-            href="/admin"
-            className="mt-4 inline-block rounded-pill bg-cocoa px-6 py-2.5 font-body text-small font-medium text-cream transition-colors duration-200 hover:bg-ink"
-          >
-            Go to Admin Dashboard
-          </Link>
-        )}
-
-        <div className="mt-8 flex flex-wrap gap-2">
-          {TABS.map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => setTab(t)}
-              className={`shrink-0 rounded-pill px-5 py-2 font-body text-small font-medium transition-colors ${
-                tab === t ? "bg-berry text-cream" : "bg-plaster/40 text-ink/70"
-              }`}
-            >
-              {t}
-            </button>
-          ))}
-          <Link
-            href="/menu"
-            className="shrink-0 rounded-pill border border-clay/30 px-5 py-2 font-body text-small font-medium text-ink/70 transition-colors hover:bg-plaster/40"
-          >
-            Menu
-          </Link>
-        </div>
-
-        <div className="mt-8">
-          {tab === "Overview" && (
-            <div>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                <div className="rounded-panel bg-plaster/25 p-5">
-                  <p className="font-body text-small text-ink/60">Active orders</p>
-                  <p className="mt-2 font-display text-product text-ink">{activeOrders}</p>
-                </div>
-                <div className="rounded-panel bg-plaster/25 p-5">
-                  <p className="font-body text-small text-ink/60">Inquiry in progress</p>
-                  <p className="mt-2 font-display text-product text-ink">{inquiriesInProgress}</p>
-                </div>
-                <div className="rounded-panel bg-plaster/25 p-5">
-                  <p className="font-body text-small text-ink/60">Past orders</p>
-                  <p className="mt-2 font-display text-product text-ink">{pastOrders}</p>
-                </div>
-                <div className="rounded-panel bg-plaster/25 p-5">
-                  <p className="font-body text-small text-ink/60">Saved items</p>
-                  <p className="mt-2 font-display text-product text-ink">{favourites.length}</p>
-                </div>
-              </div>
-
-              {orders.length > 0 && (
-                <div className="mt-8">
-                  <p className="font-display text-product text-ink">Latest order</p>
-                  <div className="mt-3 flex items-center justify-between rounded-panel bg-plaster/25 p-5">
-                    <div>
-                      <p className="font-display text-body text-ink">{orders[0].order_number}</p>
-                      <p className="mt-1 font-body text-small capitalize text-ink/60">
-                        {orders[0].status.replace("_", " ")}
-                      </p>
-                    </div>
-                    <p className="font-body text-body font-semibold text-berry">
-                      {formatNaira(orders[0].total_naira)}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {tab === "My Orders" && (
-            <div className="flex flex-col gap-3">
-              {orders.length === 0 && <EmptyState text="No orders yet." />}
-              {orders.map((order) => (
-                <div key={order.id} className="flex items-center justify-between rounded-panel bg-plaster/25 p-5">
-                  <div>
-                    <p className="font-display text-product text-ink">{order.order_number}</p>
-                    <p className="mt-1 font-body text-small capitalize text-ink/60">
-                      {order.status.replace("_", " ")}
-                    </p>
-                  </div>
-                  <p className="font-body text-body font-semibold text-berry">
-                    {formatNaira(order.total_naira)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {tab === "My Inquiries" && (
-            <div>
-              <div className="flex items-center justify-between">
-                <p className="font-display text-product text-ink">Your inquiries</p>
-                <button
-                  type="button"
-                  onClick={() => setInquiryFormOpen((current) => !current)}
-                  className="rounded-pill bg-cocoa px-5 py-2 font-body text-small font-medium text-cream"
-                >
-                  {inquiryFormOpen ? "Close" : "Make an inquiry"}
-                </button>
-              </div>
-
-              {inquiryFormOpen && (
-                <div className="mt-4 rounded-panel bg-plaster/25 p-5">
-                  <InquiryForm
-                    session={session}
-                    profile={profile}
-                    onSaved={() => {
-                      setInquiryFormOpen(false);
-                      fetchInquiries();
-                    }}
-                  />
-                </div>
-              )}
-
-              <div className="mt-4 flex flex-col gap-3">
-                {inquiries.length === 0 && <EmptyState text="No event inquiries yet." />}
-                {inquiries.map((inquiry) => (
-                  <div key={inquiry.id} className="flex items-center justify-between rounded-panel bg-plaster/25 p-5">
-                    <p className="font-body text-body text-ink">
-                      {inquiry.occasion ?? "Event inquiry"}
-                      {inquiry.event_date ? ` · ${inquiry.event_date}` : ""}
-                    </p>
-                    <span className="rounded-pill bg-berry/15 px-4 py-1.5 text-xs font-semibold capitalize text-berry">
-                      {inquiry.status.replace("_", " ")}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {tab === "Messages" && (
-            <MessagesPanel
-              session={session}
-              conversation={conversation}
-              messages={messages}
-              onConversationStarted={(convo) => setConversation(convo)}
-              onMessageSent={(message) => setMessages((current) => [...current, message])}
-            />
-          )}
-
-          {tab === "Addresses" && (
-            <AddressesPanel session={session} addresses={addresses} onChanged={fetchAddresses} />
-          )}
-
-          {tab === "Favourites" && (
-            <FavouritesPanel favourites={favourites} onChanged={fetchFavourites} />
-          )}
-
-          {tab === "Profile Settings" && profile && (
-            <ProfileSection userId={session.user.id} profile={profile} onSaved={setProfile} />
-          )}
-        </div>
-
+    <main className="min-h-screen bg-cream pt-16">
+      <div className="fixed inset-x-0 top-16 z-30 flex items-center justify-between border-b border-clay/15 bg-plaster/20 px-4 py-3 md:hidden">
         <button
           type="button"
-          onClick={() => supabase.auth.signOut()}
-          className="mt-10 block rounded-pill border border-clay px-8 py-3 font-body font-medium text-ink transition-colors duration-200 hover:bg-clay/10"
+          onClick={() => setDrawerOpen(true)}
+          aria-label="Open menu"
+          className="flex size-9 items-center justify-center text-ink"
         >
-          Sign out
+          <Menu className="size-5" strokeWidth={1.75} />
+        </button>
+        <div className="flex items-center gap-2">
+          <Avatar url={profile?.avatar_url ?? null} name={profile?.full_name ?? null} size={32} />
+          <p className="font-body text-small font-semibold text-ink">
+            {profile?.full_name?.split(" ")[0] || "Account"}
+          </p>
+        </div>
+        <NotificationBell role="customer" onSelectMessage={() => setTab("Messages")} align="right" />
+      </div>
+
+      <AnimatePresence>
+        {drawerOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-cocoa/40 md:hidden"
+              onClick={() => setDrawerOpen(false)}
+              aria-hidden="true"
+            />
+            <motion.aside
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="fixed inset-y-0 left-0 z-50 w-72 overflow-y-auto bg-plaster/95 px-4 py-6 shadow-warm-lg md:hidden"
+            >
+              <div className="mb-6 flex items-center justify-between gap-2 px-1">
+                <div className="flex items-center gap-3">
+                  <Avatar url={profile?.avatar_url ?? null} name={profile?.full_name ?? null} size={40} />
+                  <p className="font-body text-small font-semibold text-ink">
+                    {profile?.full_name || "Account"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setDrawerOpen(false)}
+                  aria-label="Close menu"
+                  className="flex size-9 items-center justify-center text-ink"
+                >
+                  <X className="size-5" strokeWidth={1.75} />
+                </button>
+              </div>
+              {navItems}
+              <button
+                type="button"
+                onClick={() => supabase.auth.signOut()}
+                className="mt-8 flex w-full items-center gap-2 rounded-panel px-3 py-2 font-body text-small font-medium text-ink/70 transition-colors hover:bg-plaster/60"
+              >
+                <LogOut className="size-4" strokeWidth={1.75} />
+                Sign out
+              </button>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      <div className="flex">
+        <aside className="hidden w-60 shrink-0 border-r border-clay/15 bg-plaster/20 px-4 py-8 md:block">
+          <div className="mb-6 flex items-center gap-3 px-1">
+            <Avatar url={profile?.avatar_url ?? null} name={profile?.full_name ?? null} size={40} />
+            <div className="min-w-0">
+              <p className="truncate font-body text-small font-semibold text-ink">
+                {profile?.full_name || "Account"}
+              </p>
+              <p className="truncate font-body text-xs text-ink/50">{profile?.email}</p>
+            </div>
+          </div>
+          {navItems}
+          <button
+            type="button"
+            onClick={() => supabase.auth.signOut()}
+            className="mt-8 flex w-full items-center gap-2 rounded-panel px-3 py-2 font-body text-small font-medium text-ink/70 transition-colors hover:bg-plaster/60"
+          >
+            <LogOut className="size-4" strokeWidth={1.75} />
+            Sign out
+          </button>
+        </aside>
+
+        <div className="flex-1 px-6 pb-24 pt-20 md:px-10 md:py-10">
+          <div className="flex items-center justify-between gap-4">
+            <p className="font-display text-heading text-berry">
+              Welcome, {profile?.full_name?.split(" ")[0] || "there"}{" "}
+              <span aria-hidden="true">👋</span>
+            </p>
+            <div className="hidden items-center gap-3 md:flex">
+              <NotificationBell role="customer" onSelectMessage={() => setTab("Messages")} />
+              <button
+                type="button"
+                onClick={() => setTab("Messages")}
+                className="rounded-pill bg-berry px-5 py-2.5 font-body text-small font-medium text-cream"
+              >
+                Need help? Chat with us
+              </button>
+            </div>
+          </div>
+
+          {profile?.role === "admin" && (
+            <Link
+              href="/admin"
+              className="mt-4 inline-block rounded-pill bg-cocoa px-6 py-2.5 font-body text-small font-medium text-cream transition-colors duration-200 hover:bg-ink"
+            >
+              Go to Admin Dashboard
+            </Link>
+          )}
+
+          <div className="mt-8">
+            {tab === "Overview" && (
+              <div>
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                  <div className="rounded-panel bg-plaster/25 p-5">
+                    <p className="font-body text-small text-ink/60">Active orders</p>
+                    <p className="mt-2 font-display text-product text-ink">{activeOrders}</p>
+                  </div>
+                  <div className="rounded-panel bg-plaster/25 p-5">
+                    <p className="font-body text-small text-ink/60">Inquiry in progress</p>
+                    <p className="mt-2 font-display text-product text-ink">{inquiriesInProgress}</p>
+                  </div>
+                  <div className="rounded-panel bg-plaster/25 p-5">
+                    <p className="font-body text-small text-ink/60">Past orders</p>
+                    <p className="mt-2 font-display text-product text-ink">{pastOrders}</p>
+                  </div>
+                  <div className="rounded-panel bg-plaster/25 p-5">
+                    <p className="font-body text-small text-ink/60">Saved items</p>
+                    <p className="mt-2 font-display text-product text-ink">{favourites.length}</p>
+                  </div>
+                </div>
+
+                {orders.length > 0 && (
+                  <div className="mt-8">
+                    <p className="font-display text-product text-ink">Recent orders</p>
+                    <div className="mt-3 flex flex-col gap-3">
+                      {orders.slice(0, 3).map((order) => (
+                        <OrderCard key={order.id} order={order} onViewDetails={() => setDetailOrderId(order.id)} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {tab === "My Orders" && (
+              <div className="flex flex-col gap-3">
+                {orders.length === 0 && <EmptyState text="No orders yet." />}
+                {orders.map((order) => (
+                  <OrderCard key={order.id} order={order} onViewDetails={() => setDetailOrderId(order.id)} />
+                ))}
+              </div>
+            )}
+
+            {tab === "My Inquiries" && (
+              <div>
+                <div className="flex items-center justify-between">
+                  <p className="font-display text-product text-ink">Your inquiries</p>
+                  <button
+                    type="button"
+                    onClick={() => setInquiryFormOpen((current) => !current)}
+                    className="rounded-pill bg-cocoa px-5 py-2 font-body text-small font-medium text-cream"
+                  >
+                    {inquiryFormOpen ? "Close" : "Make an inquiry"}
+                  </button>
+                </div>
+
+                {inquiryFormOpen && (
+                  <div className="mt-4 rounded-panel bg-plaster/25 p-5">
+                    <InquiryForm
+                      session={session}
+                      profile={profile}
+                      onSaved={() => {
+                        setInquiryFormOpen(false);
+                        fetchInquiries();
+                      }}
+                    />
+                  </div>
+                )}
+
+                <div className="mt-4 flex flex-col gap-3">
+                  {inquiries.length === 0 && <EmptyState text="No event inquiries yet." />}
+                  {inquiries.map((inquiry) => (
+                    <div key={inquiry.id} className="flex items-center justify-between rounded-panel bg-plaster/25 p-5">
+                      <p className="font-body text-body text-ink">
+                        {inquiry.occasion ?? "Event inquiry"}
+                        {inquiry.event_date ? ` · ${inquiry.event_date}` : ""}
+                      </p>
+                      <span className="rounded-pill bg-berry/15 px-4 py-1.5 text-xs font-semibold capitalize text-berry">
+                        {inquiry.status.replace("_", " ")}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {tab === "Messages" && (
+              <MessagesPanel
+                session={session}
+                conversation={conversation}
+                messages={messages}
+                onConversationStarted={(convo) => setConversation(convo)}
+                onMessageSent={(message) => setMessages((current) => [...current, message])}
+              />
+            )}
+
+            {tab === "Favourites" && (
+              <FavouritesPanel favourites={favourites} onChanged={fetchFavourites} />
+            )}
+
+            {tab === "Profile Settings" && profile && (
+              <ProfileSection userId={session.user.id} profile={profile} onSaved={setProfile} />
+            )}
+          </div>
+        </div>
+      </div>
+
+      {detailOrderId && (
+        <OrderDetailModal orderId={detailOrderId} onClose={() => setDetailOrderId(null)} />
+      )}
+    </main>
+  );
+}
+
+function OrderCard({ order, onViewDetails }: { order: Order; onViewDetails: () => void }) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-panel bg-plaster/25 p-5">
+      <div className="min-w-0 flex-1">
+        <p className="font-display text-body text-ink">{order.order_number}</p>
+        <p className="mt-1 font-body text-small text-ink/60">
+          {new Date(order.created_at).toLocaleDateString()} · {order.order_items.length} item
+          {order.order_items.length === 1 ? "" : "s"}
+        </p>
+        <span className="mt-1 inline-block rounded-pill bg-berry/15 px-3 py-1 text-xs font-semibold capitalize text-berry">
+          {order.status.replace("_", " ")}
+        </span>
+      </div>
+      <div className="flex shrink-0 flex-col items-end gap-2">
+        <p className="font-body text-small font-semibold text-berry">{formatNaira(order.total_naira)}</p>
+        <button type="button" onClick={onViewDetails} className="font-body text-small font-medium text-berry">
+          View Details
         </button>
       </div>
-    </main>
+    </div>
   );
 }
 
@@ -576,111 +649,6 @@ function MessagesPanel({
           Send
         </button>
       </form>
-    </div>
-  );
-}
-
-function AddressesPanel({
-  session,
-  addresses,
-  onChanged,
-}: {
-  session: Session;
-  addresses: SavedAddress[];
-  onChanged: () => void;
-}) {
-  const [label, setLabel] = useState("Home");
-  const [address, setAddress] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  async function addAddress(e: React.FormEvent) {
-    e.preventDefault();
-    if (!address.trim()) return;
-    setSaving(true);
-    await supabase.from("saved_addresses").insert({
-      customer_id: session.user.id,
-      label: label.trim() || "Home",
-      address: address.trim(),
-      is_default: addresses.length === 0,
-    });
-    setLabel("Home");
-    setAddress("");
-    setSaving(false);
-    onChanged();
-  }
-
-  async function removeAddress(id: string) {
-    await supabase.from("saved_addresses").delete().eq("id", id);
-    onChanged();
-  }
-
-  async function makeDefault(id: string) {
-    await supabase.from("saved_addresses").update({ is_default: false }).eq("customer_id", session.user.id);
-    await supabase.from("saved_addresses").update({ is_default: true }).eq("id", id);
-    onChanged();
-  }
-
-  return (
-    <div>
-      <form onSubmit={addAddress} className="flex flex-col gap-3 sm:flex-row">
-        <input
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          placeholder="Label (Home, Work...)"
-          className={`${inputClasses} sm:w-40`}
-        />
-        <input
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          placeholder="Full delivery address"
-          className={`${inputClasses} flex-1`}
-        />
-        <button
-          type="submit"
-          disabled={saving}
-          className="shrink-0 rounded-pill bg-cocoa px-6 py-3 font-body text-small font-medium text-cream disabled:opacity-60"
-        >
-          Add
-        </button>
-      </form>
-
-      <div className="mt-6 flex flex-col gap-3">
-        {addresses.length === 0 && <EmptyState text="No saved addresses yet." />}
-        {addresses.map((a) => (
-          <div key={a.id} className="flex items-center justify-between rounded-panel bg-plaster/25 p-5">
-            <div>
-              <p className="font-display text-body text-ink">
-                {a.label}
-                {a.is_default && (
-                  <span className="ml-2 rounded-pill bg-berry/15 px-3 py-1 text-xs font-semibold text-berry">
-                    Default
-                  </span>
-                )}
-              </p>
-              <p className="mt-1 font-body text-small text-ink/60">{a.address}</p>
-            </div>
-            <div className="flex items-center gap-3">
-              {!a.is_default && (
-                <button
-                  type="button"
-                  onClick={() => makeDefault(a.id)}
-                  className="font-body text-small font-medium text-berry"
-                >
-                  Make default
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => removeAddress(a.id)}
-                aria-label="Remove address"
-                className="text-ink/40 transition-colors hover:text-berry"
-              >
-                <Trash2 className="size-4" strokeWidth={1.75} />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

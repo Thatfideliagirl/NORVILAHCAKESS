@@ -10,6 +10,7 @@ type ProfileLike = {
   email: string | null;
   phone: string | null;
   location: string | null;
+  about: string | null;
   avatar_url: string | null;
 };
 
@@ -53,10 +54,15 @@ export default function ProfileSection<T extends ProfileLike>({
             <dd>{profile.phone || "-"}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-ink/50">Location</dt>
-            <dd>{profile.location || "-"}</dd>
+            <dt className="text-ink/50">Address</dt>
+            <dd className="max-w-[70%] text-right">{profile.location || "-"}</dd>
           </div>
         </dl>
+        {profile.about && (
+          <p className="mt-4 border-t border-clay/15 pt-4 font-body text-small text-ink/70">
+            {profile.about}
+          </p>
+        )}
       </div>
     );
   }
@@ -88,6 +94,7 @@ function ProfileForm<T extends ProfileLike>({
   const [fullName, setFullName] = useState(profile.full_name ?? "");
   const [phone, setPhone] = useState(profile.phone ?? "");
   const [location, setLocation] = useState(profile.location ?? "");
+  const [about, setAbout] = useState(profile.about ?? "");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -106,10 +113,10 @@ function ProfileForm<T extends ProfileLike>({
     }
     await supabase
       .from("profiles")
-      .update({ full_name: fullName, phone, location, avatar_url: avatarUrl })
+      .update({ full_name: fullName, phone, location, about, avatar_url: avatarUrl })
       .eq("id", userId);
     setSaving(false);
-    onSaved({ ...profile, full_name: fullName, phone, location, avatar_url: avatarUrl });
+    onSaved({ ...profile, full_name: fullName, phone, location, about, avatar_url: avatarUrl });
   }
 
   return (
@@ -129,7 +136,14 @@ function ProfileForm<T extends ProfileLike>({
       </div>
       <input value={fullName} onChange={(e) => setFullName(e.target.value)} className={inputClasses} placeholder="Full name" />
       <input value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClasses} placeholder="Phone" />
-      <input value={location} onChange={(e) => setLocation(e.target.value)} className={inputClasses} placeholder="Location" />
+      <input value={location} onChange={(e) => setLocation(e.target.value)} className={inputClasses} placeholder="Address" />
+      <textarea
+        value={about}
+        onChange={(e) => setAbout(e.target.value)}
+        rows={3}
+        placeholder="About you (optional)"
+        className={`${inputClasses} resize-none`}
+      />
       <div className="flex items-center gap-3">
         <button
           type="submit"

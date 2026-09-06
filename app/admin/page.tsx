@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { formatNaira } from "@/lib/format";
+import { markInquiryViewed, markMessagesRead } from "@/lib/supabase/messages";
 import AdminErrorBanner from "@/components/admin/AdminErrorBanner";
 
 type Stats = {
@@ -25,6 +26,7 @@ type RecentOrder = {
 
 type UnreadMessage = {
   id: string;
+  conversationId: string;
   body: string;
   created_at: string;
   customerName: string | null;
@@ -120,6 +122,7 @@ export default function AdminDashboardPage() {
     let revenueQuery = supabase
       .from("orders")
       .select("total_naira")
+      .not("status", "in", "(pending,cancelled)")
       .lte("created_at", range.to.toISOString());
 
     if (range.from) {
@@ -162,18 +165,25 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     supabase
       .from("messages")
-      .select("id, body, created_at, conversations(profiles(full_name))")
+      .select("id, conversation_id, body, created_at, conversations(profiles(full_name))")
       .eq("sender_type", "customer")
       .is("read_at", null)
       .order("created_at", { ascending: false })
       .limit(5)
       .returns<
-        { id: string; body: string; created_at: string; conversations: { profiles: { full_name: string | null } | null } | null }[]
+        {
+          id: string;
+          conversation_id: string;
+          body: string;
+          created_at: string;
+          conversations: { profiles: { full_name: string | null } | null } | null;
+        }[]
       >()
       .then(({ data }) => {
         setUnreadMessages(
           (data ?? []).map((row) => ({
             id: row.id,
+            conversationId: row.conversation_id,
             body: row.body,
             created_at: row.created_at,
             customerName: row.conversations?.profiles?.full_name ?? null,
@@ -282,12 +292,12 @@ export default function AdminDashboardPage() {
 
       <div className="mt-10">
         <div className="flex items-baseline justify-between">
-          <p className="font-display text-product text-ink">New customers, last 14 days</p>
+          <p className="font-display text-product text-ink">Customers (Last 14 Days)</p>
           <p className="font-body text-small text-ink/50">
             {signupCounts.reduce((sum, d) => sum + d.count, 0)} total
           </p>
         </div>
-        <div className="mt-4 flex h-48 items-end gap-2 rounded-panel bg-cream p-5 pb-3 shadow-warm">
+        <div className="mt-4 flex h-48 items-end gap-2 rounded-panel bg-white p-5 pb-3 shadow-warm-lg">
           {signupCounts.map((d) => (
             <div key={d.label} className="flex h-full flex-1 flex-col items-center justify-end gap-2">
               {d.count > 0 && (
@@ -309,7 +319,7 @@ export default function AdminDashboardPage() {
       <div className="mt-10">
         <div>
           <p className="font-display text-product text-ink">Unread inquiries &amp; messages</p>
-          <div className="mt-4 flex flex-col gap-2 rounded-panel bg-cream p-5 shadow-warm">
+          <div className="mt-4 flex flex-col gap-2 rounded-panel bg-white p-5 shadow-warm-lg">
             {newInquiries.length === 0 && unreadMessages.length === 0 && (
               <p className="py-4 text-center font-body text-small text-ink/50">All caught up.</p>
             )}
@@ -317,6 +327,10 @@ export default function AdminDashboardPage() {
               <Link
                 key={`inquiry-${inquiry.id}`}
                 href="/admin/inquiries"
+                onClick={() => {
+                  markInquiryViewed(inquiry.id);
+                  setNewInquiries((current) => current.filter((i) => i.id !== inquiry.id));
+                }}
                 className="flex items-center justify-between rounded-panel px-2 py-1.5 font-body text-small transition-colors hover:bg-plaster/30"
               >
                 <span className="text-ink">
@@ -331,6 +345,10 @@ export default function AdminDashboardPage() {
               <Link
                 key={`message-${message.id}`}
                 href="/admin/messages"
+                onClick={() => {
+                  markMessagesRead(message.conversationId, "customer");
+                  setUnreadMessages((current) => current.filter((m) => m.id !== message.id));
+                }}
                 className="flex items-center justify-between gap-3 rounded-panel px-2 py-1.5 font-body text-small transition-colors hover:bg-plaster/30"
               >
                 <span className="min-w-0 flex-1 truncate text-ink">
@@ -352,7 +370,7 @@ export default function AdminDashboardPage() {
             View all
           </Link>
         </div>
-        <div className="mt-4 overflow-x-auto rounded-panel bg-cream shadow-warm">
+        <div className="mt-4 overflow-x-auto rounded-panel bg-white shadow-warm-lg">
           <table className="w-full min-w-[560px] text-left font-body text-small">
             <thead>
               <tr className="border-b border-clay/15 text-ink/50">

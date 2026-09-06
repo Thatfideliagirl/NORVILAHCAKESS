@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { formatNaira } from "@/lib/format";
 import AdminErrorBanner from "@/components/admin/AdminErrorBanner";
+import OrderDetailModal from "@/components/OrderDetailModal";
 
 const STATUSES = [
   "pending",
@@ -40,6 +41,9 @@ function fetchOrders() {
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchOrders().then(({ data, error }) => {
@@ -60,28 +64,63 @@ export default function AdminOrdersPage() {
     await supabase.from("orders").update({ viewed_at: viewedAt }).eq("id", order.id);
   }
 
+  function toggleSelected(id: string) {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function deleteSelected() {
+    if (selected.size === 0) return;
+    if (!window.confirm(`Delete ${selected.size} order${selected.size === 1 ? "" : "s"}? This can't be undone.`))
+      return;
+    setDeleting(true);
+    const ids = Array.from(selected);
+    await supabase.from("orders").delete().in("id", ids);
+    setOrders((current) => current.filter((o) => !selected.has(o.id)));
+    setSelected(new Set());
+    setDeleting(false);
+  }
+
   return (
     <div>
-      <p className="font-display text-heading text-berry">Orders</p>
+      <div className="flex items-center justify-between">
+        <p className="font-display text-heading text-berry">Orders</p>
+        {selected.size > 0 && (
+          <button
+            type="button"
+            onClick={deleteSelected}
+            disabled={deleting}
+            className="rounded-pill bg-berry px-5 py-2 font-body text-small font-medium text-cream disabled:opacity-60"
+          >
+            {deleting ? "Deleting..." : `Delete ${selected.size} selected`}
+          </button>
+        )}
+      </div>
 
       {loadError && <AdminErrorBanner message={loadError} />}
 
-      <div className="mt-8 overflow-x-auto rounded-panel bg-cream shadow-warm">
-        <table className="w-full min-w-[720px] text-left font-body text-small">
+      <div className="mt-8 overflow-x-auto rounded-panel bg-white shadow-warm-lg">
+        <table className="w-full min-w-[820px] text-left font-body text-small">
           <thead>
             <tr className="border-b border-clay/15 text-ink/50">
+              <th className="w-10 px-4 py-3"></th>
               <th className="px-4 py-3 font-medium">Order</th>
               <th className="px-4 py-3 font-medium">Customer</th>
               <th className="px-4 py-3 font-medium">Channel</th>
               <th className="px-4 py-3 font-medium">Payment</th>
               <th className="px-4 py-3 font-medium">Total</th>
               <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 font-medium"></th>
             </tr>
           </thead>
           <tbody>
             {orders.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-ink/50">
+                <td colSpan={8} className="px-4 py-8 text-center text-ink/50">
                   No orders yet.
                 </td>
               </tr>
@@ -89,9 +128,16 @@ export default function AdminOrdersPage() {
             {orders.map((order) => (
               <tr
                 key={order.id}
-                onClick={() => markViewed(order)}
                 className={`border-b border-clay/10 last:border-none ${!order.viewed_at ? "bg-berry/5" : ""}`}
               >
+                <td className="px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(order.id)}
+                    onChange={() => toggleSelected(order.id)}
+                    aria-label={`Select order ${order.order_number}`}
+                  />
+                </td>
                 <td className="px-4 py-3 text-ink">
                   <div className="flex items-center gap-2">
                     {order.order_number}
@@ -107,8 +153,14 @@ export default function AdminOrdersPage() {
                   {order.profiles?.phone ? ` · ${order.profiles.phone}` : ""}
                 </td>
                 <td className="px-4 py-3 capitalize text-ink/70">{order.channel}</td>
-                <td className="px-4 py-3 capitalize text-ink/70">
-                  {order.payment_status.replace("_", " ")}
+                <td className="px-4 py-3">
+                  {order.payment_status === "unpaid" ? (
+                    <span className="rounded-pill bg-berry px-3 py-1 text-xs font-semibold text-cream">
+                      ⚠ Unpaid
+                    </span>
+                  ) : (
+                    <span className="capitalize text-ink/70">{order.payment_status.replace("_", " ")}</span>
+                  )}
                 </td>
                 <td className="px-4 py-3 font-medium text-berry">
                   {formatNaira(order.total_naira)}
@@ -126,11 +178,27 @@ export default function AdminOrdersPage() {
                     ))}
                   </select>
                 </td>
+                <td className="px-4 py-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      markViewed(order);
+                      setDetailId(order.id);
+                    }}
+                    className="font-body text-small font-medium text-berry"
+                  >
+                    Details
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {detailId && (
+        <OrderDetailModal orderId={detailId} showCustomer onClose={() => setDetailId(null)} />
+      )}
     </div>
   );
 }

@@ -8,12 +8,20 @@ import { useNotifications } from "@/lib/supabase/messages";
 export default function NotificationBell({
   role,
   onSelectMessage,
+  align = "right",
 }: {
   role: "customer" | "admin";
   onSelectMessage?: () => void;
+  align?: "left" | "right";
 }) {
-  const { items, count } = useNotifications(role);
+  const { items, count, refetch } = useNotifications(role);
   const [open, setOpen] = useState(false);
+
+  function handleSelect(item: (typeof items)[number], onNavigate?: () => void) {
+    setOpen(false);
+    item.markRead().then(refetch);
+    onNavigate?.();
+  }
 
   return (
     <div className="relative">
@@ -34,7 +42,11 @@ export default function NotificationBell({
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} aria-hidden="true" />
-          <div className="absolute right-0 z-50 mt-2 w-72 rounded-panel bg-cream p-2 shadow-warm-lg">
+          <div
+            className={`fixed z-50 w-[min(288px,calc(100vw-2rem))] rounded-panel bg-cream p-2 shadow-warm-lg sm:absolute sm:mt-2 ${
+              align === "left" ? "left-4 top-16 sm:left-0 sm:top-full" : "right-4 top-16 sm:right-0 sm:top-full"
+            }`}
+          >
             {items.length === 0 && (
               <p className="p-4 text-center font-body text-small text-ink/50">No new notifications.</p>
             )}
@@ -43,10 +55,7 @@ export default function NotificationBell({
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => {
-                    setOpen(false);
-                    onSelectMessage?.();
-                  }}
+                  onClick={() => handleSelect(item, onSelectMessage)}
                   className="block w-full rounded-panel px-3 py-2 text-left transition-colors hover:bg-plaster/30"
                 >
                   <NotificationContent title={item.title} body={item.body} />
@@ -55,7 +64,7 @@ export default function NotificationBell({
                 <Link
                   key={item.id}
                   href={item.href}
-                  onClick={() => setOpen(false)}
+                  onClick={() => handleSelect(item)}
                   className="block rounded-panel px-3 py-2 transition-colors hover:bg-plaster/30"
                 >
                   <NotificationContent title={item.title} body={item.body} />

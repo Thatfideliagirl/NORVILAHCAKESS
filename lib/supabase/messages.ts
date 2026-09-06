@@ -10,13 +10,22 @@ export type NotificationItem = {
   body: string;
   createdAt: string;
   href: string;
+  markRead: () => Promise<void>;
 };
 
 type MessageRow = {
   id: string;
+  conversation_id: string;
   body: string;
   created_at: string;
   conversations: { profiles: { full_name: string | null } | null } | null;
+};
+
+type InquiryRow = {
+  id: string;
+  name: string;
+  occasion: string | null;
+  created_at: string;
 };
 
 // Notifications for the bell. RLS already scopes what each caller can
@@ -33,7 +42,7 @@ export function useNotifications(role: "customer" | "admin"): {
   const refetch = useCallback(() => {
     const messagesQuery = supabase
       .from("messages")
-      .select("id, body, created_at, conversations(profiles(full_name))")
+      .select("id, conversation_id, body, created_at, conversations(profiles(full_name))")
       .eq("sender_type", role === "customer" ? "admin" : "customer")
       .is("read_at", null)
       .order("created_at", { ascending: false })
@@ -48,9 +57,10 @@ export function useNotifications(role: "customer" | "admin"): {
             .eq("status", "new")
             .order("created_at", { ascending: false })
             .limit(5)
+            .returns<InquiryRow[]>()
         : null;
 
-    Promise.all([messagesQuery, inquiriesQuery ?? Promise.resolve({ data: [] })]).then(
+    Promise.all([messagesQuery, inquiriesQuery ?? Promise.resolve({ data: [] as InquiryRow[] })]).then(
       ([messagesRes, inquiriesRes]) => {
         const messageItems: NotificationItem[] = (messagesRes.data ?? []).map((m) => ({
           id: `message-${m.id}`,
@@ -59,16 +69,16 @@ export function useNotifications(role: "customer" | "admin"): {
           body: m.body,
           createdAt: m.created_at,
           href: "/admin/messages",
+          markRead: () => markMessagesRead(m.conversation_id, role === "customer" ? "admin" : "customer"),
         }));
-        const inquiryItems: NotificationItem[] = (
-          (inquiriesRes.data ?? []) as { id: string; name: string; occasion: string | null; created_at: string }[]
-        ).map((i) => ({
+        const inquiryItems: NotificationItem[] = (inquiriesRes.data ?? []).map((i) => ({
           id: `inquiry-${i.id}`,
           kind: "inquiry",
           title: "New inquiry",
           body: `${i.occasion ? `${i.occasion} · ` : ""}${i.name}`,
           createdAt: i.created_at,
           href: "/admin/inquiries",
+          markRead: () => markInquiryViewed(i.id),
         }));
         setItems(
           [...messageItems, ...inquiryItems].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -94,4 +104,20 @@ export async function markMessagesRead(
     .eq("conversation_id", conversationId)
     .eq("sender_type", fromSenderType)
     .is("read_at", null);
+}
+
+export async function markInquiryViewed(inquiryId: string) {
+  await supabase
+    .from("event_inquiries")
+    .update({ viewed_at: new Date().toISOString() })
+    .eq("id", inquiryId)
+    .is("viewed_at", null);
+}
+
+export async function markOrderViewed(orderId: string) {
+  await supabase
+    .from("orders")
+    .update({ viewed_at: new Date().toISOString() })
+    .eq("id", orderId)
+    .is("viewed_at", null);
 }
