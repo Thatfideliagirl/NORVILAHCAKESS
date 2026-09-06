@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { formatNaira } from "@/lib/format";
+import AdminErrorBanner from "@/components/admin/AdminErrorBanner";
 
 type Zone = {
   id: string;
@@ -16,13 +17,17 @@ export default function AdminDeliveryPage() {
   const [name, setName] = useState("");
   const [fee, setFee] = useState("");
   const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   function fetchZones() {
     return supabase.from("delivery_locations").select("id, name, fee_naira, active").order("sort_order");
   }
 
   useEffect(() => {
-    fetchZones().then(({ data }) => setZones(data ?? []));
+    fetchZones().then(({ data, error }) => {
+      if (error) setLoadError(error.message);
+      setZones(data ?? []);
+    });
   }, []);
 
   async function addZone(e: React.FormEvent) {
@@ -71,6 +76,8 @@ export default function AdminDeliveryPage() {
           Add
         </button>
       </form>
+
+      {loadError && <AdminErrorBanner message={loadError} />}
 
       <div className="mt-8 overflow-x-auto rounded-panel bg-cream shadow-warm">
         <table className="w-full min-w-[420px] text-left font-body text-small">

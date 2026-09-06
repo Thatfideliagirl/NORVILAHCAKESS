@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
+import AdminErrorBanner from "@/components/admin/AdminErrorBanner";
 
 const STATUSES = ["new", "contacted", "in_progress", "completed"];
 
@@ -19,6 +20,7 @@ type Inquiry = {
 
 export default function AdminInquiriesPage() {
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   function fetchInquiries() {
     return supabase
@@ -28,7 +30,10 @@ export default function AdminInquiriesPage() {
   }
 
   useEffect(() => {
-    fetchInquiries().then(({ data }) => setInquiries(data ?? []));
+    fetchInquiries().then(({ data, error }) => {
+      if (error) setLoadError(error.message);
+      setInquiries(data ?? []);
+    });
   }, []);
 
   async function updateStatus(inquiry: Inquiry, status: string) {
@@ -39,6 +44,8 @@ export default function AdminInquiriesPage() {
   return (
     <div>
       <p className="font-display text-heading text-berry">Events & Inquiries</p>
+
+      {loadError && <AdminErrorBanner message={loadError} />}
 
       <div className="mt-8 flex flex-col gap-4">
         {inquiries.length === 0 && (

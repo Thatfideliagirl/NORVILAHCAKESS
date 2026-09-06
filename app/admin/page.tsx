@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { formatNaira } from "@/lib/format";
+import AdminErrorBanner from "@/components/admin/AdminErrorBanner";
 
 type Stats = {
   totalOrders: number;
@@ -24,20 +25,24 @@ type RecentOrder = {
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function load() {
-      const [orders, pending, customers, products, recent] = await Promise.all([
-        supabase.from("orders").select("id", { count: "exact", head: true }),
-        supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "pending"),
-        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "customer"),
-        supabase.from("products").select("id", { count: "exact", head: true }),
-        supabase
-          .from("orders")
-          .select("id, order_number, status, total_naira, channel, created_at")
-          .order("created_at", { ascending: false })
-          .limit(8),
-      ]);
+    Promise.all([
+      supabase.from("orders").select("id", { count: "exact", head: true }),
+      supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "customer"),
+      supabase.from("products").select("id", { count: "exact", head: true }),
+      supabase
+        .from("orders")
+        .select("id, order_number, status, total_naira, channel, created_at")
+        .order("created_at", { ascending: false })
+        .limit(8),
+    ]).then(([orders, pending, customers, products, recent]) => {
+      const firstError = [orders.error, pending.error, customers.error, products.error, recent.error].find(
+        (e) => e
+      );
+      if (firstError) setLoadError(firstError.message);
       setStats({
         totalOrders: orders.count ?? 0,
         pendingOrders: pending.count ?? 0,
@@ -45,8 +50,7 @@ export default function AdminDashboardPage() {
         totalProducts: products.count ?? 0,
       });
       setRecentOrders(recent.data ?? []);
-    }
-    load();
+    });
   }, []);
 
   const cards = [
@@ -59,6 +63,8 @@ export default function AdminDashboardPage() {
   return (
     <div>
       <p className="font-display text-heading text-berry">Dashboard</p>
+
+      {loadError && <AdminErrorBanner message={loadError} />}
 
       <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {cards.map((card) => (

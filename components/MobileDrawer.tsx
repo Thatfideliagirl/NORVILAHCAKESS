@@ -53,17 +53,17 @@ export default function MobileDrawer({
                   {link.label}
                 </Link>
               ))}
-            </nav>
-
-            <div className="mt-8 flex items-center justify-center gap-4">
               <Link
                 href="/account"
                 onClick={onClose}
-                aria-label="Account"
-                className="flex size-11 items-center justify-center text-ink"
+                className="flex items-center gap-2"
               >
                 <User className="size-5" strokeWidth={1.5} />
+                Get Started
               </Link>
+            </nav>
+
+            <div className="mt-8 flex items-center justify-center gap-4">
               <Link
                 href="/menu"
                 onClick={onClose}

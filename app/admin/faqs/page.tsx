@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
+import AdminErrorBanner from "@/components/admin/AdminErrorBanner";
 
 type Faq = {
   id: string;
@@ -15,13 +16,17 @@ export default function AdminFaqsPage() {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   function fetchFaqs() {
     return supabase.from("faqs").select("id, question, answer, active").order("sort_order");
   }
 
   useEffect(() => {
-    fetchFaqs().then(({ data }) => setFaqs(data ?? []));
+    fetchFaqs().then(({ data, error }) => {
+      if (error) setLoadError(error.message);
+      setFaqs(data ?? []);
+    });
   }, []);
 
   async function addFaq(e: React.FormEvent) {
@@ -66,6 +71,8 @@ export default function AdminFaqsPage() {
           Add FAQ
         </button>
       </form>
+
+      {loadError && <AdminErrorBanner message={loadError} />}
 
       <div className="mt-8 flex flex-col gap-3">
         {faqs.map((faq) => (

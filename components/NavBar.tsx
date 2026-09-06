@@ -58,19 +58,16 @@ export default function NavBar() {
                 {link.label}
               </Link>
             ))}
+            <Link
+              href="/account"
+              className="flex items-center gap-1.5 transition-opacity hover:opacity-70"
+            >
+              <User className="size-4" strokeWidth={1.75} />
+              Get Started
+            </Link>
           </nav>
 
           <div className="flex items-center gap-4">
-            <Link
-              href="/account"
-              aria-label="Account"
-              className={`hidden size-11 items-center justify-center transition-colors duration-300 md:flex ${
-                scrolled ? "text-ink" : "text-cream drop-shadow-[0_1px_3px_rgba(58,36,31,0.9)]"
-              }`}
-            >
-              <User className="size-5" strokeWidth={1.5} />
-            </Link>
-
             <button
               type="button"
               onClick={() => setCartOpen(true)}

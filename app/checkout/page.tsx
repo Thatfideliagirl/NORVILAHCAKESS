@@ -21,6 +21,12 @@ type Channels = {
   whatsapp: boolean;
 };
 
+type BankDetails = {
+  bankName: string | null;
+  accountName: string | null;
+  accountNumber: string | null;
+};
+
 function generateOrderNumber(): string {
   return `NV${Date.now().toString().slice(-8)}`;
 }
@@ -30,19 +36,25 @@ function buildOrderMessage(
   zoneName: string | null,
   fee: number,
   total: number,
+  name: string,
   address: string,
-  phone: string
+  phone: string,
+  additionalInfo: string,
+  orderNumber: string
 ): string {
-  const lines = ["Hi Norvilah, I would like to place an order:", ""];
+  const lines = [`Hi Norvilah, I would like to place order ${orderNumber}:`, ""];
   for (const item of items) {
     const variant = item.variantLabel ? ` (${item.variantLabel})` : "";
     lines.push(`${item.quantity} x ${item.name}${variant} — ${formatNaira(item.priceNaira * item.quantity)}`);
   }
   lines.push("");
+  if (name.trim()) lines.push(`Name: ${name}`);
   if (zoneName) lines.push(`Delivery to: ${zoneName} (${formatNaira(fee)})`);
   if (address.trim()) lines.push(`Address: ${address}`);
   if (phone.trim()) lines.push(`Phone: ${phone}`);
+  if (additionalInfo.trim()) lines.push(`Additional info: ${additionalInfo}`);
   lines.push(`Total: ${formatNaira(total)}`);
+  lines.push("", "I've made my bank transfer and will share the receipt here.");
   return lines.join("\n");
 }
 
@@ -55,9 +67,16 @@ export default function CheckoutPage() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [channels, setChannels] = useState<Channels>({ website: true, whatsapp: true });
+  const [bankDetails, setBankDetails] = useState<BankDetails>({
+    bankName: null,
+    accountName: null,
+    accountNumber: null,
+  });
+  const [name, setName] = useState("");
   const [zoneId, setZoneId] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [additionalInfo, setAdditionalInfo] = useState("");
   const [channel, setChannel] = useState<"website" | "whatsapp">("whatsapp");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -74,13 +93,18 @@ export default function CheckoutPage() {
       .then(({ data }) => setZones(data ?? []));
     supabase
       .from("settings")
-      .select("website_ordering_enabled, whatsapp_ordering_enabled")
+      .select("website_ordering_enabled, whatsapp_ordering_enabled, bank_name, bank_account_name, bank_account_number")
       .eq("id", true)
       .single()
       .then(({ data }) => {
         if (data) {
           setChannels({ website: data.website_ordering_enabled, whatsapp: data.whatsapp_ordering_enabled });
           if (!data.whatsapp_ordering_enabled) setChannel("website");
+          setBankDetails({
+            bankName: data.bank_name,
+            accountName: data.bank_account_name,
+            accountNumber: data.bank_account_number,
+          });
         }
       });
   }, []);
@@ -90,16 +114,81 @@ export default function CheckoutPage() {
   const fee = selectedZone?.fee_naira ?? 0;
   const total = subtotal + fee;
 
-  async function onWhatsAppOrder() {
-    const message = buildOrderMessage(items, selectedZone?.name ?? null, fee, total, address, phone);
-    window.open(buildWhatsAppLink(message), "_blank", "noopener,noreferrer");
+  async function insertOrderItems(orderId: string) {
+    const orderItems = await Promise.all(
+      items.map(async (item) => {
+        const localProduct = products.find((p) => p.id === item.productId);
+        const { data: dbProduct } = localProduct
+          ? await supabase.from("products").select("id").eq("slug", localProduct.slug).single()
+          : { data: null };
+        return {
+          order_id: orderId,
+          product_id: dbProduct?.id ?? null,
+          product_name: item.name,
+          variant_label: item.variantLabel ?? null,
+          unit_price_naira: item.priceNaira,
+          quantity: item.quantity,
+          line_total_naira: item.priceNaira * item.quantity,
+        };
+      })
+    );
+    const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
+    if (itemsError) throw itemsError;
   }
 
-  async function onWebsiteOrder() {
-    if (!session) {
-      setError("Please log in to place an order on the website.");
+  async function onWhatsAppOrder(customerId: string) {
+    if (!selectedZone) {
+      setError("Please choose a delivery location.");
       return;
     }
+    setSubmitting(true);
+    setError(null);
+    try {
+      const orderNumber = generateOrderNumber();
+      const { data: order, error: orderError } = await supabase
+        .from("orders")
+        .insert({
+          order_number: orderNumber,
+          customer_id: customerId,
+          channel: "whatsapp",
+          delivery_location_id: selectedZone.id,
+          delivery_address: address,
+          customer_name: name,
+          notes: additionalInfo || null,
+          subtotal_naira: subtotal,
+          delivery_fee_naira: fee,
+          total_naira: total,
+          payment_status: "awaiting_confirmation",
+        })
+        .select("id")
+        .single();
+      if (orderError) throw orderError;
+
+      await insertOrderItems(order.id);
+
+      const message = buildOrderMessage(
+        items,
+        selectedZone.name,
+        fee,
+        total,
+        name,
+        address,
+        phone,
+        additionalInfo,
+        orderNumber
+      );
+      window.open(buildWhatsAppLink(message), "_blank", "noopener,noreferrer");
+
+      clearCart();
+      setConfirmedOrder({ orderNumber, total });
+    } catch {
+      setError("Something went wrong placing your order. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function onWebsiteOrder(customerId: string) {
     if (!receiptFile) {
       setError("Please upload your payment receipt.");
       return;
@@ -113,7 +202,7 @@ export default function CheckoutPage() {
     try {
       const orderNumber = generateOrderNumber();
       const ext = receiptFile.name.split(".").pop();
-      const path = `${session.user.id}/${orderNumber}.${ext}`;
+      const path = `${customerId}/${orderNumber}.${ext}`;
       const { error: uploadError } = await supabase.storage
         .from("receipts")
         .upload(path, receiptFile);
@@ -123,10 +212,12 @@ export default function CheckoutPage() {
         .from("orders")
         .insert({
           order_number: orderNumber,
-          customer_id: session.user.id,
+          customer_id: customerId,
           channel: "website",
           delivery_location_id: selectedZone.id,
           delivery_address: address,
+          customer_name: name,
+          notes: additionalInfo || null,
           subtotal_naira: subtotal,
           delivery_fee_naira: fee,
           total_naira: total,
@@ -137,25 +228,7 @@ export default function CheckoutPage() {
         .single();
       if (orderError) throw orderError;
 
-      const orderItems = await Promise.all(
-        items.map(async (item) => {
-          const localProduct = products.find((p) => p.id === item.productId);
-          const { data: dbProduct } = localProduct
-            ? await supabase.from("products").select("id").eq("slug", localProduct.slug).single()
-            : { data: null };
-          return {
-            order_id: order.id,
-            product_id: dbProduct?.id ?? null,
-            product_name: item.name,
-            variant_label: item.variantLabel ?? null,
-            unit_price_naira: item.priceNaira,
-            quantity: item.quantity,
-            line_total_naira: item.priceNaira * item.quantity,
-          };
-        })
-      );
-      const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
-      if (itemsError) throw itemsError;
+      await insertOrderItems(order.id);
 
       clearCart();
       setConfirmedOrder({ orderNumber, total });
@@ -168,8 +241,12 @@ export default function CheckoutPage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (channel === "whatsapp") await onWhatsAppOrder();
-    else await onWebsiteOrder();
+    if (!session) {
+      setError("Please create an account or log in to place an order.");
+      return;
+    }
+    if (channel === "whatsapp") await onWhatsAppOrder(session.user.id);
+    else await onWebsiteOrder(session.user.id);
   }
 
   if (confirmedOrder) {
@@ -254,6 +331,22 @@ export default function CheckoutPage() {
         </div>
 
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
+          {!session && (
+            <p className="rounded-panel bg-berry/10 px-4 py-3 font-body text-small text-berry">
+              <Link href="/account" className="underline">
+                Create an account or log in
+              </Link>{" "}
+              to place an order — this applies whether you check out on the website or via WhatsApp.
+            </p>
+          )}
+          <input
+            required
+            type="text"
+            placeholder="Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className={inputClasses}
+          />
           <input
             required
             type="tel"
@@ -285,6 +378,13 @@ export default function CheckoutPage() {
               </option>
             ))}
           </select>
+          <textarea
+            rows={2}
+            placeholder="Additional information / special delivery details (optional)"
+            value={additionalInfo}
+            onChange={(e) => setAdditionalInfo(e.target.value)}
+            className={`${inputClasses} resize-none`}
+          />
 
           {channels.website && channels.whatsapp && (
             <div className="flex gap-3">
@@ -311,14 +411,6 @@ export default function CheckoutPage() {
 
           {channel === "website" && (
             <div>
-              {!session && (
-                <p className="mb-2 font-body text-small text-berry">
-                  <Link href="/account" className="underline">
-                    Log in
-                  </Link>{" "}
-                  to order through the website.
-                </p>
-              )}
               <label className="font-body text-small font-medium text-ink/70">
                 Upload your payment receipt (image or PDF)
               </label>
@@ -331,11 +423,30 @@ export default function CheckoutPage() {
             </div>
           )}
 
+          {channel === "whatsapp" && (
+            <div className="rounded-panel bg-plaster/30 p-4">
+              <p className="font-body text-small font-medium text-ink/70">
+                Transfer to this account, then finish your order on WhatsApp:
+              </p>
+              {bankDetails.accountNumber ? (
+                <div className="mt-2 font-body text-small text-ink">
+                  <p>Bank: {bankDetails.bankName}</p>
+                  <p>Account name: {bankDetails.accountName}</p>
+                  <p className="font-semibold text-berry">Account number: {bankDetails.accountNumber}</p>
+                </div>
+              ) : (
+                <p className="mt-2 font-body text-small text-ink/60">
+                  Bank details will be shared with you on WhatsApp.
+                </p>
+              )}
+            </div>
+          )}
+
           {error && <p className="font-body text-small text-berry">{error}</p>}
 
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || !session}
             className="mt-2 rounded-pill bg-berry px-8 py-3.5 font-body font-medium text-cream transition-colors duration-200 hover:bg-cocoa disabled:opacity-60"
           >
             {submitting

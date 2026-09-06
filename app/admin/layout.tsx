@@ -24,7 +24,10 @@ const NAV_GROUPS = [
   },
   {
     label: "Business",
-    links: [{ href: "/admin/delivery", label: "Delivery" }],
+    links: [
+      { href: "/admin/delivery", label: "Delivery" },
+      { href: "/admin/settings", label: "Settings" },
+    ],
   },
 ];
 

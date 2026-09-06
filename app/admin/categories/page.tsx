@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
+import AdminErrorBanner from "@/components/admin/AdminErrorBanner";
 
 type Category = {
   id: string;
@@ -22,13 +23,17 @@ export default function AdminCategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   function fetchCategories() {
     return supabase.from("categories").select("id, name, slug, active").order("sort_order");
   }
 
   useEffect(() => {
-    fetchCategories().then(({ data }) => setCategories(data ?? []));
+    fetchCategories().then(({ data, error }) => {
+      if (error) setLoadError(error.message);
+      setCategories(data ?? []);
+    });
   }, []);
 
   async function addCategory(e: React.FormEvent) {
@@ -67,6 +72,8 @@ export default function AdminCategoriesPage() {
           Add
         </button>
       </form>
+
+      {loadError && <AdminErrorBanner message={loadError} />}
 
       <div className="mt-8 overflow-x-auto rounded-panel bg-cream shadow-warm">
         <table className="w-full min-w-[420px] text-left font-body text-small">

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { formatNaira } from "@/lib/format";
+import AdminErrorBanner from "@/components/admin/AdminErrorBanner";
 
 const STATUSES = [
   "pending",
@@ -37,9 +38,13 @@ function fetchOrders() {
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchOrders().then(({ data }) => setOrders(data ?? []));
+    fetchOrders().then(({ data, error }) => {
+      if (error) setLoadError(error.message);
+      setOrders(data ?? []);
+    });
   }, []);
 
   async function updateStatus(order: Order, status: string) {
@@ -50,6 +55,8 @@ export default function AdminOrdersPage() {
   return (
     <div>
       <p className="font-display text-heading text-berry">Orders</p>
+
+      {loadError && <AdminErrorBanner message={loadError} />}
 
       <div className="mt-8 overflow-x-auto rounded-panel bg-cream shadow-warm">
         <table className="w-full min-w-[720px] text-left font-body text-small">

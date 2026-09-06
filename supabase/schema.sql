@@ -145,7 +145,8 @@ create table if not exists public.orders (
   payment_status text not null default 'unpaid'
     check (payment_status in ('unpaid', 'awaiting_confirmation', 'paid')),
   receipt_url text,     -- customer-uploaded proof of payment (Supabase Storage URL)
-  notes text,
+  customer_name text,
+  notes text,           -- additional info / special delivery details from the customer
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -231,6 +232,9 @@ create table if not exists public.settings (
   id boolean primary key default true,
   website_ordering_enabled boolean not null default true,
   whatsapp_ordering_enabled boolean not null default true,
+  bank_name text,
+  bank_account_name text,
+  bank_account_number text,
   updated_at timestamptz not null default now(),
   constraint settings_singleton check (id)
 );

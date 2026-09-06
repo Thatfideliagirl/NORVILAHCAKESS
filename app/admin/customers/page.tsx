@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
+import AdminErrorBanner from "@/components/admin/AdminErrorBanner";
 
 type Customer = {
   id: string;
@@ -26,6 +27,7 @@ function toCsv(customers: Customer[]): string {
 
 export default function AdminCustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     supabase
@@ -33,7 +35,10 @@ export default function AdminCustomersPage() {
       .select("id, full_name, email, phone, location, created_at")
       .eq("role", "customer")
       .order("created_at", { ascending: false })
-      .then(({ data }) => setCustomers(data ?? []));
+      .then(({ data, error }) => {
+        if (error) setLoadError(error.message);
+        setCustomers(data ?? []);
+      });
   }, []);
 
   function exportCsv() {
@@ -58,6 +63,8 @@ export default function AdminCustomersPage() {
           Export CSV
         </button>
       </div>
+
+      {loadError && <AdminErrorBanner message={loadError} />}
 
       <div className="mt-8 overflow-x-auto rounded-panel bg-cream shadow-warm">
         <table className="w-full min-w-[560px] text-left font-body text-small">

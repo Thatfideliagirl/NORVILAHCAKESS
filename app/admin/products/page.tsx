@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { formatNaira } from "@/lib/format";
+import AdminErrorBanner from "@/components/admin/AdminErrorBanner";
 
 type Product = {
   id: string;
@@ -30,9 +31,13 @@ const inputClasses =
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchProducts().then(({ data }) => setProducts(data ?? []));
+    fetchProducts().then(({ data, error }) => {
+      if (error) setLoadError(error.message);
+      setProducts(data ?? []);
+    });
   }, []);
 
   async function toggleActive(product: Product) {
@@ -54,6 +59,8 @@ export default function AdminProductsPage() {
         Turn a product off to hide it from the site without deleting it. Edit to update the
         description, ingredients, or Good to Know copy.
       </p>
+
+      {loadError && <AdminErrorBanner message={loadError} />}
 
       <div className="mt-8 overflow-x-auto rounded-panel bg-cream shadow-warm">
         <table className="w-full min-w-[640px] text-left font-body text-small">
