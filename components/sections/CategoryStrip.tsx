@@ -41,7 +41,7 @@ export default function CategoryStrip() {
       initial="hidden"
       whileInView="show"
       viewport={{ once: true, amount: 0.2 }}
-      className="bg-cream py-24 md:py-32"
+      className="bg-cream pt-24 pb-16 md:pt-32 md:pb-20"
     >
       <motion.div variants={revealUp} className="mx-auto max-w-content px-6 text-center">
         <h2 className="font-display text-heading text-berry">
@@ -72,7 +72,7 @@ export default function CategoryStrip() {
         )}
       </motion.div>
 
-      <motion.div variants={revealUp} className="mt-12 flex justify-center px-6">
+      <motion.div variants={revealUp} className="mt-10 flex justify-center px-6">
         <Link
           href="/menu"
           className="rounded-pill bg-cocoa px-8 py-3.5 font-body font-medium text-cream transition-colors duration-200 hover:bg-ink"

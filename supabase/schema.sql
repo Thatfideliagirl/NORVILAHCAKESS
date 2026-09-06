@@ -220,7 +220,23 @@ create table if not exists public.messages (
 );
 
 -- =========================================================
--- 9. ROW LEVEL SECURITY
+-- 9. SETTINGS
+-- One-row table (id is always `true`, so a second row is impossible)
+-- holding site-wide toggles the admin controls -- e.g. whether the
+-- website's own checkout is accepting orders right now, and whether
+-- the WhatsApp order channel is turned on, so the business can run
+-- either or both.
+-- =========================================================
+create table if not exists public.settings (
+  id boolean primary key default true,
+  website_ordering_enabled boolean not null default true,
+  whatsapp_ordering_enabled boolean not null default true,
+  updated_at timestamptz not null default now(),
+  constraint settings_singleton check (id)
+);
+
+-- =========================================================
+-- 10. ROW LEVEL SECURITY
 -- Public catalogue data (categories/products/faqs/delivery) is
 -- readable by anyone, writable only by admins. Personal data (orders,
 -- inquiries, conversations) is readable/writable only by its owner or
@@ -248,6 +264,7 @@ alter table public.faqs enable row level security;
 alter table public.event_inquiries enable row level security;
 alter table public.conversations enable row level security;
 alter table public.messages enable row level security;
+alter table public.settings enable row level security;
 
 -- profiles: everyone can read their own row and update it; admins see all
 drop policy if exists "profiles_select_own_or_admin" on public.profiles;
@@ -365,8 +382,18 @@ create policy "messages_insert_via_conversation" on public.messages
     )
   );
 
+-- settings: anyone can read (the site needs to know which order
+-- channels are live before showing checkout options), only admins
+-- can change it
+drop policy if exists "settings_public_read" on public.settings;
+create policy "settings_public_read" on public.settings
+  for select using (true);
+drop policy if exists "settings_admin_write" on public.settings;
+create policy "settings_admin_write" on public.settings
+  for all using (public.is_admin()) with check (public.is_admin());
+
 -- =========================================================
--- 10. SEED DATA
+-- 11. SEED DATA
 -- Mirrors what's currently hardcoded in data/categories.ts and
 -- data/products.ts, so the database starts in sync with the live
 -- site. Prices are still the placeholders flagged there.
@@ -441,6 +468,9 @@ insert into public.product_variants (product_id, label, price_naira, sort_order)
   ((select id from public.products where slug = 'cupcake'), 'Box of 12', 13000, 3),
   ((select id from public.products where slug = 'meat-pie'), 'Single', 1000, 1),
   ((select id from public.products where slug = 'meat-pie'), 'Box of 6', 5500, 2)
+on conflict do nothing;
+
+insert into public.settings (id) values (true)
 on conflict do nothing;
 
 insert into public.delivery_locations (name, fee_naira, sort_order) values

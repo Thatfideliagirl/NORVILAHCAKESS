@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { MessageCircleQuestionMark, X } from "lucide-react";
+import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 
 const HELP_LINKS = [
   { label: "See the Menu", href: "/menu" },
@@ -19,6 +20,7 @@ const HELP_LINKS = [
 // how to reach the business -- without needing a live agent.
 export default function HelpButton() {
   const [open, setOpen] = useState(false);
+  const reducedMotion = usePrefersReducedMotion();
 
   return (
     <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3">
@@ -55,19 +57,37 @@ export default function HelpButton() {
         )}
       </AnimatePresence>
 
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-label={open ? "Close help menu" : "Open help menu"}
-        aria-expanded={open}
-        className="flex size-14 items-center justify-center rounded-full bg-berry text-cream shadow-warm-lg transition-colors duration-200 hover:bg-cocoa"
-      >
-        {open ? (
-          <X className="size-6" strokeWidth={1.75} />
-        ) : (
-          <MessageCircleQuestionMark className="size-6" strokeWidth={1.75} />
+      <div className="relative flex size-14 items-center justify-center">
+        {!open && !reducedMotion && (
+          <>
+            <motion.span
+              aria-hidden="true"
+              className="absolute inset-0 rounded-full bg-berry"
+              animate={{ scale: [1, 1.7], opacity: [0.5, 0] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
+            />
+            <motion.span
+              aria-hidden="true"
+              className="absolute inset-0 rounded-full bg-berry"
+              animate={{ scale: [1, 1.7], opacity: [0.5, 0] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeOut", delay: 1 }}
+            />
+          </>
         )}
-      </button>
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-label={open ? "Close help menu" : "Open help menu"}
+          aria-expanded={open}
+          className="relative flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-rose to-berry text-cream shadow-warm-lg ring-1 ring-cream/40 transition-colors duration-200 hover:from-berry hover:to-cocoa"
+        >
+          {open ? (
+            <X className="size-6" strokeWidth={1.75} />
+          ) : (
+            <MessageCircleQuestionMark className="size-6" strokeWidth={1.75} />
+          )}
+        </button>
+      </div>
     </div>
   );
 }

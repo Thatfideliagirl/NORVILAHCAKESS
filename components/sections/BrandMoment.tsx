@@ -11,13 +11,13 @@ const PARAGRAPH =
 // rather than a full-bleed backdrop.
 export default function BrandMoment() {
   return (
-    <section className="bg-plaster/25 py-16 md:py-20">
+    <section className="bg-plaster/25 py-12 md:py-16">
       <div className="mx-auto grid max-w-content items-center gap-12 px-6 md:grid-cols-2 md:gap-12 lg:gap-20">
         <div className="order-2 md:order-1">
           <p className="inline-block w-fit rounded-pill bg-rose/60 px-4 py-1.5 font-body text-small font-semibold uppercase tracking-[0.14em] text-berry">
             A little about Norvilah
           </p>
-          <h2 className="mt-4 font-display text-heading leading-[1.05] text-ink">
+          <h2 className="mt-4 font-display text-heading leading-[1.05] text-ink md:text-[3.25rem]">
             {HEADING_LINE_1}
             <br />
             {HEADING_LINE_2}

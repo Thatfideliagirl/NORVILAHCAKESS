@@ -1,20 +1,26 @@
-import { Search, ShoppingBag, Truck } from "lucide-react";
+import { Search, ShoppingBag, Truck, UserPlus } from "lucide-react";
 
 const STEPS = [
   {
     number: "1",
+    icon: UserPlus,
+    title: "Create an account.",
+    body: "Sign up so we can save your orders and details.",
+  },
+  {
+    number: "2",
     icon: Search,
     title: "Pick your treat.",
     body: "Browse the menu and choose your favourites.",
   },
   {
-    number: "2",
+    number: "3",
     icon: ShoppingBag,
     title: "Place your order.",
     body: "Add to cart and complete your order.",
   },
   {
-    number: "3",
+    number: "4",
     icon: Truck,
     title: "We prepare and deliver.",
     body: "Freshly made and brought to you.",
