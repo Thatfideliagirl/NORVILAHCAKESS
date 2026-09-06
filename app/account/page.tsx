@@ -168,6 +168,7 @@ function SignUpForm({ onSignedUp }: { onSignedUp: (email: string) => void }) {
         email,
         password,
         options: {
+          emailRedirectTo: `${window.location.origin}/account`,
           data: {
             full_name: fullName,
             phone,

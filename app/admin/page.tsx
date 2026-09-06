@@ -55,10 +55,16 @@ function dayLabel(date: Date): string {
   return date.toLocaleDateString(undefined, { weekday: "short", day: "numeric" });
 }
 
+function dayOfMonth(date: Date): string {
+  return String(date.getDate());
+}
+
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
-  const [signupCounts, setSignupCounts] = useState<{ label: string; count: number }[]>([]);
+  const [signupCounts, setSignupCounts] = useState<{ label: string; dayNum: string; count: number }[]>(
+    []
+  );
   const [loadError, setLoadError] = useState<string | null>(null);
   const [preset, setPreset] = useState<RangePreset>("30d");
   const [customFrom, setCustomFrom] = useState("");
@@ -142,10 +148,10 @@ export default function AdminDashboardPage() {
           if (counts.has(key)) counts.set(key, (counts.get(key) ?? 0) + 1);
         }
         setSignupCounts(
-          Array.from(counts.entries()).map(([key, count]) => ({
-            label: dayLabel(new Date(`${key}T00:00:00`)),
-            count,
-          }))
+          Array.from(counts.entries()).map(([key, count]) => {
+            const date = new Date(`${key}T00:00:00`);
+            return { label: dayLabel(date), dayNum: dayOfMonth(date), count };
+          })
         );
       });
   }, []);
@@ -215,16 +221,26 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="mt-10">
-        <p className="font-display text-product text-ink">New customers, last 14 days</p>
-        <div className="mt-4 flex h-32 items-end gap-1.5 rounded-panel bg-cream p-5 shadow-warm">
+        <div className="flex items-baseline justify-between">
+          <p className="font-display text-product text-ink">New customers, last 14 days</p>
+          <p className="font-body text-small text-ink/50">
+            {signupCounts.reduce((sum, d) => sum + d.count, 0)} total
+          </p>
+        </div>
+        <div className="mt-4 flex h-48 items-end gap-2 rounded-panel bg-cream p-5 pb-3 shadow-warm">
           {signupCounts.map((d) => (
-            <div key={d.label} className="flex flex-1 flex-col items-center gap-1.5">
+            <div key={d.label} className="flex h-full flex-1 flex-col items-center justify-end gap-2">
+              {d.count > 0 && (
+                <span className="font-body text-xs font-semibold text-berry">{d.count}</span>
+              )}
               <div
-                className="w-full rounded-t-sm bg-berry/70"
-                style={{ height: `${Math.max(4, (d.count / maxSignups) * 72)}px` }}
-                title={`${d.label}: ${d.count}`}
+                className={`w-full rounded-t-md ${d.count > 0 ? "bg-berry" : "bg-clay/15"}`}
+                style={{ height: `${Math.max(6, (d.count / maxSignups) * 130)}px` }}
+                title={`${d.label}: ${d.count} new customer${d.count === 1 ? "" : "s"}`}
               />
-              <span className="font-body text-[10px] text-ink/40">{d.count}</span>
+              <span className="border-t border-clay/20 pt-1 font-body text-[10px] text-ink/40">
+                {d.dayNum}
+              </span>
             </div>
           ))}
         </div>

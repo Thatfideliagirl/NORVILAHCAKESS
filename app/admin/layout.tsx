@@ -13,6 +13,7 @@ const NAV_GROUPS = [
       { href: "/admin/products", label: "Products" },
       { href: "/admin/categories", label: "Categories" },
       { href: "/admin/customers", label: "Customers" },
+      { href: "/admin/messages", label: "Messages" },
     ],
   },
   {
