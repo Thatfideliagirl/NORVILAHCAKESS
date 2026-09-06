@@ -11,13 +11,13 @@ const PARAGRAPH =
 // rather than a full-bleed backdrop.
 export default function BrandMoment() {
   return (
-    <section className="bg-plaster/25 py-12 md:py-16">
+    <section className="bg-plaster/25 py-10 md:py-14">
       <div className="mx-auto grid max-w-content items-center gap-12 px-6 md:grid-cols-2 md:gap-12 lg:gap-20">
         <div className="order-2 md:order-1">
           <p className="inline-block w-fit rounded-pill bg-rose/60 px-4 py-1.5 font-body text-small font-semibold uppercase tracking-[0.14em] text-berry">
             A little about Norvilah
           </p>
-          <h2 className="mt-4 font-display text-heading leading-[1.05] text-ink md:text-[3.25rem]">
+          <h2 className="mt-4 font-display text-heading leading-[1.05] text-ink">
             {HEADING_LINE_1}
             <br />
             {HEADING_LINE_2}
@@ -27,12 +27,13 @@ export default function BrandMoment() {
           </p>
         </div>
 
-        <div className="order-1 md:order-2 md:-mr-6 lg:-mr-11">
+        <div className="group order-1 md:order-2 md:-mr-6 lg:-mr-11">
           <Arch
             src="/brand-section-crop.jpg"
             alt="A hand piping pink frosting onto a cupcake, with strawberries and white flowers alongside."
             sizes="(min-width: 768px) 480px, 90vw"
             className="mx-auto w-full max-w-sm md:max-w-none"
+            imageClassName="transition-transform duration-500 ease-out group-hover:scale-105"
           />
         </div>
       </div>

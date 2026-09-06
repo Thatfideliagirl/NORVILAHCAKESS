@@ -91,16 +91,19 @@ export default function CelebrationsSection() {
           </AnimatePresence>
         </motion.div>
 
-        <motion.div variants={revealUp} className="relative mx-auto hidden w-full max-w-sm md:block">
-          <div
+        <motion.div variants={revealUp} className="group relative mx-auto hidden w-full max-w-sm md:block">
+          <motion.div
             aria-hidden="true"
-            className="absolute inset-0 scale-125 rounded-full bg-berry/30 blur-3xl"
+            animate={{ scale: [1.25, 1.35, 1.25], opacity: [0.9, 1, 0.9] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute inset-0 rounded-full bg-berry/30 blur-3xl"
           />
           <Arch
             src="/celebrations.jpg"
             alt="A spread of parfaits, cupcakes and meat pies laid out for an event, with candles and flowers alongside."
             sizes="(min-width: 768px) 384px, 0px"
             className="relative"
+            imageClassName="transition-transform duration-500 ease-out group-hover:scale-105"
           />
         </motion.div>
       </div>
