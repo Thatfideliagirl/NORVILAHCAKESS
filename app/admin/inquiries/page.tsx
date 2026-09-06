@@ -16,6 +16,7 @@ type Inquiry = {
   message: string | null;
   status: string;
   created_at: string;
+  viewed_at: string | null;
 };
 
 export default function AdminInquiriesPage() {
@@ -25,7 +26,7 @@ export default function AdminInquiriesPage() {
   function fetchInquiries() {
     return supabase
       .from("event_inquiries")
-      .select("id, name, phone, email, occasion, event_date, message, status, created_at")
+      .select("id, name, phone, email, occasion, event_date, message, status, created_at, viewed_at")
       .order("created_at", { ascending: false });
   }
 
@@ -41,6 +42,13 @@ export default function AdminInquiriesPage() {
     await supabase.from("event_inquiries").update({ status }).eq("id", inquiry.id);
   }
 
+  async function markViewed(inquiry: Inquiry) {
+    if (inquiry.viewed_at) return;
+    const viewedAt = new Date().toISOString();
+    setInquiries((current) => current.map((i) => (i.id === inquiry.id ? { ...i, viewed_at: viewedAt } : i)));
+    await supabase.from("event_inquiries").update({ viewed_at: viewedAt }).eq("id", inquiry.id);
+  }
+
   return (
     <div>
       <p className="font-display text-heading text-berry">Events & Inquiries</p>
@@ -54,10 +62,21 @@ export default function AdminInquiriesPage() {
           </p>
         )}
         {inquiries.map((inquiry) => (
-          <div key={inquiry.id} className="rounded-panel bg-cream p-5 shadow-warm">
+          <div
+            key={inquiry.id}
+            onClick={() => markViewed(inquiry)}
+            className={`rounded-panel p-5 shadow-warm ${!inquiry.viewed_at ? "bg-berry/5" : "bg-cream"}`}
+          >
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className="font-display text-product text-ink">{inquiry.name}</p>
+                <p className="font-display text-product text-ink">
+                  {inquiry.name}
+                  {!inquiry.viewed_at && (
+                    <span className="ml-2 rounded-pill bg-berry px-2 py-0.5 text-[10px] font-semibold text-cream">
+                      New
+                    </span>
+                  )}
+                </p>
                 <p className="mt-1 font-body text-small text-ink/60">
                   {inquiry.phone}
                   {inquiry.email ? ` · ${inquiry.email}` : ""}

@@ -627,3 +627,59 @@ create policy "messages_update_via_conversation" on public.messages
         and (c.customer_id = auth.uid() or public.is_admin())
     )
   );
+
+-- =========================================================
+-- 18. ORDERS + INQUIRIES: "NEW" / VIEWED TRACKING
+-- Lets the admin list pages show a red "New" badge on a row until an
+-- admin opens it, same idea as the messages unread badge.
+-- =========================================================
+alter table public.orders add column if not exists viewed_at timestamptz;
+alter table public.event_inquiries add column if not exists viewed_at timestamptz;
+
+-- =========================================================
+-- 19. ANNOUNCEMENTS (BROADCASTS)
+-- A short-lived popup the admin can publish (title, description, an
+-- optional image, and a window of time to show it) that greets anyone
+-- who visits the site while it's active -- e.g. a sale, a holiday
+-- schedule change, a new product launch.
+-- =========================================================
+create table if not exists public.announcements (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  description text,
+  image_url text,
+  active boolean not null default true,
+  starts_at timestamptz not null default now(),
+  ends_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+alter table public.announcements enable row level security;
+
+drop policy if exists "announcements_public_read" on public.announcements;
+create policy "announcements_public_read" on public.announcements
+  for select using (true);
+
+drop policy if exists "announcements_admin_write" on public.announcements;
+create policy "announcements_admin_write" on public.announcements
+  for all using (public.is_admin()) with check (public.is_admin());
+
+insert into storage.buckets (id, name, public)
+values ('announcement-images', 'announcement-images', true)
+on conflict (id) do nothing;
+
+drop policy if exists "announcement_images_public_read" on storage.objects;
+create policy "announcement_images_public_read" on storage.objects
+  for select using (bucket_id = 'announcement-images');
+
+drop policy if exists "announcement_images_admin_write" on storage.objects;
+create policy "announcement_images_admin_write" on storage.objects
+  for insert with check (bucket_id = 'announcement-images' and public.is_admin());
+
+drop policy if exists "announcement_images_admin_update" on storage.objects;
+create policy "announcement_images_admin_update" on storage.objects
+  for update using (bucket_id = 'announcement-images' and public.is_admin());
+
+drop policy if exists "announcement_images_admin_delete" on storage.objects;
+create policy "announcement_images_admin_delete" on storage.objects
+  for delete using (bucket_id = 'announcement-images' and public.is_admin());

@@ -23,6 +23,7 @@ type Order = {
   payment_status: string;
   total_naira: number;
   created_at: string;
+  viewed_at: string | null;
   profiles: { full_name: string | null; phone: string | null } | null;
 };
 
@@ -30,7 +31,7 @@ function fetchOrders() {
   return supabase
     .from("orders")
     .select(
-      "id, order_number, status, channel, payment_status, total_naira, created_at, profiles(full_name, phone)"
+      "id, order_number, status, channel, payment_status, total_naira, created_at, viewed_at, profiles(full_name, phone)"
     )
     .order("created_at", { ascending: false })
     .returns<Order[]>();
@@ -50,6 +51,13 @@ export default function AdminOrdersPage() {
   async function updateStatus(order: Order, status: string) {
     setOrders((current) => current.map((o) => (o.id === order.id ? { ...o, status } : o)));
     await supabase.from("orders").update({ status }).eq("id", order.id);
+  }
+
+  async function markViewed(order: Order) {
+    if (order.viewed_at) return;
+    const viewedAt = new Date().toISOString();
+    setOrders((current) => current.map((o) => (o.id === order.id ? { ...o, viewed_at: viewedAt } : o)));
+    await supabase.from("orders").update({ viewed_at: viewedAt }).eq("id", order.id);
   }
 
   return (
@@ -79,8 +87,21 @@ export default function AdminOrdersPage() {
               </tr>
             )}
             {orders.map((order) => (
-              <tr key={order.id} className="border-b border-clay/10 last:border-none">
-                <td className="px-4 py-3 text-ink">{order.order_number}</td>
+              <tr
+                key={order.id}
+                onClick={() => markViewed(order)}
+                className={`border-b border-clay/10 last:border-none ${!order.viewed_at ? "bg-berry/5" : ""}`}
+              >
+                <td className="px-4 py-3 text-ink">
+                  <div className="flex items-center gap-2">
+                    {order.order_number}
+                    {!order.viewed_at && (
+                      <span className="rounded-pill bg-berry px-2 py-0.5 text-[10px] font-semibold text-cream">
+                        New
+                      </span>
+                    )}
+                  </div>
+                </td>
                 <td className="px-4 py-3 text-ink/70">
                   {order.profiles?.full_name ?? "-"}
                   {order.profiles?.phone ? ` · ${order.profiles.phone}` : ""}

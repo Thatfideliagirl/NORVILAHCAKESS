@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LogOut } from "lucide-react";
+import { supabase } from "@/lib/supabase/client";
 import { useAdminSession } from "@/lib/supabase/use-admin-session";
 import Avatar from "@/components/Avatar";
 import NotificationBell from "@/components/NotificationBell";
@@ -23,6 +25,7 @@ const NAV_GROUPS = [
     links: [
       { href: "/admin/faqs", label: "FAQs" },
       { href: "/admin/inquiries", label: "Events & Inquiries" },
+      { href: "/admin/announcements", label: "Broadcasts" },
     ],
   },
   {
@@ -86,9 +89,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <p className="font-body text-xs text-ink/50">Super Admin</p>
             </div>
           </Link>
-          <Link href="/admin/messages">
-            <NotificationBell role="admin" />
-          </Link>
+          <NotificationBell role="admin" />
         </div>
         <nav className="flex flex-col gap-8">
           {NAV_GROUPS.map((group) => (
@@ -115,6 +116,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
           ))}
         </nav>
+        <button
+          type="button"
+          onClick={() => supabase.auth.signOut()}
+          className="mt-8 flex w-full items-center gap-2 rounded-panel px-3 py-2 font-body text-small font-medium text-ink/70 transition-colors hover:bg-plaster/60"
+        >
+          <LogOut className="size-4" strokeWidth={1.75} />
+          Sign out
+        </button>
       </aside>
       <div className="flex-1 px-6 py-8 md:px-10 md:py-10">{children}</div>
     </div>

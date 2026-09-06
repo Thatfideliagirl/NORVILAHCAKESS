@@ -187,7 +187,7 @@ export default function SignedInAccount({ session }: { session: Session }) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <NotificationBell role="customer" />
+            <NotificationBell role="customer" onSelectMessage={() => setTab("Messages")} />
             <button
               type="button"
               onClick={() => setTab("Messages")}

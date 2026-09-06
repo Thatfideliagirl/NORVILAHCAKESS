@@ -4,6 +4,7 @@ import GrainOverlay from "@/components/GrainOverlay";
 import SmoothScroll from "@/components/SmoothScroll";
 import NavBar from "@/components/NavBar";
 import HelpButton from "@/components/HelpButton";
+import AnnouncementPopup from "@/components/AnnouncementPopup";
 import "./globals.css";
 
 const cormorant = Cormorant_Garamond({
@@ -73,6 +74,7 @@ export default function RootLayout({
           <NavBar />
           {children}
           <HelpButton />
+          <AnnouncementPopup />
         </SmoothScroll>
       </body>
     </html>

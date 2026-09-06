@@ -23,11 +23,6 @@ type RecentOrder = {
   created_at: string;
 };
 
-type TopProduct = {
-  name: string;
-  quantity: number;
-};
-
 type UnreadMessage = {
   id: string;
   body: string;
@@ -82,7 +77,6 @@ function dayOfMonth(date: Date): string {
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
-  const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
   const [unreadMessages, setUnreadMessages] = useState<UnreadMessage[]>([]);
   const [newInquiries, setNewInquiries] = useState<NewInquiry[]>([]);
   const [signupCounts, setSignupCounts] = useState<{ label: string; dayNum: string; count: number }[]>(
@@ -127,10 +121,6 @@ export default function AdminDashboardPage() {
       .from("orders")
       .select("total_naira")
       .lte("created_at", range.to.toISOString());
-    let topProductsQuery = supabase
-      .from("order_items")
-      .select("product_name, quantity, orders!inner(created_at)")
-      .lte("orders.created_at", range.to.toISOString());
 
     if (range.from) {
       const fromIso = range.from.toISOString();
@@ -139,7 +129,6 @@ export default function AdminDashboardPage() {
       customersQuery = customersQuery.gte("created_at", fromIso);
       recentQuery = recentQuery.gte("created_at", fromIso);
       revenueQuery = revenueQuery.gte("created_at", fromIso);
-      topProductsQuery = topProductsQuery.gte("orders.created_at", fromIso);
     }
 
     Promise.all([
@@ -149,8 +138,7 @@ export default function AdminDashboardPage() {
       supabase.from("products").select("id", { count: "exact", head: true }),
       recentQuery,
       revenueQuery,
-      topProductsQuery,
-    ]).then(([orders, pending, customers, products, recent, revenueRows, itemRows]) => {
+    ]).then(([orders, pending, customers, products, recent, revenueRows]) => {
       const firstError = [
         orders.error,
         pending.error,
@@ -158,7 +146,6 @@ export default function AdminDashboardPage() {
         products.error,
         recent.error,
         revenueRows.error,
-        itemRows.error,
       ].find((e) => e);
       if (firstError) setLoadError(firstError.message);
       setStats({
@@ -169,17 +156,6 @@ export default function AdminDashboardPage() {
         revenue: (revenueRows.data ?? []).reduce((sum, row) => sum + row.total_naira, 0),
       });
       setRecentOrders(recent.data ?? []);
-
-      const totals = new Map<string, number>();
-      for (const row of itemRows.data ?? []) {
-        totals.set(row.product_name, (totals.get(row.product_name) ?? 0) + row.quantity);
-      }
-      setTopProducts(
-        Array.from(totals.entries())
-          .map(([name, quantity]) => ({ name, quantity }))
-          .sort((a, b) => b.quantity - a.quantity)
-          .slice(0, 5)
-      );
     });
   }, [range]);
 
@@ -330,24 +306,7 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      <div className="mt-10 grid gap-6 lg:grid-cols-2">
-        <div>
-          <p className="font-display text-product text-ink">Top products</p>
-          <div className="mt-4 flex flex-col gap-2 rounded-panel bg-cream p-5 shadow-warm">
-            {topProducts.length === 0 && (
-              <p className="py-4 text-center font-body text-small text-ink/50">
-                No sales in this range yet.
-              </p>
-            )}
-            {topProducts.map((product) => (
-              <div key={product.name} className="flex items-center justify-between font-body text-small">
-                <span className="text-ink">{product.name}</span>
-                <span className="text-ink/60">{product.quantity} sold</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
+      <div className="mt-10">
         <div>
           <p className="font-display text-product text-ink">Unread inquiries &amp; messages</p>
           <div className="mt-4 flex flex-col gap-2 rounded-panel bg-cream p-5 shadow-warm">
