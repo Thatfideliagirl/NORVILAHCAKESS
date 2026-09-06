@@ -7,6 +7,7 @@ import { Search } from "lucide-react";
 import { products } from "@/data/products";
 import { menuCategories } from "@/data/categories";
 import { filterAndSortProducts, SORT_OPTIONS, type SortOption } from "@/lib/menu";
+import { useProductImageOverrides } from "@/lib/supabase/product-images";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 import { revealContainer, revealUp } from "@/lib/motion";
 import CategorySidebar from "@/components/menu/CategorySidebar";
@@ -29,10 +30,19 @@ export default function MenuExperience() {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortOption>("featured");
   const [activeProductId, setActiveProductId] = useState<string | null>(null);
+  const imageOverrides = useProductImageOverrides();
+
+  const productsWithImages = useMemo(
+    () =>
+      products.map((product) =>
+        imageOverrides[product.slug] ? { ...product, image: imageOverrides[product.slug] } : product
+      ),
+    [imageOverrides]
+  );
 
   const filteredProducts = useMemo(
-    () => filterAndSortProducts(products, { category, query, sort }),
-    [category, query, sort]
+    () => filterAndSortProducts(productsWithImages, { category, query, sort }),
+    [productsWithImages, category, query, sort]
   );
 
   const activeIndex = filteredProducts.findIndex((p) => p.id === activeProductId);

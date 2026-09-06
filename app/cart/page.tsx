@@ -6,12 +6,14 @@ import { Trash2 } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { formatNaira } from "@/lib/format";
 import { products } from "@/data/products";
+import { useProductImageOverrides } from "@/lib/supabase/product-images";
 import QuantityStepper from "@/components/menu/QuantityStepper";
 
 export default function CartPage() {
   const items = useCartStore((state) => state.items);
   const setQuantity = useCartStore((state) => state.setQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
+  const imageOverrides = useProductImageOverrides();
 
   const total = items.reduce((sum, item) => sum + item.priceNaira * item.quantity, 0);
 
@@ -47,7 +49,7 @@ export default function CartPage() {
                 {product && (
                   <div className="relative size-20 shrink-0 overflow-hidden rounded-panel">
                     <Image
-                      src={product.image}
+                      src={imageOverrides[product.slug] ?? product.image}
                       alt={item.name}
                       fill
                       sizes="80px"

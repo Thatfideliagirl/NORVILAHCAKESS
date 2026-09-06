@@ -516,3 +516,29 @@ create policy "receipts_owner_upload" on storage.objects
     bucket_id = 'receipts'
     and auth.uid()::text = (storage.foldername(name))[1]
   );
+
+-- =========================================================
+-- 13. PRODUCT IMAGES STORAGE
+-- A public bucket admins upload to when replacing a product's photo
+-- from Admin > Products. Public so the storefront can render the
+-- photo directly from its URL; only admins can add/replace/remove files.
+-- =========================================================
+insert into storage.buckets (id, name, public)
+values ('product-images', 'product-images', true)
+on conflict (id) do nothing;
+
+drop policy if exists "product_images_public_read" on storage.objects;
+create policy "product_images_public_read" on storage.objects
+  for select using (bucket_id = 'product-images');
+
+drop policy if exists "product_images_admin_write" on storage.objects;
+create policy "product_images_admin_write" on storage.objects
+  for insert with check (bucket_id = 'product-images' and public.is_admin());
+
+drop policy if exists "product_images_admin_update" on storage.objects;
+create policy "product_images_admin_update" on storage.objects
+  for update using (bucket_id = 'product-images' and public.is_admin());
+
+drop policy if exists "product_images_admin_delete" on storage.objects;
+create policy "product_images_admin_delete" on storage.objects
+  for delete using (bucket_id = 'product-images' and public.is_admin());

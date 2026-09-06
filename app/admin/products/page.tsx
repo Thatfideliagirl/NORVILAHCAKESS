@@ -1,16 +1,19 @@
 "use client";
 
 import { Fragment, useEffect, useState } from "react";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase/client";
 import { formatNaira } from "@/lib/format";
 import AdminErrorBanner from "@/components/admin/AdminErrorBanner";
 
 type Product = {
   id: string;
+  slug: string;
   name: string;
   description: string | null;
   ingredients: string[] | null;
   benefits: string[] | null;
+  image_url: string | null;
   price_naira: number;
   active: boolean;
   featured: boolean;
@@ -20,7 +23,9 @@ type Product = {
 function fetchProducts() {
   return supabase
     .from("products")
-    .select("id, name, description, ingredients, benefits, price_naira, active, featured, categories(name)")
+    .select(
+      "id, slug, name, description, ingredients, benefits, image_url, price_naira, active, featured, categories(name)"
+    )
     .order("name")
     .returns<Product[]>();
 }
@@ -66,6 +71,7 @@ export default function AdminProductsPage() {
         <table className="w-full min-w-[640px] text-left font-body text-small">
           <thead>
             <tr className="border-b border-clay/15 text-ink/50">
+              <th className="px-4 py-3 font-medium"></th>
               <th className="px-4 py-3 font-medium">Name</th>
               <th className="px-4 py-3 font-medium">Category</th>
               <th className="px-4 py-3 font-medium">Price</th>
@@ -76,7 +82,7 @@ export default function AdminProductsPage() {
           <tbody>
             {products.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-ink/50">
+                <td colSpan={6} className="px-4 py-8 text-center text-ink/50">
                   No products found.
                 </td>
               </tr>
@@ -84,6 +90,19 @@ export default function AdminProductsPage() {
             {products.map((product) => (
               <Fragment key={product.id}>
                 <tr className="border-b border-clay/10 last:border-none">
+                  <td className="px-4 py-3">
+                    {product.image_url && (
+                      <div className="relative size-10 shrink-0 overflow-hidden rounded-panel">
+                        <Image
+                          src={product.image_url}
+                          alt={product.name}
+                          fill
+                          sizes="40px"
+                          className="object-cover"
+                        />
+                      </div>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-ink">{product.name}</td>
                   <td className="px-4 py-3 text-ink/70">{product.categories?.name ?? "-"}</td>
                   <td className="px-4 py-3 font-medium text-berry">
@@ -112,7 +131,7 @@ export default function AdminProductsPage() {
                 </tr>
                 {editingId === product.id && (
                   <tr className="border-b border-clay/10 last:border-none">
-                    <td colSpan={5} className="bg-plaster/15 px-4 py-5">
+                    <td colSpan={6} className="bg-plaster/15 px-4 py-5">
                       <EditProductForm product={product} onSaved={onSaved} />
                     </td>
                   </tr>
@@ -137,30 +156,83 @@ function EditProductForm({
   const [ingredients, setIngredients] = useState((product.ingredients ?? []).join(", "));
   const [benefits, setBenefits] = useState((product.benefits ?? []).join(", "));
   const [priceNaira, setPriceNaira] = useState(String(product.price_naira));
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function onImageChange(file: File | null) {
+    setImageFile(file);
+    setImagePreview(file ? URL.createObjectURL(file) : null);
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    const updated = {
-      description,
-      ingredients: ingredients
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
-      benefits: benefits
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
-      price_naira: Number(priceNaira) || product.price_naira,
-    };
-    await supabase.from("products").update(updated).eq("id", product.id);
-    setSaving(false);
-    onSaved({ ...product, ...updated });
+    setError(null);
+    try {
+      let imageUrl = product.image_url;
+      if (imageFile) {
+        const ext = imageFile.name.split(".").pop();
+        const path = `${product.slug}-${Date.now()}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from("product-images")
+          .upload(path, imageFile);
+        if (uploadError) throw uploadError;
+        imageUrl = supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl;
+      }
+      const updated = {
+        description,
+        ingredients: ingredients
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+        benefits: benefits
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+        price_naira: Number(priceNaira) || product.price_naira,
+        image_url: imageUrl,
+      };
+      const { error: updateError } = await supabase
+        .from("products")
+        .update(updated)
+        .eq("id", product.id);
+      if (updateError) throw updateError;
+      onSaved({ ...product, ...updated });
+    } catch {
+      setError("Could not save changes. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
     <form onSubmit={onSubmit} className="flex max-w-2xl flex-col gap-3">
+      <div>
+        <label className="font-body text-xs font-medium uppercase tracking-wide text-ink/50">
+          Photo
+        </label>
+        <div className="mt-1 flex items-center gap-4">
+          {(imagePreview ?? product.image_url) && (
+            <div className="relative size-20 shrink-0 overflow-hidden rounded-panel">
+              <Image
+                src={imagePreview ?? product.image_url ?? ""}
+                alt={product.name}
+                fill
+                sizes="80px"
+                className="object-cover"
+              />
+            </div>
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => onImageChange(e.target.files?.[0] ?? null)}
+            className="font-body text-small text-ink"
+          />
+        </div>
+      </div>
       <div>
         <label className="font-body text-xs font-medium uppercase tracking-wide text-ink/50">
           Description
@@ -205,6 +277,7 @@ function EditProductForm({
           className={`${inputClasses} mt-1`}
         />
       </div>
+      {error && <p className="font-body text-small text-berry">{error}</p>}
       <button
         type="submit"
         disabled={saving}

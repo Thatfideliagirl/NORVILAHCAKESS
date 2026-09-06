@@ -9,6 +9,7 @@ import { useCartStore } from "@/store/cart";
 import { formatNaira } from "@/lib/format";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 import { products } from "@/data/products";
+import { useProductImageOverrides } from "@/lib/supabase/product-images";
 
 type DeliveryZone = {
   id: string;
@@ -64,6 +65,7 @@ const inputClasses =
 export default function CheckoutPage() {
   const items = useCartStore((state) => state.items);
   const clearCart = useCartStore((state) => state.clear);
+  const imageOverrides = useProductImageOverrides();
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [channels, setChannels] = useState<Channels>({ website: true, whatsapp: true });
@@ -298,7 +300,7 @@ export default function CheckoutPage() {
                 <div key={`${item.productId}-${item.variantId ?? "base"}`} className="flex items-center gap-3 py-4">
                   {product && (
                     <div className="relative size-14 shrink-0 overflow-hidden rounded-panel">
-                      <Image src={product.image} alt={item.name} fill sizes="56px" className="object-cover" />
+                      <Image src={imageOverrides[product.slug] ?? product.image} alt={item.name} fill sizes="56px" className="object-cover" />
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
