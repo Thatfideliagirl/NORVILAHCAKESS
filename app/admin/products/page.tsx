@@ -168,6 +168,12 @@ export default function AdminProductsPage() {
     await supabase.from("products").update({ active: !product.active }).eq("id", product.id);
   }
 
+  async function deleteProduct(product: Product) {
+    if (!window.confirm(`Delete "${product.name}"? This can't be undone.`)) return;
+    setProducts((current) => current.filter((p) => p.id !== product.id));
+    await supabase.from("products").delete().eq("id", product.id);
+  }
+
   function onSaved(updated: Product) {
     setProducts((current) => current.map((p) => (p.id === updated.id ? updated : p)));
     setEditingId(null);
@@ -258,13 +264,23 @@ export default function AdminProductsPage() {
                     </button>
                   </td>
                   <td className="px-4 py-3">
-                    <button
-                      type="button"
-                      onClick={() => setEditingId(editingId === product.id ? null : product.id)}
-                      className="font-body text-small font-medium text-berry"
-                    >
-                      {editingId === product.id ? "Close" : "Edit"}
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(editingId === product.id ? null : product.id)}
+                        className="font-body text-small font-medium text-berry"
+                      >
+                        {editingId === product.id ? "Close" : "Edit"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteProduct(product)}
+                        aria-label={`Delete ${product.name}`}
+                        className="font-body text-small font-medium text-berry"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
                 {editingId === product.id && (
