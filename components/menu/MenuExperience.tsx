@@ -4,9 +4,9 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Search } from "lucide-react";
-import { menuCategories } from "@/data/categories";
 import { filterAndSortProducts, SORT_OPTIONS, type SortOption } from "@/lib/menu";
 import { useStorefrontProducts } from "@/lib/supabase/storefront-products";
+import { useStorefrontCategories } from "@/lib/supabase/storefront-categories";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 import { revealContainer, revealUp } from "@/lib/motion";
 import CategorySidebar from "@/components/menu/CategorySidebar";
@@ -30,6 +30,7 @@ export default function MenuExperience() {
   const [sort, setSort] = useState<SortOption>("featured");
   const [activeProductId, setActiveProductId] = useState<string | null>(null);
   const products = useStorefrontProducts();
+  const categories = useStorefrontCategories();
 
   const filteredProducts = useMemo(
     () => filterAndSortProducts(products, { category, query, sort }),
@@ -42,7 +43,7 @@ export default function MenuExperience() {
   const categoryName =
     category === "all"
       ? "All Items"
-      : menuCategories.find((c) => c.slug === category)?.name ?? "All Items";
+      : categories.find((c) => c.slug === category)?.name ?? "All Items";
 
   return (
     <section className="relative z-10 -mt-6 rounded-t-[32px] bg-cream py-12 shadow-[0_-20px_32px_-28px_rgba(58,36,31,0.25)] md:-mt-10 md:py-16">

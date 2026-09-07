@@ -54,7 +54,7 @@ function buildOrderMessage(
   if (phone.trim()) lines.push(`Phone: ${phone}`);
   if (additionalInfo.trim()) lines.push(`Additional info: ${additionalInfo}`);
   lines.push(`Total: ${formatNaira(total)}`);
-  lines.push("", "I've made my bank transfer and will share the receipt here.");
+  lines.push("", "I've made my bank transfer and uploaded my receipt on the website.");
   return lines.join("\n");
 }
 
@@ -138,6 +138,10 @@ export default function CheckoutPage() {
   }
 
   async function onWhatsAppOrder(customerId: string) {
+    if (!receiptFile) {
+      setError("Please upload your payment receipt.");
+      return;
+    }
     if (!selectedZone) {
       setError("Please choose a delivery location.");
       return;
@@ -146,6 +150,13 @@ export default function CheckoutPage() {
     setError(null);
     try {
       const orderNumber = generateOrderNumber();
+      const ext = receiptFile.name.split(".").pop();
+      const path = `${customerId}/${orderNumber}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("receipts")
+        .upload(path, receiptFile);
+      if (uploadError) throw uploadError;
+
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .insert({
@@ -159,7 +170,8 @@ export default function CheckoutPage() {
           subtotal_naira: subtotal,
           delivery_fee_naira: fee,
           total_naira: total,
-          payment_status: "unpaid",
+          payment_status: "awaiting_confirmation",
+          receipt_url: path,
         })
         .select("id")
         .single();
@@ -410,38 +422,31 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          {channel === "website" && (
-            <div>
-              <label className="font-body text-small font-medium text-ink/70">
-                Upload your payment receipt (image or PDF)
-              </label>
-              <input
-                type="file"
-                accept="image/*,application/pdf"
-                onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)}
-                className="mt-1 w-full font-body text-small text-ink"
-              />
+          {channel === "whatsapp" && bankDetails.accountNumber && (
+            <div className="rounded-panel bg-plaster/30 p-4">
+              <p className="font-body text-small font-medium text-ink/70">
+                Instructions: transfer to the account below, then upload your receipt and tap
+                Continue on WhatsApp to finish your order.
+              </p>
+              <div className="mt-2 font-body text-small text-ink">
+                <p>Bank: {bankDetails.bankName}</p>
+                <p>Account name: {bankDetails.accountName}</p>
+                <p className="font-semibold text-berry">Account number: {bankDetails.accountNumber}</p>
+              </div>
             </div>
           )}
 
-          {channel === "whatsapp" && (
-            <div className="rounded-panel bg-plaster/30 p-4">
-              <p className="font-body text-small font-medium text-ink/70">
-                Transfer to this account, then finish your order on WhatsApp:
-              </p>
-              {bankDetails.accountNumber ? (
-                <div className="mt-2 font-body text-small text-ink">
-                  <p>Bank: {bankDetails.bankName}</p>
-                  <p>Account name: {bankDetails.accountName}</p>
-                  <p className="font-semibold text-berry">Account number: {bankDetails.accountNumber}</p>
-                </div>
-              ) : (
-                <p className="mt-2 font-body text-small text-ink/60">
-                  Bank details will be shared with you on WhatsApp.
-                </p>
-              )}
-            </div>
-          )}
+          <div>
+            <label className="font-body text-small font-medium text-ink/70">
+              Upload your payment receipt (image or PDF)
+            </label>
+            <input
+              type="file"
+              accept="image/*,application/pdf"
+              onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)}
+              className="mt-1 w-full font-body text-small text-ink"
+            />
+          </div>
 
           {error && <p className="font-body text-small text-berry">{error}</p>}
 

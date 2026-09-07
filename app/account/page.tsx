@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
-import { categories } from "@/data/categories";
+import { useStorefrontCategories } from "@/lib/supabase/storefront-categories";
 import SignedInAccount from "@/components/account/SignedInAccount";
 
 const HOW_HEARD_OPTIONS = [
@@ -163,6 +163,7 @@ function SignInForm() {
 }
 
 function SignUpForm({ onSignedUp }: { onSignedUp: (email: string) => void }) {
+  const categories = useStorefrontCategories();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");

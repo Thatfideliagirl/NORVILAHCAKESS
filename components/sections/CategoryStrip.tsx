@@ -4,7 +4,8 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import Arch from "@/components/Arch";
-import { categories, type Category } from "@/data/categories";
+import type { Category } from "@/data/categories";
+import { useStorefrontCategories } from "@/lib/supabase/storefront-categories";
 import { revealContainer, revealUp } from "@/lib/motion";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 
@@ -34,6 +35,7 @@ function CategoryCard({ category }: { category: Category }) {
 
 export default function CategoryStrip() {
   const reducedMotion = usePrefersReducedMotion();
+  const categories = useStorefrontCategories();
 
   return (
     <motion.section

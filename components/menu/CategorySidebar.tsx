@@ -1,4 +1,4 @@
-import { menuCategories } from "@/data/categories";
+import { useStorefrontCategories } from "@/lib/supabase/storefront-categories";
 
 type CategorySidebarProps = {
   selected: string;
@@ -12,7 +12,8 @@ const ALL_ITEMS = { slug: "all", name: "All Items" };
 // horizontal, swipeable pill row instead of being squeezed into the
 // sidebar shape.
 export default function CategorySidebar({ selected, onSelect }: CategorySidebarProps) {
-  const items = [ALL_ITEMS, ...menuCategories];
+  const categories = useStorefrontCategories();
+  const items = [ALL_ITEMS, ...categories];
 
   return (
     <nav aria-label="Menu categories">
