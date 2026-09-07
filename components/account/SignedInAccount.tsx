@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import type { Session } from "@supabase/supabase-js";
 import { Heart, LogOut, Menu, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -31,7 +32,7 @@ type Order = {
   status: string;
   total_naira: number;
   created_at: string;
-  order_items: { id: string }[];
+  order_items: { id: string; products: { image_url: string | null } | null }[];
 };
 
 const PAST_STATUSES = ["delivered", "cancelled"];
@@ -100,9 +101,10 @@ export default function SignedInAccount({ session }: { session: Session }) {
   function fetchOrders() {
     return supabase
       .from("orders")
-      .select("id, order_number, status, total_naira, created_at, order_items(id)")
+      .select("id, order_number, status, total_naira, created_at, order_items(id, products(image_url))")
       .eq("customer_id", session.user.id)
       .order("created_at", { ascending: false })
+      .returns<Order[]>()
       .then(({ data }) => setOrders(data ?? []));
   }
 
@@ -417,8 +419,12 @@ export default function SignedInAccount({ session }: { session: Session }) {
 }
 
 function OrderCard({ order, onViewDetails }: { order: Order; onViewDetails: () => void }) {
+  const thumbnail = order.order_items.find((item) => item.products?.image_url)?.products?.image_url;
   return (
     <div className="flex items-center justify-between gap-4 rounded-panel bg-plaster/25 p-5">
+      <div className="relative size-14 shrink-0 overflow-hidden rounded-panel bg-plaster/40">
+        {thumbnail && <Image src={thumbnail} alt="" fill sizes="56px" className="object-cover" />}
+      </div>
       <div className="min-w-0 flex-1">
         <p className="font-display text-body text-ink">{order.order_number}</p>
         <p className="mt-1 font-body text-small text-ink/60">

@@ -35,14 +35,14 @@ export default function MenuHero() {
       </div>
 
       <div
-        className="absolute inset-0"
+        className="pointer-events-none absolute inset-0"
         style={{
           background:
             "linear-gradient(to right, rgba(58,36,31,0.68) 0%, rgba(58,36,31,0.2) 45%, rgba(58,36,31,0) 65%)",
         }}
       />
       <div
-        className="absolute inset-y-0 left-0 w-full max-w-md"
+        className="pointer-events-none absolute inset-y-0 left-0 w-full max-w-md"
         style={{
           background:
             "radial-gradient(60% 65% at 25% 55%, rgba(246,235,227,0.5) 0%, rgba(246,235,227,0) 100%)",

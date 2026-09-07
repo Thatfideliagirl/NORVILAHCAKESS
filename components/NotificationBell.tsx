@@ -43,8 +43,8 @@ export default function NotificationBell({
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} aria-hidden="true" />
           <div
-            className={`fixed z-50 w-[min(288px,calc(100vw-2rem))] rounded-panel bg-cream p-2 shadow-warm-lg sm:absolute sm:mt-2 ${
-              align === "left" ? "left-4 top-16 sm:left-0 sm:top-full" : "right-4 top-16 sm:right-0 sm:top-full"
+            className={`fixed z-50 max-h-[60vh] w-[min(288px,calc(100vw-2rem))] overflow-y-auto rounded-panel bg-cream p-2 shadow-warm-lg sm:absolute sm:mt-2 sm:max-h-none ${
+              align === "left" ? "left-4 top-32 sm:left-0 sm:top-full" : "right-4 top-32 sm:right-0 sm:top-full"
             }`}
           >
             {items.length === 0 && (

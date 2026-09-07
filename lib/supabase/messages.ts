@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
+import { formatNaira } from "@/lib/format";
 
 export type NotificationItem = {
   id: string;
-  kind: "message" | "inquiry";
+  kind: "message" | "inquiry" | "order";
   title: string;
   body: string;
   createdAt: string;
@@ -25,6 +26,13 @@ type InquiryRow = {
   id: string;
   name: string;
   occasion: string | null;
+  created_at: string;
+};
+
+type OrderRow = {
+  id: string;
+  order_number: string;
+  total_naira: number;
   created_at: string;
 };
 
@@ -60,31 +68,55 @@ export function useNotifications(role: "customer" | "admin"): {
             .returns<InquiryRow[]>()
         : null;
 
-    Promise.all([messagesQuery, inquiriesQuery ?? Promise.resolve({ data: [] as InquiryRow[] })]).then(
-      ([messagesRes, inquiriesRes]) => {
-        const messageItems: NotificationItem[] = (messagesRes.data ?? []).map((m) => ({
-          id: `message-${m.id}`,
-          kind: "message",
-          title: role === "admin" ? m.conversations?.profiles?.full_name ?? "Customer" : "Norvilah",
-          body: m.body,
-          createdAt: m.created_at,
-          href: "/admin/messages",
-          markRead: () => markMessagesRead(m.conversation_id, role === "customer" ? "admin" : "customer"),
-        }));
-        const inquiryItems: NotificationItem[] = (inquiriesRes.data ?? []).map((i) => ({
-          id: `inquiry-${i.id}`,
-          kind: "inquiry",
-          title: "New inquiry",
-          body: `${i.occasion ? `${i.occasion} · ` : ""}${i.name}`,
-          createdAt: i.created_at,
-          href: "/admin/inquiries",
-          markRead: () => markInquiryViewed(i.id),
-        }));
-        setItems(
-          [...messageItems, ...inquiryItems].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-        );
-      }
-    );
+    const ordersQuery =
+      role === "admin"
+        ? supabase
+            .from("orders")
+            .select("id, order_number, total_naira, created_at")
+            .is("viewed_at", null)
+            .order("created_at", { ascending: false })
+            .limit(5)
+            .returns<OrderRow[]>()
+        : null;
+
+    Promise.all([
+      messagesQuery,
+      inquiriesQuery ?? Promise.resolve({ data: [] as InquiryRow[] }),
+      ordersQuery ?? Promise.resolve({ data: [] as OrderRow[] }),
+    ]).then(([messagesRes, inquiriesRes, ordersRes]) => {
+      const messageItems: NotificationItem[] = (messagesRes.data ?? []).map((m) => ({
+        id: `message-${m.id}`,
+        kind: "message",
+        title: role === "admin" ? m.conversations?.profiles?.full_name ?? "Customer" : "Norvilah",
+        body: m.body,
+        createdAt: m.created_at,
+        href: "/admin/messages",
+        markRead: () => markMessagesRead(m.conversation_id, role === "customer" ? "admin" : "customer"),
+      }));
+      const inquiryItems: NotificationItem[] = (inquiriesRes.data ?? []).map((i) => ({
+        id: `inquiry-${i.id}`,
+        kind: "inquiry",
+        title: "New inquiry",
+        body: `${i.occasion ? `${i.occasion} · ` : ""}${i.name}`,
+        createdAt: i.created_at,
+        href: "/admin/inquiries",
+        markRead: () => markInquiryViewed(i.id),
+      }));
+      const orderItems: NotificationItem[] = (ordersRes.data ?? []).map((o) => ({
+        id: `order-${o.id}`,
+        kind: "order",
+        title: "New order",
+        body: `${o.order_number} · ${formatNaira(o.total_naira)}`,
+        createdAt: o.created_at,
+        href: "/admin/orders",
+        markRead: () => markOrderViewed(o.id),
+      }));
+      setItems(
+        [...messageItems, ...inquiryItems, ...orderItems].sort((a, b) =>
+          b.createdAt.localeCompare(a.createdAt)
+        )
+      );
+    });
   }, [role]);
 
   useEffect(() => {

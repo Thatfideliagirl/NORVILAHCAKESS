@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase/client";
 import { formatNaira } from "@/lib/format";
 import AdminErrorBanner from "@/components/admin/AdminErrorBanner";
@@ -26,13 +27,14 @@ type Order = {
   created_at: string;
   viewed_at: string | null;
   profiles: { full_name: string | null; phone: string | null } | null;
+  order_items: { products: { image_url: string | null } | null }[];
 };
 
 function fetchOrders() {
   return supabase
     .from("orders")
     .select(
-      "id, order_number, status, channel, payment_status, total_naira, created_at, viewed_at, profiles(full_name, phone)"
+      "id, order_number, status, channel, payment_status, total_naira, created_at, viewed_at, profiles(full_name, phone), order_items(products(image_url))"
     )
     .order("created_at", { ascending: false })
     .returns<Order[]>();
@@ -108,6 +110,7 @@ export default function AdminOrdersPage() {
           <thead>
             <tr className="border-b border-clay/15 text-ink/50">
               <th className="w-10 px-4 py-3"></th>
+              <th className="w-16 px-4 py-3"></th>
               <th className="px-4 py-3 font-medium">Order</th>
               <th className="px-4 py-3 font-medium">Customer</th>
               <th className="px-4 py-3 font-medium">Channel</th>
@@ -120,12 +123,15 @@ export default function AdminOrdersPage() {
           <tbody>
             {orders.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-ink/50">
+                <td colSpan={9} className="px-4 py-8 text-center text-ink/50">
                   No orders yet.
                 </td>
               </tr>
             )}
-            {orders.map((order) => (
+            {orders.map((order) => {
+              const thumbnail = order.order_items.find((item) => item.products?.image_url)?.products
+                ?.image_url;
+              return (
               <tr
                 key={order.id}
                 className={`border-b border-clay/10 last:border-none ${!order.viewed_at ? "bg-berry/5" : ""}`}
@@ -137,6 +143,11 @@ export default function AdminOrdersPage() {
                     onChange={() => toggleSelected(order.id)}
                     aria-label={`Select order ${order.order_number}`}
                   />
+                </td>
+                <td className="px-4 py-3">
+                  <div className="relative size-10 shrink-0 overflow-hidden rounded-panel bg-plaster/40">
+                    {thumbnail && <Image src={thumbnail} alt="" fill sizes="40px" className="object-cover" />}
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-ink">
                   <div className="flex items-center gap-2">
@@ -191,7 +202,8 @@ export default function AdminOrdersPage() {
                   </button>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

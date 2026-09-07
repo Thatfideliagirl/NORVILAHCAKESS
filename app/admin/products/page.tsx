@@ -25,6 +25,102 @@ type Category = {
   name: string;
 };
 
+type VariantRow = {
+  id: string | null;
+  label: string;
+  priceNaira: string;
+};
+
+function VariantsEditor({
+  variants,
+  onChange,
+}: {
+  variants: VariantRow[];
+  onChange: (variants: VariantRow[]) => void;
+}) {
+  function updateRow(index: number, patch: Partial<VariantRow>) {
+    onChange(variants.map((v, i) => (i === index ? { ...v, ...patch } : v)));
+  }
+
+  function removeRow(index: number) {
+    onChange(variants.filter((_, i) => i !== index));
+  }
+
+  function addRow() {
+    onChange([...variants, { id: null, label: "", priceNaira: "" }]);
+  }
+
+  return (
+    <div>
+      <label className="font-body text-xs font-medium uppercase tracking-wide text-ink/50">
+        Sizes / Inches (optional)
+      </label>
+      <p className="mt-1 font-body text-xs text-ink/50">
+        If this cake comes in different inch sizes at different prices, add each size and its
+        price here. Leave empty to use a single price for the whole product.
+      </p>
+      <div className="mt-2 flex flex-col gap-2">
+        {variants.map((variant, index) => (
+          <div key={index} className="flex items-center gap-2">
+            <input
+              value={variant.label}
+              onChange={(e) => updateRow(index, { label: e.target.value })}
+              placeholder="e.g. 8 inch"
+              className={`${inputClasses} max-w-[180px]`}
+            />
+            <input
+              value={variant.priceNaira}
+              onChange={(e) => updateRow(index, { priceNaira: e.target.value })}
+              inputMode="numeric"
+              placeholder="Price (₦)"
+              className={`${inputClasses} max-w-[140px]`}
+            />
+            <button
+              type="button"
+              onClick={() => removeRow(index)}
+              className="shrink-0 font-body text-small font-medium text-berry"
+            >
+              Remove
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={addRow}
+          className="self-start font-body text-small font-medium text-cocoa"
+        >
+          + Add size
+        </button>
+      </div>
+    </div>
+  );
+}
+
+async function saveVariants(productId: string, variants: VariantRow[], originalIds: Set<string>) {
+  const usable = variants.filter((v) => v.label.trim() && Number(v.priceNaira) > 0);
+  const keptIds = new Set(usable.filter((v) => v.id).map((v) => v.id as string));
+  const removedIds = Array.from(originalIds).filter((id) => !keptIds.has(id));
+
+  if (removedIds.length > 0) {
+    await supabase.from("product_variants").delete().in("id", removedIds);
+  }
+
+  for (let i = 0; i < usable.length; i++) {
+    const v = usable[i];
+    const payload = {
+      product_id: productId,
+      label: v.label.trim(),
+      price_naira: Number(v.priceNaira),
+      sort_order: i,
+    };
+    if (v.id) {
+      await supabase.from("product_variants").update(payload).eq("id", v.id);
+    } else {
+      await supabase.from("product_variants").insert(payload);
+    }
+  }
+}
+
 function fetchProducts() {
   return supabase
     .from("products")
@@ -200,8 +296,27 @@ function EditProductForm({
   const [priceNaira, setPriceNaira] = useState(String(product.price_naira));
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [variants, setVariants] = useState<VariantRow[]>([]);
+  const [originalVariantIds, setOriginalVariantIds] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase
+      .from("product_variants")
+      .select("id, label, price_naira")
+      .eq("product_id", product.id)
+      .order("sort_order")
+      .then(({ data }) => {
+        const rows = (data ?? []).map((v) => ({
+          id: v.id as string,
+          label: v.label as string,
+          priceNaira: String(v.price_naira),
+        }));
+        setVariants(rows);
+        setOriginalVariantIds(new Set(rows.map((r) => r.id)));
+      });
+  }, [product.id]);
 
   function onImageChange(file: File | null) {
     setImageFile(file);
@@ -241,6 +356,7 @@ function EditProductForm({
         .update(updated)
         .eq("id", product.id);
       if (updateError) throw updateError;
+      await saveVariants(product.id, variants, originalVariantIds);
       onSaved({ ...product, ...updated });
     } catch {
       setError("Could not save changes. Please try again.");
@@ -318,7 +434,9 @@ function EditProductForm({
           inputMode="numeric"
           className={`${inputClasses} mt-1`}
         />
+        <p className="mt-1 font-body text-xs text-ink/50">Used when no sizes are added below.</p>
       </div>
+      <VariantsEditor variants={variants} onChange={setVariants} />
       {error && <p className="font-body text-small text-berry">{error}</p>}
       <button
         type="submit"
@@ -345,6 +463,7 @@ function AddProductForm({
   const [ingredients, setIngredients] = useState("");
   const [benefits, setBenefits] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [variants, setVariants] = useState<VariantRow[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -391,6 +510,7 @@ function AddProductForm({
         .select("id, slug, name, description, ingredients, benefits, image_url, price_naira, active, featured, categories(name)")
         .single<Product>();
       if (insertError) throw insertError;
+      await saveVariants(created.id, variants, new Set());
       onAdded(created);
       setName("");
       setCategoryId("");
@@ -399,6 +519,7 @@ function AddProductForm({
       setIngredients("");
       setBenefits("");
       setImageFile(null);
+      setVariants([]);
     } catch {
       setError("Could not add this product. Please try again.");
     } finally {
@@ -494,7 +615,9 @@ function AddProductForm({
           inputMode="numeric"
           className={`${inputClasses} mt-1`}
         />
+        <p className="mt-1 font-body text-xs text-ink/50">Used when no sizes are added below.</p>
       </div>
+      <VariantsEditor variants={variants} onChange={setVariants} />
       {error && <p className="font-body text-small text-berry">{error}</p>}
       <button
         type="submit"

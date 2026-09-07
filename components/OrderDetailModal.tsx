@@ -13,6 +13,7 @@ type OrderItem = {
   unit_price_naira: number;
   quantity: number;
   line_total_naira: number;
+  products: { image_url: string | null } | null;
 };
 
 type OrderDetail = {
@@ -50,7 +51,7 @@ export default function OrderDetailModal({
     supabase
       .from("orders")
       .select(
-        "id, order_number, status, channel, payment_status, customer_name, delivery_address, notes, subtotal_naira, delivery_fee_naira, total_naira, receipt_url, created_at, delivery_locations(name), order_items(product_name, variant_label, unit_price_naira, quantity, line_total_naira), profiles(full_name, phone)"
+        "id, order_number, status, channel, payment_status, customer_name, delivery_address, notes, subtotal_naira, delivery_fee_naira, total_naira, receipt_url, created_at, delivery_locations(name), order_items(product_name, variant_label, unit_price_naira, quantity, line_total_naira, products(image_url)), profiles(full_name, phone)"
       )
       .eq("id", orderId)
       .single<OrderDetail>()
@@ -108,15 +109,16 @@ export default function OrderDetailModal({
               <span className="rounded-pill bg-plaster/40 px-3 py-1 text-xs font-semibold capitalize text-ink/70">
                 {order.channel}
               </span>
-              {order.payment_status === "unpaid" ? (
-                <span className="rounded-pill bg-berry px-3 py-1 text-xs font-semibold text-cream">
-                  ⚠ Payment not made
-                </span>
-              ) : (
-                <span className="rounded-pill bg-berry/15 px-3 py-1 text-xs font-semibold capitalize text-berry">
-                  {order.payment_status.replace("_", " ")}
-                </span>
-              )}
+              {showCustomer &&
+                (order.payment_status === "unpaid" ? (
+                  <span className="rounded-pill bg-berry px-3 py-1 text-xs font-semibold text-cream">
+                    ⚠ Payment not made
+                  </span>
+                ) : (
+                  <span className="rounded-pill bg-berry/15 px-3 py-1 text-xs font-semibold capitalize text-berry">
+                    {order.payment_status.replace("_", " ")}
+                  </span>
+                ))}
             </div>
 
             {showCustomer && (
@@ -155,8 +157,13 @@ export default function OrderDetailModal({
 
             <div className="flex flex-col divide-y divide-clay/15">
               {order.order_items.map((item, i) => (
-                <div key={i} className="flex items-center justify-between py-2">
-                  <span>
+                <div key={i} className="flex items-center gap-3 py-2">
+                  <div className="relative size-12 shrink-0 overflow-hidden rounded-panel bg-plaster/40">
+                    {item.products?.image_url && (
+                      <Image src={item.products.image_url} alt="" fill sizes="48px" className="object-cover" />
+                    )}
+                  </div>
+                  <span className="flex-1">
                     {item.quantity} x {item.product_name}
                     {item.variant_label ? ` (${item.variant_label})` : ""}
                   </span>

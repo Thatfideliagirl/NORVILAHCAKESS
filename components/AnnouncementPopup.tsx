@@ -69,49 +69,51 @@ export default function AnnouncementPopup() {
             onClick={dismiss}
             aria-hidden="true"
           />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 12 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 12 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
-            role="dialog"
-            aria-modal="true"
-            aria-label={announcement.title}
-            className="fixed left-1/2 top-1/2 z-[120] w-[calc(100%-2.5rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-panel bg-cream shadow-warm-lg"
-          >
-            <button
-              type="button"
-              onClick={dismiss}
-              aria-label="Close"
-              className="absolute right-3 top-3 z-10 flex size-8 items-center justify-center rounded-full bg-cream/90 text-ink shadow-warm"
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-5">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              role="dialog"
+              aria-modal="true"
+              aria-label={announcement.title}
+              className="relative w-full max-w-sm overflow-hidden rounded-panel bg-cream shadow-warm-lg"
             >
-              <X className="size-4" strokeWidth={1.75} />
-            </button>
-            {announcement.image_url && (
-              <div className="relative h-40 w-full">
-                <Image
-                  src={announcement.image_url}
-                  alt={announcement.title}
-                  fill
-                  sizes="384px"
-                  className="object-cover"
-                />
-              </div>
-            )}
-            <div className="p-6">
-              <p className="font-display text-product text-berry">{announcement.title}</p>
-              {announcement.description && (
-                <p className="mt-2 font-body text-small text-ink/70">{announcement.description}</p>
-              )}
               <button
                 type="button"
                 onClick={dismiss}
-                className="mt-5 rounded-pill bg-cocoa px-6 py-2.5 font-body text-small font-medium text-cream"
+                aria-label="Close"
+                className="absolute right-3 top-3 z-10 flex size-8 items-center justify-center rounded-full bg-cream/90 text-ink shadow-warm"
               >
-                Got it
+                <X className="size-4" strokeWidth={1.75} />
               </button>
-            </div>
-          </motion.div>
+              {announcement.image_url && (
+                <div className="relative h-40 w-full">
+                  <Image
+                    src={announcement.image_url}
+                    alt={announcement.title}
+                    fill
+                    sizes="384px"
+                    className="object-cover"
+                  />
+                </div>
+              )}
+              <div className="p-6">
+                <p className="font-display text-product text-berry">{announcement.title}</p>
+                {announcement.description && (
+                  <p className="mt-2 font-body text-small text-ink/70">{announcement.description}</p>
+                )}
+                <button
+                  type="button"
+                  onClick={dismiss}
+                  className="mt-5 rounded-pill bg-cocoa px-6 py-2.5 font-body text-small font-medium text-cream"
+                >
+                  Got it
+                </button>
+              </div>
+            </motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>

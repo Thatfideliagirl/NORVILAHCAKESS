@@ -260,12 +260,12 @@ export default function AdminDashboardPage() {
             {p.label}
           </button>
         ))}
-        <div className="flex items-center gap-2 rounded-pill bg-plaster/25 px-3 py-1.5">
+        <div className="flex w-full flex-wrap items-center gap-2 rounded-pill bg-plaster/25 px-3 py-1.5 sm:w-auto sm:flex-nowrap">
           <input
             type="date"
             value={customFrom}
             onChange={(e) => setCustomFrom(e.target.value)}
-            className="bg-transparent font-body text-xs text-ink"
+            className="min-w-[130px] flex-1 bg-transparent font-body text-xs text-ink sm:flex-none"
             aria-label="From date"
           />
           <span className="text-ink/40">–</span>
@@ -273,7 +273,7 @@ export default function AdminDashboardPage() {
             type="date"
             value={customTo}
             onChange={(e) => setCustomTo(e.target.value)}
-            className="bg-transparent font-body text-xs text-ink"
+            className="min-w-[130px] flex-1 bg-transparent font-body text-xs text-ink sm:flex-none"
             aria-label="To date"
           />
         </div>

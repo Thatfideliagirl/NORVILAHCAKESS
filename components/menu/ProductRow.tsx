@@ -21,10 +21,11 @@ export default function ProductRow({
 }) {
   const addItem = useCartStore((state) => state.addItem);
   const router = useRouter();
-  const { isLoggedIn, isFavourite, toggle } = useFavourites();
+  const { isLoggedIn, isFavourite, toggle, error: favouriteError } = useFavourites();
   const [variantId, setVariantId] = useState(product.variants?.[0]?.id);
   const [quantity, setQuantity] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
+  const [showFavError, setShowFavError] = useState(false);
 
   async function handleToggleFavourite(e: React.MouseEvent) {
     e.stopPropagation();
@@ -32,7 +33,11 @@ export default function ProductRow({
       router.push("/account");
       return;
     }
-    toggle(product.slug);
+    const ok = await toggle(product.slug);
+    if (!ok) {
+      setShowFavError(true);
+      setTimeout(() => setShowFavError(false), 4000);
+    }
   }
 
   const selectedVariant = product.variants?.find((v) => v.id === variantId);
@@ -77,6 +82,11 @@ export default function ProductRow({
         >
           <Heart className={`size-3.5 ${isFavourite(product.slug) ? "fill-current" : ""}`} strokeWidth={1.75} />
         </button>
+        {showFavError && (
+          <p className="absolute inset-x-1 bottom-1 rounded-panel bg-berry/90 px-1.5 py-1 text-center font-body text-[10px] leading-tight text-cream">
+            {favouriteError ?? "Could not save. Try again."}
+          </p>
+        )}
       </div>
 
       <div className="min-w-0 flex-1">

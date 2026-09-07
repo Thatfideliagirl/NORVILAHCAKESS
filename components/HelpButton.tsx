@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { MessageCircleQuestionMark, X } from "lucide-react";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
@@ -21,6 +22,9 @@ const HELP_LINKS = [
 export default function HelpButton() {
   const [open, setOpen] = useState(false);
   const reducedMotion = usePrefersReducedMotion();
+  const pathname = usePathname();
+
+  if (pathname?.startsWith("/admin")) return null;
 
   return (
     <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3">
