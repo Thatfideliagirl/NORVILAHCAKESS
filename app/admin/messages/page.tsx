@@ -114,6 +114,33 @@ function ConversationThread({ conversationId, adminId }: { conversationId: strin
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);
 
+  // Live-update the chat: without this, a customer's reply only shows up
+  // after the admin refreshes or reopens the conversation.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`messages-${conversationId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          const message = payload.new as Message;
+          setMessages((current) =>
+            current.some((m) => m.id === message.id) ? current : [...current, message]
+          );
+          if (message.sender_type === "customer") markMessagesRead(conversationId, "customer");
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [conversationId]);
+
   async function sendReply(e: React.FormEvent) {
     e.preventDefault();
     if (!text.trim()) return;

@@ -155,6 +155,34 @@ export default function SignedInAccount({ session }: { session: Session }) {
       });
   }, [tab, session.user.id]);
 
+  // Live-update the chat: without this, a reply from admin only shows up
+  // after the customer refreshes or reopens the tab.
+  useEffect(() => {
+    if (!conversation) return;
+    const channel = supabase
+      .channel(`messages-${conversation.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversation.id}`,
+        },
+        (payload) => {
+          const message = payload.new as Message;
+          setMessages((current) =>
+            current.some((m) => m.id === message.id) ? current : [...current, message]
+          );
+          if (message.sender_type === "admin") markMessagesRead(conversation.id, "admin");
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [conversation]);
+
   const activeOrders = orders.filter((o) => !PAST_STATUSES.includes(o.status)).length;
   const pastOrders = orders.filter((o) => PAST_STATUSES.includes(o.status)).length;
   const inquiriesInProgress = inquiries.filter((i) => OPEN_INQUIRY_STATUSES.includes(i.status)).length;
