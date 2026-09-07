@@ -17,6 +17,7 @@ type Product = {
   price_naira: number;
   active: boolean;
   featured: boolean;
+  category_id: string | null;
   categories: { name: string } | null;
 };
 
@@ -125,7 +126,7 @@ function fetchProducts() {
   return supabase
     .from("products")
     .select(
-      "id, slug, name, description, ingredients, benefits, image_url, price_naira, active, featured, categories(name)"
+      "id, slug, name, description, ingredients, benefits, image_url, price_naira, active, featured, category_id, categories(name)"
     )
     .order("name")
     .returns<Product[]>();
@@ -286,7 +287,7 @@ export default function AdminProductsPage() {
                 {editingId === product.id && (
                   <tr className="border-b border-clay/10 last:border-none">
                     <td colSpan={6} className="bg-plaster/15 px-4 py-5">
-                      <EditProductForm product={product} onSaved={onSaved} />
+                      <EditProductForm product={product} categories={categories} onSaved={onSaved} />
                     </td>
                   </tr>
                 )}
@@ -301,15 +302,18 @@ export default function AdminProductsPage() {
 
 function EditProductForm({
   product,
+  categories,
   onSaved,
 }: {
   product: Product;
+  categories: Category[];
   onSaved: (product: Product) => void;
 }) {
   const [description, setDescription] = useState(product.description ?? "");
   const [ingredients, setIngredients] = useState((product.ingredients ?? []).join(", "));
   const [benefits, setBenefits] = useState((product.benefits ?? []).join(", "));
   const [priceNaira, setPriceNaira] = useState(String(product.price_naira));
+  const [categoryId, setCategoryId] = useState(product.category_id ?? "");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [variants, setVariants] = useState<VariantRow[]>([]);
@@ -366,6 +370,7 @@ function EditProductForm({
           .filter(Boolean),
         price_naira: Number(priceNaira) || product.price_naira,
         image_url: imageUrl,
+        category_id: categoryId || null,
       };
       const { error: updateError } = await supabase
         .from("products")
@@ -373,7 +378,8 @@ function EditProductForm({
         .eq("id", product.id);
       if (updateError) throw updateError;
       await saveVariants(product.id, variants, originalVariantIds);
-      onSaved({ ...product, ...updated });
+      const categoryName = categories.find((c) => c.id === categoryId)?.name ?? null;
+      onSaved({ ...product, ...updated, categories: categoryName ? { name: categoryName } : null });
     } catch {
       setError("Could not save changes. Please try again.");
     } finally {
@@ -406,6 +412,23 @@ function EditProductForm({
             className="font-body text-small text-ink"
           />
         </div>
+      </div>
+      <div className="w-56">
+        <label className="font-body text-xs font-medium uppercase tracking-wide text-ink/50">
+          Category
+        </label>
+        <select
+          value={categoryId}
+          onChange={(e) => setCategoryId(e.target.value)}
+          className={`${inputClasses} mt-1`}
+        >
+          <option value="">Uncategorised</option>
+          {categories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
+          ))}
+        </select>
       </div>
       <div>
         <label className="font-body text-xs font-medium uppercase tracking-wide text-ink/50">

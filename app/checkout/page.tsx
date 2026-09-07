@@ -425,8 +425,8 @@ export default function CheckoutPage() {
           {channel === "whatsapp" && bankDetails.accountNumber && (
             <div className="rounded-panel bg-plaster/30 p-4">
               <p className="font-body text-small font-medium text-ink/70">
-                Instructions: transfer to the account below, then upload your receipt and tap
-                Continue on WhatsApp to finish your order.
+                Instructions: transfer to this account number below, then upload your receipt
+                before tapping Continue on WhatsApp.
               </p>
               <div className="mt-2 font-body text-small text-ink">
                 <p>Bank: {bankDetails.bankName}</p>
@@ -437,14 +437,24 @@ export default function CheckoutPage() {
           )}
 
           <div>
-            <label className="font-body text-small font-medium text-ink/70">
+            <label
+              htmlFor="receipt-upload"
+              className="font-body text-small font-semibold text-ink"
+            >
               Upload your payment receipt (image or PDF)
             </label>
+            <label
+              htmlFor="receipt-upload"
+              className="mt-2 flex cursor-pointer items-center justify-center gap-2 rounded-pill border-2 border-dashed border-berry/50 bg-berry/5 px-4 py-3 font-body text-small font-semibold text-berry transition-colors hover:bg-berry/10"
+            >
+              {receiptFile ? receiptFile.name : "Tap to choose a file"}
+            </label>
             <input
+              id="receipt-upload"
               type="file"
               accept="image/*,application/pdf"
               onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)}
-              className="mt-1 w-full font-body text-small text-ink"
+              className="sr-only"
             />
           </div>
 

@@ -86,17 +86,21 @@ export default function AdminDashboardPage() {
   );
   const [loadError, setLoadError] = useState<string | null>(null);
   const [preset, setPreset] = useState<RangePreset>("30d");
-  const [customFrom, setCustomFrom] = useState("");
-  const [customTo, setCustomTo] = useState("");
+  const [usingCustom, setUsingCustom] = useState(false);
+  const [customFrom, setCustomFrom] = useState(() => {
+    const from = presetSince("30d");
+    return from ? dayKey(from) : "";
+  });
+  const [customTo, setCustomTo] = useState(() => dayKey(new Date()));
 
   const range = useMemo(() => {
-    if (customFrom) {
+    if (usingCustom) {
       const from = new Date(`${customFrom}T00:00:00`);
       const to = customTo ? new Date(`${customTo}T23:59:59`) : new Date();
       return { from, to };
     }
     return { from: presetSince(preset), to: new Date() };
-  }, [preset, customFrom, customTo]);
+  }, [preset, usingCustom, customFrom, customTo]);
 
   useEffect(() => {
     let ordersQuery = supabase
@@ -248,11 +252,13 @@ export default function AdminDashboardPage() {
             type="button"
             onClick={() => {
               setPreset(p.key);
-              setCustomFrom("");
-              setCustomTo("");
+              setUsingCustom(false);
+              const from = presetSince(p.key);
+              setCustomFrom(from ? dayKey(from) : "");
+              setCustomTo(dayKey(new Date()));
             }}
             className={`rounded-pill px-4 py-1.5 font-body text-xs font-semibold ${
-              preset === p.key && !customFrom
+              preset === p.key && !usingCustom
                 ? "bg-berry text-cream"
                 : "bg-plaster/40 text-ink/70"
             }`}
@@ -264,7 +270,10 @@ export default function AdminDashboardPage() {
           <input
             type="date"
             value={customFrom}
-            onChange={(e) => setCustomFrom(e.target.value)}
+            onChange={(e) => {
+              setCustomFrom(e.target.value);
+              setUsingCustom(true);
+            }}
             className="min-w-[130px] flex-1 bg-transparent font-body text-xs text-ink sm:flex-none"
             aria-label="From date"
           />
@@ -272,7 +281,10 @@ export default function AdminDashboardPage() {
           <input
             type="date"
             value={customTo}
-            onChange={(e) => setCustomTo(e.target.value)}
+            onChange={(e) => {
+              setCustomTo(e.target.value);
+              setUsingCustom(true);
+            }}
             className="min-w-[130px] flex-1 bg-transparent font-body text-xs text-ink sm:flex-none"
             aria-label="To date"
           />

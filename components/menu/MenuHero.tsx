@@ -4,7 +4,6 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 import { revealContainer, revealUp } from "@/lib/motion";
-import BackToDashboardLink from "@/components/BackToDashboardLink";
 
 // Same visual language as the homepage hero: the photo is a full-bleed
 // background with a scrim, not a boxed image beside the copy, and the
@@ -22,7 +21,6 @@ export default function MenuHero() {
 
   return (
     <section className="relative h-[52vh] min-h-[360px] max-h-[520px] w-full overflow-hidden bg-cocoa">
-      <BackToDashboardLink />
       <div className="absolute inset-0">
         <Image
           src="/hero-still.jpg"

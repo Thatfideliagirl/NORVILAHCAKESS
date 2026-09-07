@@ -27,6 +27,7 @@ type InquiryRow = {
   name: string;
   occasion: string | null;
   created_at: string;
+  viewed_at: string | null;
 };
 
 type OrderRow = {
@@ -61,8 +62,8 @@ export function useNotifications(role: "customer" | "admin"): {
       role === "admin"
         ? supabase
             .from("event_inquiries")
-            .select("id, name, occasion, created_at")
-            .eq("status", "new")
+            .select("id, name, occasion, created_at, viewed_at")
+            .is("viewed_at", null)
             .order("created_at", { ascending: false })
             .limit(5)
             .returns<InquiryRow[]>()
