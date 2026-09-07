@@ -9,7 +9,6 @@ import AdminErrorBanner from "@/components/admin/AdminErrorBanner";
 
 type Conversation = {
   id: string;
-  status: string;
   updated_at: string;
   profiles: { full_name: string | null; email: string | null } | null;
 };
@@ -24,7 +23,7 @@ type Message = {
 function fetchConversations() {
   return supabase
     .from("conversations")
-    .select("id, status, updated_at, profiles(full_name, email)")
+    .select("id, updated_at, profiles(full_name, email)")
     .order("updated_at", { ascending: false })
     .returns<Conversation[]>();
 }
@@ -51,14 +50,6 @@ function AdminMessagesContent() {
     });
   }, []);
 
-  async function toggleStatus(conversation: Conversation) {
-    const nextStatus = conversation.status === "open" ? "resolved" : "open";
-    setConversations((current) =>
-      current.map((c) => (c.id === conversation.id ? { ...c, status: nextStatus } : c))
-    );
-    await supabase.from("conversations").update({ status: nextStatus }).eq("id", conversation.id);
-  }
-
   return (
     <div>
       <p className="font-display text-heading text-berry">Messages</p>
@@ -84,15 +75,6 @@ function AdminMessagesContent() {
                 <p className="mt-1 font-body text-small text-ink/60">{conversation.profiles?.email}</p>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => toggleStatus(conversation)}
-                  className={`rounded-pill px-4 py-1.5 text-xs font-semibold capitalize ${
-                    conversation.status === "open" ? "bg-berry/15 text-berry" : "bg-clay/15 text-ink/50"
-                  }`}
-                >
-                  {conversation.status}
-                </button>
                 <button
                   type="button"
                   onClick={() => setOpenId(openId === conversation.id ? null : conversation.id)}

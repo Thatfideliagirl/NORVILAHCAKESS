@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 import { useScrollPast } from "@/lib/use-scroll-past";
-import { revealContainer, revealUp } from "@/lib/motion";
+import { revealUp } from "@/lib/motion";
 
 export default function Hero() {
   const reducedMotion = usePrefersReducedMotion();
@@ -14,14 +14,22 @@ export default function Hero() {
 
   const containerVariants = reducedMotion
     ? { hidden: {}, show: { transition: { staggerChildren: 0 } } }
-    : revealContainer;
+    : {
+        hidden: {},
+        show: { transition: { staggerChildren: 0.09, delayChildren: 0.25 } },
+      };
   const itemVariants = reducedMotion
     ? { hidden: { opacity: 0 }, show: { opacity: 1, transition: { duration: 0.3 } } }
     : revealUp;
 
   return (
     <section className="relative h-screen min-h-[620px] max-h-[900px] w-full overflow-hidden bg-cocoa">
-      <div className="absolute inset-0">
+      <motion.div
+        className="absolute inset-0"
+        initial={reducedMotion ? { opacity: 1 } : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1.1, ease: "easeOut" }}
+      >
         <Image
           src="/hero-still.jpg"
           alt="A pink celebration cake, a strawberry parfait, cupcakes, waffles and a meat pie arranged on a flour-dusted wooden table."
@@ -30,7 +38,7 @@ export default function Hero() {
           sizes="100vw"
           className="object-cover object-[55%_center] md:object-[30%_center]"
         />
-      </div>
+      </motion.div>
 
       {/* Desktop: copy sits left, so the scrim darkens the wall from the
           left edge. Darkens the lit wall so the copy stays readable as
@@ -57,7 +65,7 @@ export default function Hero() {
         className="absolute inset-0 md:hidden"
         style={{
           background:
-            "linear-gradient(to top, rgba(58,36,31,0.88) 0%, rgba(58,36,31,0.55) 50%, rgba(58,36,31,0.1) 78%)",
+            "linear-gradient(to top, rgba(58,36,31,0.9) 0%, rgba(58,36,31,0.78) 55%, rgba(58,36,31,0.3) 85%)",
         }}
       />
       <div
@@ -87,19 +95,19 @@ export default function Hero() {
         </motion.p>
         <motion.h1
           variants={itemVariants}
-          className="mt-4 font-display text-hero leading-[0.95] text-berry"
+          className="mt-4 font-display text-hero leading-[0.95] text-cream drop-shadow-[0_2px_12px_rgba(58,36,31,0.9)] md:text-berry md:drop-shadow-none"
         >
           Norvilah Cakes
         </motion.h1>
         <motion.p
           variants={itemVariants}
-          className="mt-4 font-display text-product font-semibold text-cocoa"
+          className="mt-4 font-display text-2xl font-semibold text-cream drop-shadow-[0_1px_8px_rgba(58,36,31,0.9)] md:text-product md:text-cocoa md:drop-shadow-none"
         >
           More than treats. Moments of happiness.
         </motion.p>
         <motion.p
           variants={itemVariants}
-          className="measure mt-4 font-body text-lead font-medium text-cocoa"
+          className="measure mt-4 font-body text-lg font-medium text-cream/95 drop-shadow-[0_1px_6px_rgba(58,36,31,0.9)] md:text-lead md:text-cocoa md:drop-shadow-none"
         >
           From indulgent cakes and creamy parfaits to savoury bites, we make
           everything fresh for your special moments, and the random cravings

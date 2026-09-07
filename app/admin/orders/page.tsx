@@ -59,6 +59,15 @@ export default function AdminOrdersPage() {
     await supabase.from("orders").update({ status }).eq("id", order.id);
   }
 
+  async function togglePaymentStatus(order: Order) {
+    if (order.payment_status === "unpaid") return;
+    const next = order.payment_status === "paid" ? "awaiting_confirmation" : "paid";
+    setOrders((current) =>
+      current.map((o) => (o.id === order.id ? { ...o, payment_status: next } : o))
+    );
+    await supabase.from("orders").update({ payment_status: next }).eq("id", order.id);
+  }
+
   async function markViewed(order: Order) {
     if (order.viewed_at) return;
     const viewedAt = new Date().toISOString();
@@ -170,7 +179,18 @@ export default function AdminOrdersPage() {
                       ⚠ Unpaid
                     </span>
                   ) : (
-                    <span className="capitalize text-ink/70">{order.payment_status.replace("_", " ")}</span>
+                    <button
+                      type="button"
+                      onClick={() => togglePaymentStatus(order)}
+                      title="Click to toggle between Awaiting Confirmation and Confirmed"
+                      className={`rounded-pill px-4 py-1.5 text-xs font-semibold ${
+                        order.payment_status === "paid"
+                          ? "bg-berry/15 text-berry"
+                          : "bg-clay/15 text-ink/60"
+                      }`}
+                    >
+                      {order.payment_status === "paid" ? "Confirmed" : "Awaiting Confirmation"}
+                    </button>
                   )}
                 </td>
                 <td className="px-4 py-3 font-medium text-berry">

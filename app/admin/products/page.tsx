@@ -56,7 +56,7 @@ function VariantsEditor({
         Sizes / Inches (optional)
       </label>
       <p className="mt-1 font-body text-xs text-ink/50">
-        If this cake comes in different inch sizes at different prices, add each size and its
+        If this product comes in different sizes at different prices, add each size and its
         price here. Leave empty to use a single price for the whole product.
       </p>
       <div className="mt-2 flex flex-col gap-2">

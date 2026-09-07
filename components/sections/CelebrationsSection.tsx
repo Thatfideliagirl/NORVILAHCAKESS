@@ -94,8 +94,9 @@ export default function CelebrationsSection() {
         <motion.div variants={revealUp} className="group relative mx-auto hidden w-full max-w-sm md:block">
           <motion.div
             aria-hidden="true"
-            animate={{ scale: [1.25, 1.35, 1.25], opacity: [0.9, 1, 0.9] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            animate={{ scale: [1.2, 1.28, 1.2], opacity: [0.85, 1, 0.85] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+            style={{ willChange: "transform, opacity" }}
             className="absolute inset-0 rounded-full bg-berry/30 blur-3xl"
           />
           <Arch

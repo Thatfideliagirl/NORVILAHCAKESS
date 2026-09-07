@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Bell } from "lucide-react";
 import { useNotifications } from "@/lib/supabase/messages";
@@ -17,6 +17,16 @@ export default function NotificationBell({
   const { items, count, refetch } = useNotifications(role);
   const [open, setOpen] = useState(false);
 
+  // The bell's own list only updates when it refetches -- reading a message
+  // or inquiry elsewhere in the app (the Messages page, Orders page, etc.)
+  // marks it read in the database but doesn't push that change back here.
+  // Poll periodically, and always refetch right before opening, so the
+  // count doesn't sit stale after something was read somewhere else.
+  useEffect(() => {
+    const interval = setInterval(refetch, 20000);
+    return () => clearInterval(interval);
+  }, [refetch]);
+
   function handleSelect(item: (typeof items)[number], onNavigate?: () => void) {
     setOpen(false);
     item.markRead().then(refetch);
@@ -27,7 +37,10 @@ export default function NotificationBell({
     <div className="relative">
       <button
         type="button"
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => {
+          if (!open) refetch();
+          setOpen((current) => !current);
+        }}
         aria-label={`Notifications${count > 0 ? `, ${count} unread` : ""}`}
         className="relative flex size-10 shrink-0 items-center justify-center rounded-full bg-plaster/40 text-ink/70"
       >

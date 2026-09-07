@@ -66,6 +66,13 @@ export default function OrderDetailModal({
       });
   }, [orderId]);
 
+  async function togglePaymentStatus() {
+    if (!order || order.payment_status === "unpaid") return;
+    const next = order.payment_status === "paid" ? "awaiting_confirmation" : "paid";
+    setOrder({ ...order, payment_status: next });
+    await supabase.from("orders").update({ payment_status: next }).eq("id", order.id);
+  }
+
   return (
     <AnimatePresence>
       <motion.div
@@ -115,9 +122,16 @@ export default function OrderDetailModal({
                     ⚠ Payment not made
                   </span>
                 ) : (
-                  <span className="rounded-pill bg-berry/15 px-3 py-1 text-xs font-semibold capitalize text-berry">
-                    {order.payment_status.replace("_", " ")}
-                  </span>
+                  <button
+                    type="button"
+                    onClick={togglePaymentStatus}
+                    title="Click to toggle between Awaiting Confirmation and Confirmed"
+                    className={`rounded-pill px-3 py-1 text-xs font-semibold ${
+                      order.payment_status === "paid" ? "bg-berry/15 text-berry" : "bg-plaster/40 text-ink/60"
+                    }`}
+                  >
+                    {order.payment_status === "paid" ? "Confirmed" : "Awaiting Confirmation"}
+                  </button>
                 ))}
             </div>
 

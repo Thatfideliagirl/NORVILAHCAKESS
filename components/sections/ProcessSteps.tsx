@@ -1,4 +1,18 @@
+"use client";
+
 import { Search, ShoppingBag, Truck, UserPlus } from "lucide-react";
+import { motion } from "framer-motion";
+import { revealContainer } from "@/lib/motion";
+
+const iconPop = {
+  hidden: { opacity: 0, scale: 0.4, y: 12 },
+  show: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: [0.34, 1.56, 0.64, 1] as const },
+  },
+};
 
 const STEPS = [
   {
@@ -27,8 +41,6 @@ const STEPS = [
   },
 ];
 
-// No scroll reveal here by design (brief section 5, rule 2): it's a
-// deliberate rest between the section 2 and section 5 motion moments.
 export default function ProcessSteps() {
   return (
     <section className="bg-cream py-24 md:py-40">
@@ -41,7 +53,13 @@ export default function ProcessSteps() {
         </p>
       </div>
 
-      <div className="mx-auto mt-16 max-w-content px-6">
+      <motion.div
+        variants={revealContainer}
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, amount: 0.3 }}
+        className="mx-auto mt-16 max-w-content px-6"
+      >
         <div className="relative flex flex-col gap-12 md:flex-row md:items-start md:justify-between md:gap-6">
           <div
             aria-hidden="true"
@@ -52,9 +70,12 @@ export default function ProcessSteps() {
               key={number}
               className="relative flex gap-5 pl-0 md:flex-1 md:flex-col md:items-center md:gap-4 md:text-center"
             >
-              <span className="relative z-10 flex size-14 shrink-0 items-center justify-center rounded-full bg-plaster">
+              <motion.span
+                variants={iconPop}
+                className="relative z-10 flex size-14 shrink-0 items-center justify-center rounded-full bg-plaster"
+              >
                 <Icon className="size-6 text-berry" strokeWidth={1.5} />
-              </span>
+              </motion.span>
               <div className="md:mt-2">
                 <span className="font-display text-product text-berry">
                   {number}
@@ -69,7 +90,7 @@ export default function ProcessSteps() {
             </div>
           ))}
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }
