@@ -131,26 +131,29 @@ export async function markMessagesRead(
   conversationId: string,
   fromSenderType: "customer" | "admin"
 ) {
-  await supabase
+  const { error } = await supabase
     .from("messages")
     .update({ read_at: new Date().toISOString() })
     .eq("conversation_id", conversationId)
     .eq("sender_type", fromSenderType)
     .is("read_at", null);
+  if (error) console.error("markMessagesRead failed:", error.message);
 }
 
 export async function markInquiryViewed(inquiryId: string) {
-  await supabase
+  const { error } = await supabase
     .from("event_inquiries")
     .update({ viewed_at: new Date().toISOString() })
     .eq("id", inquiryId)
     .is("viewed_at", null);
+  if (error) console.error("markInquiryViewed failed:", error.message);
 }
 
 export async function markOrderViewed(orderId: string) {
-  await supabase
+  const { error } = await supabase
     .from("orders")
     .update({ viewed_at: new Date().toISOString() })
     .eq("id", orderId)
     .is("viewed_at", null);
+  if (error) console.error("markOrderViewed failed:", error.message);
 }

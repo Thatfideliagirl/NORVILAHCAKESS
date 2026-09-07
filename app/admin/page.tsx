@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { formatNaira } from "@/lib/format";
-import { markInquiryViewed, markMessagesRead } from "@/lib/supabase/messages";
 import AdminErrorBanner from "@/components/admin/AdminErrorBanner";
 
 type Stats = {
@@ -21,21 +20,6 @@ type RecentOrder = {
   status: string;
   total_naira: number;
   channel: string;
-  created_at: string;
-};
-
-type UnreadMessage = {
-  id: string;
-  conversationId: string;
-  body: string;
-  created_at: string;
-  customerName: string | null;
-};
-
-type NewInquiry = {
-  id: string;
-  name: string;
-  occasion: string | null;
   created_at: string;
 };
 
@@ -79,8 +63,6 @@ function dayOfMonth(date: Date): string {
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
-  const [unreadMessages, setUnreadMessages] = useState<UnreadMessage[]>([]);
-  const [newInquiries, setNewInquiries] = useState<NewInquiry[]>([]);
   const [signupCounts, setSignupCounts] = useState<{ label: string; dayNum: string; count: number }[]>(
     []
   );
@@ -165,43 +147,6 @@ export default function AdminDashboardPage() {
       setRecentOrders(recent.data ?? []);
     });
   }, [range]);
-
-  useEffect(() => {
-    supabase
-      .from("messages")
-      .select("id, conversation_id, body, created_at, conversations(profiles(full_name))")
-      .eq("sender_type", "customer")
-      .is("read_at", null)
-      .order("created_at", { ascending: false })
-      .limit(5)
-      .returns<
-        {
-          id: string;
-          conversation_id: string;
-          body: string;
-          created_at: string;
-          conversations: { profiles: { full_name: string | null } | null } | null;
-        }[]
-      >()
-      .then(({ data }) => {
-        setUnreadMessages(
-          (data ?? []).map((row) => ({
-            id: row.id,
-            conversationId: row.conversation_id,
-            body: row.body,
-            created_at: row.created_at,
-            customerName: row.conversations?.profiles?.full_name ?? null,
-          }))
-        );
-      });
-    supabase
-      .from("event_inquiries")
-      .select("id, name, occasion, created_at")
-      .eq("status", "new")
-      .order("created_at", { ascending: false })
-      .limit(5)
-      .then(({ data }) => setNewInquiries(data ?? []));
-  }, []);
 
   useEffect(() => {
     const since = new Date(startOfToday().getTime() - 13 * 86400000);
@@ -325,53 +270,6 @@ export default function AdminDashboardPage() {
               </span>
             </div>
           ))}
-        </div>
-      </div>
-
-      <div className="mt-10">
-        <div>
-          <p className="font-display text-product text-ink">Unread inquiries &amp; messages</p>
-          <div className="mt-4 flex flex-col gap-2 rounded-panel bg-white p-5 shadow-warm-lg">
-            {newInquiries.length === 0 && unreadMessages.length === 0 && (
-              <p className="py-4 text-center font-body text-small text-ink/50">All caught up.</p>
-            )}
-            {newInquiries.map((inquiry) => (
-              <Link
-                key={`inquiry-${inquiry.id}`}
-                href="/admin/inquiries"
-                onClick={() => {
-                  markInquiryViewed(inquiry.id);
-                  setNewInquiries((current) => current.filter((i) => i.id !== inquiry.id));
-                }}
-                className="flex items-center justify-between rounded-panel px-2 py-1.5 font-body text-small transition-colors hover:bg-plaster/30"
-              >
-                <span className="text-ink">
-                  {inquiry.occasion ? `${inquiry.occasion} inquiry` : "New inquiry"} · {inquiry.name}
-                </span>
-                <span className="shrink-0 rounded-pill bg-berry/15 px-3 py-1 text-xs font-semibold text-berry">
-                  New
-                </span>
-              </Link>
-            ))}
-            {unreadMessages.map((message) => (
-              <Link
-                key={`message-${message.id}`}
-                href="/admin/messages"
-                onClick={() => {
-                  markMessagesRead(message.conversationId, "customer");
-                  setUnreadMessages((current) => current.filter((m) => m.id !== message.id));
-                }}
-                className="flex items-center justify-between gap-3 rounded-panel px-2 py-1.5 font-body text-small transition-colors hover:bg-plaster/30"
-              >
-                <span className="min-w-0 flex-1 truncate text-ink">
-                  {message.customerName ?? "Customer"}: {message.body}
-                </span>
-                <span className="shrink-0 rounded-pill bg-berry/15 px-3 py-1 text-xs font-semibold text-berry">
-                  Unread
-                </span>
-              </Link>
-            ))}
-          </div>
         </div>
       </div>
 
