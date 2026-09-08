@@ -426,11 +426,11 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          {channel === "whatsapp" && bankDetails.accountNumber && (
+          {bankDetails.accountNumber && (
             <div className="rounded-panel bg-plaster/30 p-4">
               <p className="font-body text-small font-medium text-ink/70">
                 Instructions: transfer to this account number below, then upload your receipt
-                before tapping Continue on WhatsApp.
+                before {channel === "whatsapp" ? "tapping Continue on WhatsApp" : "clicking Place Order"}.
               </p>
               <div className="mt-2 font-body text-small text-ink">
                 <p>Bank: {bankDetails.bankName}</p>
