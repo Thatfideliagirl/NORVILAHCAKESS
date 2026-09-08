@@ -97,7 +97,11 @@ export default function CheckoutPage() {
       .select("website_ordering_enabled, whatsapp_ordering_enabled, bank_name, bank_account_name, bank_account_number")
       .eq("id", true)
       .single()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("Failed to load checkout settings:", error.message);
+          return;
+        }
         if (data) {
           setChannels({ website: data.website_ordering_enabled, whatsapp: data.whatsapp_ordering_enabled });
           if (!data.whatsapp_ordering_enabled) setChannel("website");
