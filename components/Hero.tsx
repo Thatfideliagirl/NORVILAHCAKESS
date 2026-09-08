@@ -47,14 +47,14 @@ export default function Hero() {
         className="absolute inset-0 hidden md:block"
         style={{
           background:
-            "linear-gradient(to right, rgba(58,36,31,0.62) 0%, rgba(58,36,31,0) 62%)",
+            "linear-gradient(to right, rgba(58,36,31,0.72) 0%, rgba(58,36,31,0) 66%)",
         }}
       />
       <div
         className="absolute inset-y-0 left-0 hidden w-full max-w-md md:block"
         style={{
           background:
-            "radial-gradient(65% 60% at 25% 55%, rgba(246,235,227,0.6) 0%, rgba(246,235,227,0) 100%)",
+            "radial-gradient(65% 60% at 25% 55%, rgba(246,235,227,0.75) 0%, rgba(246,235,227,0) 100%)",
         }}
       />
 
@@ -95,19 +95,19 @@ export default function Hero() {
         </motion.p>
         <motion.h1
           variants={itemVariants}
-          className="mt-4 font-display text-hero leading-[0.95] text-cream drop-shadow-[0_2px_12px_rgba(58,36,31,0.9)] md:text-berry md:drop-shadow-none"
+          className="mt-4 font-display text-hero leading-[0.95] text-cream drop-shadow-[0_2px_12px_rgba(58,36,31,0.9)] md:text-berry md:drop-shadow-[0_1px_10px_rgba(246,235,227,0.85)]"
         >
           Norvilah Cakes
         </motion.h1>
         <motion.p
           variants={itemVariants}
-          className="mt-4 font-display text-2xl font-semibold text-cream drop-shadow-[0_1px_8px_rgba(58,36,31,0.9)] md:text-product md:text-cocoa md:drop-shadow-none"
+          className="mt-4 font-display text-2xl font-semibold text-cream drop-shadow-[0_1px_8px_rgba(58,36,31,0.9)] md:text-product md:text-cocoa md:drop-shadow-[0_1px_8px_rgba(246,235,227,0.85)]"
         >
-          More than treats. Moments of happiness.
+          Premium layers, timeless taste.
         </motion.p>
         <motion.p
           variants={itemVariants}
-          className="measure mt-4 font-body text-lg font-medium text-cream/95 drop-shadow-[0_1px_6px_rgba(58,36,31,0.9)] md:text-lead md:text-cocoa md:drop-shadow-none"
+          className="measure mt-4 font-body text-lg font-medium text-cream/95 drop-shadow-[0_1px_6px_rgba(58,36,31,0.9)] md:text-lead md:text-cocoa md:drop-shadow-[0_1px_6px_rgba(246,235,227,0.85)]"
         >
           From indulgent cakes and creamy parfaits to savoury bites, we make
           everything fresh for your special moments, and the random cravings
