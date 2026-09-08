@@ -91,7 +91,7 @@ export default function ProductRow({
 
       <div className="min-w-0 flex-1">
         <h3 className="font-display text-product text-ink">{product.name}</h3>
-        <p className="mt-1 line-clamp-2 font-body text-small text-ink/65">
+        <p className="mt-1 line-clamp-3 font-body text-small text-ink/65 sm:line-clamp-2">
           {product.description}
         </p>
         <p className="mt-2 font-body text-small font-semibold text-berry">

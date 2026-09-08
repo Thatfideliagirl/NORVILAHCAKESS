@@ -52,13 +52,13 @@ export default function MenuExperience() {
           variants={containerVariants}
           initial="hidden"
           animate="show"
-          className="grid gap-8 md:grid-cols-[220px_1fr] md:gap-12"
+          className="grid min-w-0 gap-8 md:grid-cols-[220px_1fr] md:gap-12"
         >
-          <motion.div variants={itemVariants} className="md:sticky md:top-28 md:self-start">
+          <motion.div variants={itemVariants} className="min-w-0 md:sticky md:top-28 md:self-start">
             <CategorySidebar selected={category} onSelect={setCategory} />
           </motion.div>
 
-          <motion.div variants={itemVariants}>
+          <motion.div variants={itemVariants} className="min-w-0">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="inline-block w-fit rounded-pill bg-rose/60 px-4 py-1.5 font-body text-eyebrow font-medium uppercase tracking-[0.14em] text-berry">
