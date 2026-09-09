@@ -121,13 +121,13 @@ export default function AdminOrdersPage() {
       {loadError && <AdminErrorBanner message={loadError} />}
 
       <div className="mt-8 overflow-x-auto rounded-panel bg-white shadow-warm-lg">
-        <table className="w-full min-w-[820px] text-left font-body text-small">
+        <table className="w-full min-w-[680px] text-left font-body text-small">
           <thead>
             <tr className="border-b border-clay/15 text-ink/50">
               <th className="w-10 px-4 py-3"></th>
-              <th className="w-16 px-4 py-3"></th>
+              <th className="hidden w-16 px-4 py-3 sm:table-cell"></th>
               <th className="px-4 py-3 font-medium">Order</th>
-              <th className="px-4 py-3 font-medium">Customer</th>
+              <th className="hidden px-4 py-3 font-medium md:table-cell">Customer</th>
               <th className="px-4 py-3 font-medium">Order Via</th>
               <th className="px-4 py-3 font-medium">Payment</th>
               <th className="px-4 py-3 font-medium">Total</th>
@@ -159,7 +159,7 @@ export default function AdminOrdersPage() {
                     aria-label={`Select order ${order.order_number}`}
                   />
                 </td>
-                <td className="px-4 py-3">
+                <td className="hidden px-4 py-3 sm:table-cell">
                   <div className="relative size-10 shrink-0 overflow-hidden rounded-panel bg-plaster/40">
                     {thumbnail && <Image src={thumbnail} alt="" fill sizes="40px" className="object-cover" />}
                   </div>
@@ -174,7 +174,7 @@ export default function AdminOrdersPage() {
                     )}
                   </div>
                 </td>
-                <td className="px-4 py-3 text-ink/70">
+                <td className="hidden px-4 py-3 text-ink/70 md:table-cell">
                   {order.profiles?.full_name ?? "-"}
                   {order.profiles?.phone ? ` · ${order.profiles.phone}` : ""}
                 </td>
