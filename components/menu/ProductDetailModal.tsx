@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, Check, ChevronLeft, ChevronRight, ShoppingBag, X } from "lucide-react";
@@ -263,7 +264,22 @@ export default function ProductDetailModal({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [product, hasPrevious, hasNext, onPrevious, onNext, onClose]);
 
-  return (
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    // Deferred to an effect on purpose: `document` doesn't exist during
+    // SSR, and the portal target must only be touched after hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+
+  // Rendered via a portal straight onto <body>: the menu page's own
+  // section wrapper has its own z-index (needed to sit above the hero
+  // image), which traps this modal's stacking below other fixed,
+  // page-level elements like the Back to Dashboard link no matter how
+  // high a z-index is set here. Escaping to <body> sidesteps that.
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {product && (
         <motion.div
@@ -285,6 +301,7 @@ export default function ProductDetailModal({
           />
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

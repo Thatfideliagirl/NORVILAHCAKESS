@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import AdminErrorBanner from "@/components/admin/AdminErrorBanner";
+import InquiryDetailModal from "@/components/InquiryDetailModal";
 
 const STATUSES = ["new", "contacted", "in_progress", "completed"];
 
@@ -22,6 +23,7 @@ type Inquiry = {
 export default function AdminInquiriesPage() {
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   function fetchInquiries() {
     return supabase
@@ -67,9 +69,13 @@ export default function AdminInquiriesPage() {
           </p>
         )}
         {inquiries.map((inquiry) => (
-          <div
+          <button
+            type="button"
             key={inquiry.id}
-            className={`rounded-panel p-5 shadow-warm ${!inquiry.viewed_at ? "bg-berry/5" : "bg-cream"}`}
+            onClick={() => setDetailId(inquiry.id)}
+            className={`rounded-panel p-5 text-left shadow-warm transition-colors ${
+              !inquiry.viewed_at ? "bg-berry/5 hover:bg-berry/10" : "bg-cream hover:bg-plaster/20"
+            }`}
           >
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
@@ -81,7 +87,7 @@ export default function AdminInquiriesPage() {
                   {inquiry.event_date ? ` · ${inquiry.event_date}` : ""}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                 <button
                   type="button"
                   onClick={() => toggleViewed(inquiry)}
@@ -108,9 +114,11 @@ export default function AdminInquiriesPage() {
             {inquiry.message && (
               <p className="mt-3 font-body text-small text-ink/75">{inquiry.message}</p>
             )}
-          </div>
+          </button>
         ))}
       </div>
+
+      {detailId && <InquiryDetailModal inquiryId={detailId} onClose={() => setDetailId(null)} />}
     </div>
   );
 }

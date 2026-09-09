@@ -4,6 +4,7 @@ import { Fragment, useEffect, useState } from "react";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase/client";
 import { formatNaira } from "@/lib/format";
+import { compressImage } from "@/lib/compress-image";
 import AdminErrorBanner from "@/components/admin/AdminErrorBanner";
 
 type Product = {
@@ -375,11 +376,12 @@ function EditProductForm({
     try {
       let imageUrl = product.image_url;
       if (imageFile) {
-        const ext = imageFile.name.split(".").pop();
+        const compressed = await compressImage(imageFile);
+        const ext = compressed.name.split(".").pop();
         const path = `${product.slug}-${Date.now()}.${ext}`;
         const { error: uploadError } = await supabase.storage
           .from("product-images")
-          .upload(path, imageFile);
+          .upload(path, compressed);
         if (uploadError) throw uploadError;
         imageUrl = supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl;
       }
@@ -592,11 +594,12 @@ function AddProductForm({
       const slug = slugify(name);
       let imageUrl: string | null = null;
       if (imageFile) {
-        const ext = imageFile.name.split(".").pop();
+        const compressed = await compressImage(imageFile);
+        const ext = compressed.name.split(".").pop();
         const path = `${slug}-${Date.now()}.${ext}`;
         const { error: uploadError } = await supabase.storage
           .from("product-images")
-          .upload(path, imageFile);
+          .upload(path, compressed);
         if (uploadError) throw uploadError;
         imageUrl = supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl;
       }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Pencil } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import { compressImage } from "@/lib/compress-image";
 import Avatar from "@/components/Avatar";
 
 type ProfileLike = {
@@ -104,9 +105,10 @@ function ProfileForm<T extends ProfileLike>({
     setSaving(true);
     let avatarUrl = profile.avatar_url;
     if (avatarFile) {
-      const ext = avatarFile.name.split(".").pop();
+      const compressed = await compressImage(avatarFile, 512);
+      const ext = compressed.name.split(".").pop();
       const path = `${userId}/avatar-${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage.from("avatars").upload(path, avatarFile);
+      const { error: uploadError } = await supabase.storage.from("avatars").upload(path, compressed);
       if (!uploadError) {
         avatarUrl = supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
       }

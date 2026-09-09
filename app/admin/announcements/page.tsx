@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase/client";
+import { compressImage } from "@/lib/compress-image";
 import AdminErrorBanner from "@/components/admin/AdminErrorBanner";
 
 type Announcement = {
@@ -145,11 +146,12 @@ function AddAnnouncementForm({ onAdded }: { onAdded: (announcement: Announcement
     try {
       let imageUrl: string | null = null;
       if (imageFile) {
-        const ext = imageFile.name.split(".").pop();
+        const compressed = await compressImage(imageFile);
+        const ext = compressed.name.split(".").pop();
         const path = `broadcast-${Date.now()}.${ext}`;
         const { error: uploadError } = await supabase.storage
           .from("announcement-images")
-          .upload(path, imageFile);
+          .upload(path, compressed);
         if (uploadError) throw uploadError;
         imageUrl = supabase.storage.from("announcement-images").getPublicUrl(path).data.publicUrl;
       }

@@ -15,6 +15,7 @@ import Avatar from "@/components/Avatar";
 import NotificationBell from "@/components/NotificationBell";
 import ProfileSection from "@/components/account/ProfileSection";
 import OrderDetailModal from "@/components/OrderDetailModal";
+import InquiryDetailModal from "@/components/InquiryDetailModal";
 
 type Profile = {
   full_name: string | null;
@@ -83,6 +84,7 @@ export default function SignedInAccount({ session }: { session: Session }) {
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
+  const [detailInquiryId, setDetailInquiryId] = useState<string | null>(null);
   const messagesLoaded = useRef(false);
 
   function fetchProfile() {
@@ -405,7 +407,12 @@ export default function SignedInAccount({ session }: { session: Session }) {
                 <div className="mt-4 flex flex-col gap-3">
                   {inquiries.length === 0 && <EmptyState text="No event inquiries yet." />}
                   {inquiries.map((inquiry) => (
-                    <div key={inquiry.id} className="flex items-center justify-between rounded-panel bg-plaster/25 p-5">
+                    <button
+                      type="button"
+                      key={inquiry.id}
+                      onClick={() => setDetailInquiryId(inquiry.id)}
+                      className="flex items-center justify-between rounded-panel bg-plaster/25 p-5 text-left transition-colors hover:bg-plaster/40"
+                    >
                       <p className="font-body text-body text-ink">
                         {inquiry.occasion ?? "Event inquiry"}
                         {inquiry.event_date ? ` · ${inquiry.event_date}` : ""}
@@ -413,7 +420,7 @@ export default function SignedInAccount({ session }: { session: Session }) {
                       <span className="rounded-pill bg-berry/15 px-4 py-1.5 text-xs font-semibold capitalize text-berry">
                         {inquiry.status.replace("_", " ")}
                       </span>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -442,6 +449,9 @@ export default function SignedInAccount({ session }: { session: Session }) {
 
       {detailOrderId && (
         <OrderDetailModal orderId={detailOrderId} onClose={() => setDetailOrderId(null)} />
+      )}
+      {detailInquiryId && (
+        <InquiryDetailModal inquiryId={detailInquiryId} onClose={() => setDetailInquiryId(null)} />
       )}
     </main>
   );
