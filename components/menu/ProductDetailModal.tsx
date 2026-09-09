@@ -7,6 +7,7 @@ import { ArrowLeft, Check, ChevronLeft, ChevronRight, ShoppingBag, X } from "luc
 import type { Product } from "@/data/products";
 import { useCartStore } from "@/store/cart";
 import { formatNaira } from "@/lib/format";
+import { displayPrice } from "@/lib/menu";
 import QuantityStepper from "@/components/menu/QuantityStepper";
 
 // Keyed by product.id in the parent so a fresh mount (and fresh local
@@ -34,6 +35,8 @@ function ProductDetailPanel({
 
   const selectedVariant = product.variants?.find((v) => v.id === variantId);
   const unitPrice = selectedVariant?.priceNaira ?? product.priceNaira;
+  const salePriceNaira = displayPrice(unitPrice, product);
+  const isOnSale = product.onSale && !!product.discountPercent;
 
   function handleAddToCart() {
     addItem({
@@ -41,7 +44,7 @@ function ProductDetailPanel({
       variantId: selectedVariant?.id,
       name: product.name,
       variantLabel: selectedVariant?.label,
-      priceNaira: unitPrice,
+      priceNaira: salePriceNaira,
       quantity,
     });
     setJustAdded(true);
@@ -77,6 +80,11 @@ function ProductDetailPanel({
           sizes="(min-width: 768px) 50vw, 100vw"
           className="object-contain p-6 md:p-10"
         />
+        {isOnSale && (
+          <span className="absolute left-4 top-4 rounded-pill bg-berry px-3 py-1 font-body text-xs font-bold text-cream">
+            -{product.discountPercent}% Sale
+          </span>
+        )}
         {hasPrevious && (
           <button
             type="button"
@@ -115,8 +123,15 @@ function ProductDetailPanel({
         <p className="mt-3 font-body text-lead text-ink/75">
           {product.description}
         </p>
-        <p className="mt-4 font-body text-product font-semibold text-ink">
-          {formatNaira(unitPrice)}
+        <p className="mt-4 flex items-baseline gap-3 font-body text-product font-semibold text-ink">
+          {isOnSale ? (
+            <>
+              <span className="text-lead text-ink/40 line-through">{formatNaira(unitPrice)}</span>
+              <span className="text-berry">{formatNaira(salePriceNaira)}</span>
+            </>
+          ) : (
+            formatNaira(unitPrice)
+          )}
         </p>
 
         {product.variants && product.variants.length > 0 && (

@@ -8,7 +8,7 @@ import { Check, Heart, ShoppingBag } from "lucide-react";
 import type { Product } from "@/data/products";
 import { useCartStore } from "@/store/cart";
 import { formatNaira } from "@/lib/format";
-import { priceLabel } from "@/lib/menu";
+import { displayPrice, priceLabel } from "@/lib/menu";
 import { useFavourites } from "@/lib/supabase/use-favourites";
 import QuantityStepper from "@/components/menu/QuantityStepper";
 
@@ -42,6 +42,8 @@ export default function ProductRow({
 
   const selectedVariant = product.variants?.find((v) => v.id === variantId);
   const unitPrice = selectedVariant?.priceNaira ?? product.priceNaira;
+  const salePriceNaira = displayPrice(unitPrice, product);
+  const isOnSale = product.onSale && !!product.discountPercent;
 
   function handleAddToCart() {
     addItem({
@@ -49,7 +51,7 @@ export default function ProductRow({
       variantId: selectedVariant?.id,
       name: product.name,
       variantLabel: selectedVariant?.label,
-      priceNaira: unitPrice,
+      priceNaira: salePriceNaira,
       quantity,
     });
     setJustAdded(true);
@@ -74,6 +76,11 @@ export default function ProductRow({
           sizes="112px"
           className="object-cover"
         />
+        {isOnSale && (
+          <span className="absolute left-1.5 top-1.5 rounded-pill bg-berry px-2 py-0.5 font-body text-[10px] font-bold text-cream">
+            -{product.discountPercent}%
+          </span>
+        )}
         <button
           type="button"
           onClick={handleToggleFavourite}
@@ -94,8 +101,19 @@ export default function ProductRow({
         <p className="mt-1 line-clamp-3 font-body text-small text-ink/65 sm:line-clamp-2">
           {product.description}
         </p>
-        <p className="mt-2 font-body text-small font-semibold text-berry">
-          {selectedVariant ? formatNaira(unitPrice) : priceLabel(product)}
+        <p className="mt-2 flex items-baseline gap-2 font-body text-small font-semibold text-berry">
+          {selectedVariant ? (
+            isOnSale ? (
+              <>
+                <span className="text-ink/40 line-through">{formatNaira(unitPrice)}</span>
+                <span>{formatNaira(salePriceNaira)}</span>
+              </>
+            ) : (
+              formatNaira(unitPrice)
+            )
+          ) : (
+            priceLabel(product)
+          )}
         </p>
       </div>
 

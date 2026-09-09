@@ -18,6 +18,8 @@ type Product = {
   active: boolean;
   featured: boolean;
   category_id: string | null;
+  on_sale: boolean;
+  discount_percent: number | null;
   categories: { name: string } | null;
 };
 
@@ -126,7 +128,7 @@ function fetchProducts() {
   return supabase
     .from("products")
     .select(
-      "id, slug, name, description, ingredients, benefits, image_url, price_naira, active, featured, category_id, categories(name)"
+      "id, slug, name, description, ingredients, benefits, image_url, price_naira, active, featured, category_id, on_sale, discount_percent, categories(name)"
     )
     .order("name")
     .returns<Product[]>();
@@ -171,8 +173,17 @@ export default function AdminProductsPage() {
 
   async function deleteProduct(product: Product) {
     if (!window.confirm(`Delete "${product.name}"? This can't be undone.`)) return;
+    setLoadError(null);
+    const { error, data } = await supabase
+      .from("products")
+      .delete()
+      .eq("id", product.id)
+      .select("id");
+    if (error || !data || data.length === 0) {
+      setLoadError(error?.message ?? "Could not delete this product. Please try again.");
+      return;
+    }
     setProducts((current) => current.filter((p) => p.id !== product.id));
-    await supabase.from("products").delete().eq("id", product.id);
   }
 
   function onSaved(updated: Product) {
@@ -252,6 +263,11 @@ export default function AdminProductsPage() {
                   <td className="px-4 py-3 text-ink/70">{product.categories?.name ?? "-"}</td>
                   <td className="px-4 py-3 font-medium text-berry">
                     {formatNaira(product.price_naira)}
+                    {product.on_sale && product.discount_percent && (
+                      <span className="ml-2 rounded-pill bg-berry px-2 py-0.5 text-[10px] font-bold text-cream">
+                        -{product.discount_percent}%
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <button
@@ -309,11 +325,16 @@ function EditProductForm({
   categories: Category[];
   onSaved: (product: Product) => void;
 }) {
+  const [name, setName] = useState(product.name);
   const [description, setDescription] = useState(product.description ?? "");
   const [ingredients, setIngredients] = useState((product.ingredients ?? []).join(", "));
   const [benefits, setBenefits] = useState((product.benefits ?? []).join(", "));
   const [priceNaira, setPriceNaira] = useState(String(product.price_naira));
   const [categoryId, setCategoryId] = useState(product.category_id ?? "");
+  const [onSale, setOnSale] = useState(product.on_sale);
+  const [discountPercent, setDiscountPercent] = useState(
+    product.discount_percent ? String(product.discount_percent) : ""
+  );
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [variants, setVariants] = useState<VariantRow[]>([]);
@@ -345,6 +366,10 @@ function EditProductForm({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!name.trim()) {
+      setError("Product name can't be empty.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -359,6 +384,7 @@ function EditProductForm({
         imageUrl = supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl;
       }
       const updated = {
+        name: name.trim(),
         description,
         ingredients: ingredients
           .split(",")
@@ -371,6 +397,8 @@ function EditProductForm({
         price_naira: Number(priceNaira) || product.price_naira,
         image_url: imageUrl,
         category_id: categoryId || null,
+        on_sale: onSale,
+        discount_percent: onSale ? Number(discountPercent) || null : null,
       };
       const { error: updateError } = await supabase
         .from("products")
@@ -389,6 +417,16 @@ function EditProductForm({
 
   return (
     <form onSubmit={onSubmit} className="flex max-w-2xl flex-col gap-3">
+      <div className="w-72">
+        <label className="font-body text-xs font-medium uppercase tracking-wide text-ink/50">
+          Name
+        </label>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className={`${inputClasses} mt-1`}
+        />
+      </div>
       <div>
         <label className="font-body text-xs font-medium uppercase tracking-wide text-ink/50">
           Photo
@@ -475,6 +513,41 @@ function EditProductForm({
         />
         <p className="mt-1 font-body text-xs text-ink/50">Used when no sizes are added below.</p>
       </div>
+      <div className="flex max-w-sm items-center justify-between rounded-panel border border-berry/15 bg-rose/20 px-4 py-3">
+        <span className="font-body text-small font-medium text-ink">On Sale</span>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={onSale}
+          onClick={() => setOnSale((current) => !current)}
+          className={`relative h-6 w-11 shrink-0 rounded-pill transition-colors ${
+            onSale ? "bg-berry" : "bg-clay/30"
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 size-5 rounded-full bg-white transition-transform ${
+              onSale ? "translate-x-[22px]" : "translate-x-0.5"
+            }`}
+          />
+        </button>
+      </div>
+      {onSale && (
+        <div className="w-48">
+          <label className="font-body text-xs font-medium uppercase tracking-wide text-ink/50">
+            Discount %
+          </label>
+          <input
+            value={discountPercent}
+            onChange={(e) => setDiscountPercent(e.target.value)}
+            inputMode="numeric"
+            placeholder="e.g. 20"
+            className={`${inputClasses} mt-1`}
+          />
+          <p className="mt-1 font-body text-xs text-ink/50">
+            Applies to the price above and every size below.
+          </p>
+        </div>
+      )}
       <VariantsEditor variants={variants} onChange={setVariants} />
       {error && <p className="font-body text-small text-berry">{error}</p>}
       <button

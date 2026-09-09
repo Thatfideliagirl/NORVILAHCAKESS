@@ -30,6 +30,8 @@ export type Product = {
   ingredients?: string[];
   available: boolean;
   featured: boolean;
+  onSale?: boolean;
+  discountPercent?: number;
 };
 
 // All prices below are placeholders confirmed by the client and must be

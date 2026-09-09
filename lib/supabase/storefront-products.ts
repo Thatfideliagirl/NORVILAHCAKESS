@@ -22,6 +22,8 @@ type DbProductRow = {
   price_naira: number;
   active: boolean;
   featured: boolean;
+  on_sale: boolean;
+  discount_percent: number | null;
   categories: { slug: string } | null;
 };
 
@@ -44,7 +46,7 @@ export function useStorefrontProducts(): Product[] {
       supabase
         .from("products")
         .select(
-          "id, slug, name, description, ingredients, benefits, image_url, price_naira, active, featured, categories(slug)"
+          "id, slug, name, description, ingredients, benefits, image_url, price_naira, active, featured, on_sale, discount_percent, categories(slug)"
         )
         .returns<DbProductRow[]>(),
       supabase
@@ -68,14 +70,34 @@ export function useStorefrontProducts(): Product[] {
           : undefined;
       }
 
-      const withImageOverrides = staticProducts.map((product) => {
+      // A static seed product with no matching (active) DB row has been
+      // deleted or deactivated from the admin -- drop it instead of
+      // falling back to the hardcoded copy, otherwise deletions never
+      // take visible effect on the storefront. Every other field is
+      // taken from the DB row too, so admin edits (name, price,
+      // description, category, sale) to a seed product show up here,
+      // not just photo/variant swaps.
+      const withImageOverrides: Product[] = staticProducts.flatMap((product) => {
         const dbRow = data.find((row) => row.slug === product.slug);
+        if (!dbRow || !dbRow.active) return [];
         const dbVariants = variantsFor(dbRow);
-        return {
-          ...product,
-          ...(isUploadedImage(dbRow?.image_url ?? null) ? { image: dbRow!.image_url as string } : {}),
-          ...(dbVariants ? { variants: dbVariants } : {}),
-        };
+        return [
+          {
+            ...product,
+            name: dbRow.name,
+            description: dbRow.description ?? product.description,
+            ingredients: dbRow.ingredients ?? product.ingredients,
+            benefits: dbRow.benefits ?? product.benefits,
+            categorySlug: dbRow.categories?.slug ?? product.categorySlug,
+            priceNaira: dbRow.price_naira,
+            available: dbRow.active,
+            featured: dbRow.featured,
+            onSale: dbRow.on_sale,
+            discountPercent: dbRow.discount_percent ?? undefined,
+            ...(isUploadedImage(dbRow.image_url) ? { image: dbRow.image_url } : {}),
+            ...(dbVariants ? { variants: dbVariants } : {}),
+          },
+        ];
       });
 
       const addedByAdmin: Product[] = data
@@ -93,6 +115,8 @@ export function useStorefrontProducts(): Product[] {
           benefits: row.benefits ?? undefined,
           available: row.active,
           featured: row.featured,
+          onSale: row.on_sale,
+          discountPercent: row.discount_percent ?? undefined,
         }));
 
       setProducts([...withImageOverrides, ...addedByAdmin]);

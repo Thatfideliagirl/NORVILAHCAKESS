@@ -683,3 +683,13 @@ create policy "announcement_images_admin_update" on storage.objects
 drop policy if exists "announcement_images_admin_delete" on storage.objects;
 create policy "announcement_images_admin_delete" on storage.objects
   for delete using (bucket_id = 'announcement-images' and public.is_admin());
+
+-- =========================================================
+-- 20. PRODUCT SALES
+-- Admin can flag a product on_sale and set a single discount
+-- percentage; the storefront calculates the discounted price from it
+-- at render time (base price and every variant), so there's only one
+-- number to keep in sync per product.
+-- =========================================================
+alter table public.products add column if not exists on_sale boolean not null default false;
+alter table public.products add column if not exists discount_percent integer;
