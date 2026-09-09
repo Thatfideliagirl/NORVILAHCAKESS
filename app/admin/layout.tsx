@@ -208,7 +208,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           Sign out
         </button>
       </aside>
-      <div className="flex-1 px-6 py-8 pt-20 md:px-10 md:py-10 md:pt-10">{children}</div>
+      <div className="min-w-0 flex-1 px-6 py-8 pt-20 md:px-10 md:py-10 md:pt-10">{children}</div>
     </div>
   );
 }
