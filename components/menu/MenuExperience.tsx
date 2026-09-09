@@ -29,7 +29,7 @@ export default function MenuExperience() {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortOption>("featured");
   const [activeProductId, setActiveProductId] = useState<string | null>(null);
-  const products = useStorefrontProducts();
+  const { products, loading: productsLoading } = useStorefrontProducts();
   const categories = useStorefrontCategories();
 
   const filteredProducts = useMemo(
@@ -101,7 +101,20 @@ export default function MenuExperience() {
             </div>
 
             <div className="mt-8">
-              {filteredProducts.length === 0 ? (
+              {productsLoading ? (
+                <div className="flex flex-col gap-4" aria-hidden="true">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="flex animate-pulse gap-4 py-2">
+                      <div className="size-24 shrink-0 rounded-panel bg-plaster/50 sm:size-28" />
+                      <div className="flex-1 py-1">
+                        <div className="h-4 w-1/3 rounded-full bg-plaster/50" />
+                        <div className="mt-3 h-3 w-full rounded-full bg-plaster/40" />
+                        <div className="mt-2 h-3 w-2/3 rounded-full bg-plaster/40" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : filteredProducts.length === 0 ? (
                 <p className="py-16 text-center font-body text-lead text-ink/60">
                   Nothing matches just yet — try a different search or category.
                 </p>

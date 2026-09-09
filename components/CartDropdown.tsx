@@ -19,7 +19,7 @@ export default function CartDropdown({
   const items = useCartStore((state) => state.items);
   const setQuantity = useCartStore((state) => state.setQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
-  const products = useStorefrontProducts();
+  const { products } = useStorefrontProducts();
 
   const total = items.reduce((sum, item) => sum + item.priceNaira * item.quantity, 0);
 

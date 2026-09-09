@@ -79,7 +79,7 @@ const cardPaymentEnabled = !!process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY;
 export default function CheckoutPage() {
   const items = useCartStore((state) => state.items);
   const clearCart = useCartStore((state) => state.clear);
-  const products = useStorefrontProducts();
+  const { products } = useStorefrontProducts();
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [channels, setChannels] = useState<Channels>({ website: true, whatsapp: true });
@@ -94,7 +94,9 @@ export default function CheckoutPage() {
   const [address, setAddress] = useState("");
   const [additionalInfo, setAdditionalInfo] = useState("");
   const [channel, setChannel] = useState<"website" | "whatsapp">("whatsapp");
-  const [paymentMethod, setPaymentMethod] = useState<"bank_transfer" | "card">("bank_transfer");
+  const [websitePaymentMethod, setWebsitePaymentMethod] = useState<"bank_transfer" | "paystack">(
+    "bank_transfer"
+  );
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -110,7 +112,9 @@ export default function CheckoutPage() {
       .then(({ data }) => setZones(data ?? []));
     supabase
       .from("settings")
-      .select("website_ordering_enabled, whatsapp_ordering_enabled, bank_name, bank_account_name, bank_account_number")
+      .select(
+        "website_ordering_enabled, whatsapp_ordering_enabled, bank_name, bank_account_name, bank_account_number, website_payment_method"
+      )
       .eq("id", true)
       .single()
       .then(({ data, error }) => {
@@ -126,9 +130,16 @@ export default function CheckoutPage() {
             accountName: data.bank_account_name,
             accountNumber: data.bank_account_number,
           });
+          setWebsitePaymentMethod(data.website_payment_method);
         }
       });
   }, []);
+
+  // Only actually pay by card if the admin has switched it on AND the
+  // Paystack keys are configured in this deployment -- otherwise fall
+  // back to the existing bank-transfer flow rather than show a broken
+  // payment option.
+  const payByCard = websitePaymentMethod === "paystack" && cardPaymentEnabled;
 
   const subtotal = items.reduce((sum, item) => sum + item.priceNaira * item.quantity, 0);
   const selectedZone = zones.find((z) => z.id === zoneId);
@@ -385,7 +396,7 @@ export default function CheckoutPage() {
       return;
     }
     if (channel === "whatsapp") await onWhatsAppOrder(session.user.id);
-    else if (paymentMethod === "card") await onCardOrder(session);
+    else if (payByCard) await onCardOrder(session);
     else await onWebsiteOrder(session.user.id);
   }
 
@@ -539,10 +550,7 @@ export default function CheckoutPage() {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setChannel("whatsapp");
-                  setPaymentMethod("bank_transfer");
-                }}
+                onClick={() => setChannel("whatsapp")}
                 className={`flex-1 rounded-pill border px-4 py-2.5 font-body text-small font-medium ${
                   channel === "whatsapp" ? "border-berry bg-berry text-cream" : "border-clay/30 text-ink/70"
                 }`}
@@ -552,30 +560,7 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          {channel === "website" && cardPaymentEnabled && (
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setPaymentMethod("card")}
-                className={`flex-1 rounded-pill border px-4 py-2.5 font-body text-small font-medium ${
-                  paymentMethod === "card" ? "border-berry bg-berry text-cream" : "border-clay/30 text-ink/70"
-                }`}
-              >
-                Pay by Card
-              </button>
-              <button
-                type="button"
-                onClick={() => setPaymentMethod("bank_transfer")}
-                className={`flex-1 rounded-pill border px-4 py-2.5 font-body text-small font-medium ${
-                  paymentMethod === "bank_transfer" ? "border-berry bg-berry text-cream" : "border-clay/30 text-ink/70"
-                }`}
-              >
-                Bank Transfer
-              </button>
-            </div>
-          )}
-
-          {channel === "website" && paymentMethod === "card" ? (
+          {channel === "website" && payByCard ? (
             <p className="rounded-panel bg-plaster/30 p-4 font-body text-small text-ink/70">
               You&apos;ll pay securely by card on the next step. Your order is confirmed
               automatically as soon as payment goes through -- no receipt needed.
@@ -631,7 +616,7 @@ export default function CheckoutPage() {
               ? "Placing order..."
               : channel === "whatsapp"
                 ? "Continue on WhatsApp"
-                : paymentMethod === "card"
+                : payByCard
                   ? "Pay Now"
                   : "Place Order"}
           </button>

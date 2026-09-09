@@ -693,3 +693,15 @@ create policy "announcement_images_admin_delete" on storage.objects
 -- =========================================================
 alter table public.products add column if not exists on_sale boolean not null default false;
 alter table public.products add column if not exists discount_percent integer;
+
+-- =========================================================
+-- 21. WEBSITE PAYMENT METHOD
+-- One admin-controlled switch decides how ALL website orders pay --
+-- either the existing bank-transfer-and-upload-a-receipt flow, or
+-- Paystack card payment -- rather than showing customers both options
+-- side by side, which just invites confusion over which to pick.
+-- WhatsApp orders are unaffected either way.
+-- =========================================================
+alter table public.settings add column if not exists website_payment_method text
+  not null default 'bank_transfer'
+  check (website_payment_method in ('bank_transfer', 'paystack'));

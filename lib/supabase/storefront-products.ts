@@ -38,8 +38,9 @@ function isUploadedImage(url: string | null): url is string {
   return !!url?.includes("/storage/v1/object/public/product-images/");
 }
 
-export function useStorefrontProducts(): Product[] {
+export function useStorefrontProducts(): { products: Product[]; loading: boolean } {
   const [products, setProducts] = useState<Product[]>(staticProducts);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
@@ -55,7 +56,10 @@ export function useStorefrontProducts(): Product[] {
         .order("sort_order")
         .returns<DbVariantRow[]>(),
     ]).then(([{ data }, { data: variantRows }]) => {
-      if (!data) return;
+      if (!data) {
+        setLoading(false);
+        return;
+      }
       const staticSlugs = new Set(staticProducts.map((p) => p.slug));
       const variantsByProductId = new Map<string, DbVariantRow[]>();
       for (const row of variantRows ?? []) {
@@ -120,8 +124,9 @@ export function useStorefrontProducts(): Product[] {
         }));
 
       setProducts([...withImageOverrides, ...addedByAdmin]);
+      setLoading(false);
     });
   }, []);
 
-  return products;
+  return { products, loading };
 }

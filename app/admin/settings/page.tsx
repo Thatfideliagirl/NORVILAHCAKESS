@@ -10,13 +10,14 @@ type Settings = {
   bank_name: string | null;
   bank_account_name: string | null;
   bank_account_number: string | null;
+  website_payment_method: "bank_transfer" | "paystack";
 };
 
 function fetchSettings() {
   return supabase
     .from("settings")
     .select(
-      "website_ordering_enabled, whatsapp_ordering_enabled, bank_name, bank_account_name, bank_account_number"
+      "website_ordering_enabled, whatsapp_ordering_enabled, bank_name, bank_account_name, bank_account_number, website_payment_method"
     )
     .eq("id", true)
     .single();
@@ -48,6 +49,7 @@ export default function AdminSettingsPage() {
         bank_name: settings.bank_name,
         bank_account_name: settings.bank_account_name,
         bank_account_number: settings.bank_account_number,
+        website_payment_method: settings.website_payment_method,
       })
       .eq("id", true);
     if (error) setLoadError(error.message);
@@ -95,7 +97,42 @@ export default function AdminSettingsPage() {
 
           <div className="flex flex-col gap-3">
             <p className="font-body text-small font-semibold text-ink/70">
-              Bank transfer details (shown to customers at checkout)
+              Website order payment method
+            </p>
+            <p className="font-body text-xs text-ink/50">
+              Every website order uses this one method -- customers don&apos;t choose between
+              them, so there&apos;s no confusion over which to pick.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setSettings({ ...settings, website_payment_method: "bank_transfer" })}
+                className={`flex-1 rounded-pill border px-4 py-2.5 font-body text-small font-medium ${
+                  settings.website_payment_method === "bank_transfer"
+                    ? "border-berry bg-berry text-cream"
+                    : "border-clay/30 text-ink/70"
+                }`}
+              >
+                Bank Transfer
+              </button>
+              <button
+                type="button"
+                onClick={() => setSettings({ ...settings, website_payment_method: "paystack" })}
+                className={`flex-1 rounded-pill border px-4 py-2.5 font-body text-small font-medium ${
+                  settings.website_payment_method === "paystack"
+                    ? "border-berry bg-berry text-cream"
+                    : "border-clay/30 text-ink/70"
+                }`}
+              >
+                Pay by Card (Paystack)
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <p className="font-body text-small font-semibold text-ink/70">
+              Bank transfer details (shown to customers at checkout when Bank Transfer is
+              selected above)
             </p>
             <input
               placeholder="Bank name"
