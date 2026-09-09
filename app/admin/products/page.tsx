@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useState } from "react";
 import Image from "next/image";
+import { GripVertical } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { formatNaira } from "@/lib/format";
 import { compressImage } from "@/lib/compress-image";
@@ -21,6 +22,7 @@ type Product = {
   category_id: string | null;
   on_sale: boolean;
   discount_percent: number | null;
+  sort_order: number;
   categories: { name: string } | null;
 };
 
@@ -129,9 +131,9 @@ function fetchProducts() {
   return supabase
     .from("products")
     .select(
-      "id, slug, name, description, ingredients, benefits, image_url, price_naira, active, featured, category_id, on_sale, discount_percent, categories(name)"
+      "id, slug, name, description, ingredients, benefits, image_url, price_naira, active, featured, category_id, on_sale, discount_percent, sort_order, categories(name)"
     )
-    .order("name")
+    .order("sort_order")
     .returns<Product[]>();
 }
 
@@ -152,6 +154,7 @@ export default function AdminProductsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
 
   useEffect(() => {
     fetchProducts().then(({ data, error }) => {
@@ -193,8 +196,23 @@ export default function AdminProductsPage() {
   }
 
   function onAdded(created: Product) {
-    setProducts((current) => [...current, created].sort((a, b) => a.name.localeCompare(b.name)));
+    setProducts((current) => [...current, created]);
     setAdding(false);
+  }
+
+  async function moveProduct(fromIndex: number, toIndex: number) {
+    if (fromIndex === toIndex) return;
+    const reordered = [...products];
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, moved);
+    setProducts(reordered);
+    await Promise.all(
+      reordered.map((product, i) =>
+        product.sort_order === i
+          ? null
+          : supabase.from("products").update({ sort_order: i }).eq("id", product.id)
+      )
+    );
   }
 
   return (
@@ -204,7 +222,8 @@ export default function AdminProductsPage() {
           <p className="font-display text-heading text-berry">Products</p>
           <p className="mt-2 font-body text-body text-ink/60">
             Turn a product off to hide it from the site without deleting it. Edit to update the
-            description, ingredients, or Good to Know copy.
+            description, ingredients, or Good to Know copy. Drag the ⠿ handle to reorder how
+            products appear on the menu.
           </p>
         </div>
         <button
@@ -218,7 +237,11 @@ export default function AdminProductsPage() {
 
       {adding && (
         <div className="mt-6 rounded-panel bg-plaster/25 p-5">
-          <AddProductForm categories={categories} onAdded={onAdded} />
+          <AddProductForm
+            categories={categories}
+            nextSortOrder={products.reduce((max, p) => Math.max(max, p.sort_order), 0) + 1}
+            onAdded={onAdded}
+          />
         </div>
       )}
 
@@ -228,6 +251,7 @@ export default function AdminProductsPage() {
         <table className="w-full min-w-[640px] text-left font-body text-small">
           <thead>
             <tr className="border-b border-clay/15 text-ink/50">
+              <th className="px-4 py-3 font-medium"></th>
               <th className="px-4 py-3 font-medium"></th>
               <th className="px-4 py-3 font-medium">Name</th>
               <th className="px-4 py-3 font-medium">Category</th>
@@ -239,14 +263,29 @@ export default function AdminProductsPage() {
           <tbody>
             {products.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-ink/50">
+                <td colSpan={7} className="px-4 py-8 text-center text-ink/50">
                   No products found.
                 </td>
               </tr>
             )}
-            {products.map((product) => (
+            {products.map((product, index) => (
               <Fragment key={product.id}>
-                <tr className="border-b border-clay/10 last:border-none">
+                <tr
+                  draggable
+                  onDragStart={() => setDragIndex(index)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={() => {
+                    if (dragIndex !== null) moveProduct(dragIndex, index);
+                    setDragIndex(null);
+                  }}
+                  onDragEnd={() => setDragIndex(null)}
+                  className={`border-b border-clay/10 last:border-none ${
+                    dragIndex === index ? "opacity-40" : ""
+                  }`}
+                >
+                  <td className="cursor-grab px-4 py-3 text-ink/30 active:cursor-grabbing">
+                    <GripVertical className="size-4" strokeWidth={1.75} />
+                  </td>
                   <td className="px-4 py-3">
                     {product.image_url && (
                       <div className="relative size-10 shrink-0 overflow-hidden rounded-panel">
@@ -303,7 +342,7 @@ export default function AdminProductsPage() {
                 </tr>
                 {editingId === product.id && (
                   <tr className="border-b border-clay/10 last:border-none">
-                    <td colSpan={6} className="bg-plaster/15 px-4 py-5">
+                    <td colSpan={7} className="bg-plaster/15 px-4 py-5">
                       <EditProductForm product={product} categories={categories} onSaved={onSaved} />
                     </td>
                   </tr>
@@ -565,9 +604,11 @@ function EditProductForm({
 
 function AddProductForm({
   categories,
+  nextSortOrder,
   onAdded,
 }: {
   categories: Category[];
+  nextSortOrder: number;
   onAdded: (product: Product) => void;
 }) {
   const [name, setName] = useState("");
@@ -618,11 +659,14 @@ function AddProductForm({
           .filter(Boolean),
         image_url: imageUrl,
         price_naira: price,
+        sort_order: nextSortOrder,
       };
       const { data: created, error: insertError } = await supabase
         .from("products")
         .insert(insertPayload)
-        .select("id, slug, name, description, ingredients, benefits, image_url, price_naira, active, featured, categories(name)")
+        .select(
+          "id, slug, name, description, ingredients, benefits, image_url, price_naira, active, featured, category_id, on_sale, discount_percent, sort_order, categories(name)"
+        )
         .single<Product>();
       if (insertError) throw insertError;
       await saveVariants(created.id, variants, new Set());

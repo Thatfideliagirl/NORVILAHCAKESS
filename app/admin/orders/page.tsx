@@ -23,6 +23,7 @@ type Order = {
   status: string;
   channel: string;
   payment_status: string;
+  payment_method: string;
   total_naira: number;
   created_at: string;
   viewed_at: string | null;
@@ -30,11 +31,16 @@ type Order = {
   order_items: { products: { image_url: string | null } | null }[];
 };
 
+function paymentMethodLabel(order: Pick<Order, "channel" | "payment_method">): string {
+  if (order.channel === "whatsapp") return "WhatsApp";
+  return order.payment_method === "card" ? "Website · Card" : "Website · Bank Transfer";
+}
+
 function fetchOrders() {
   return supabase
     .from("orders")
     .select(
-      "id, order_number, status, channel, payment_status, total_naira, created_at, viewed_at, profiles(full_name, phone), order_items(products(image_url))"
+      "id, order_number, status, channel, payment_status, payment_method, total_naira, created_at, viewed_at, profiles(full_name, phone), order_items(products(image_url))"
     )
     .order("created_at", { ascending: false })
     .returns<Order[]>();
@@ -122,7 +128,7 @@ export default function AdminOrdersPage() {
               <th className="w-16 px-4 py-3"></th>
               <th className="px-4 py-3 font-medium">Order</th>
               <th className="px-4 py-3 font-medium">Customer</th>
-              <th className="px-4 py-3 font-medium">Channel</th>
+              <th className="px-4 py-3 font-medium">Order Via</th>
               <th className="px-4 py-3 font-medium">Payment</th>
               <th className="px-4 py-3 font-medium">Total</th>
               <th className="px-4 py-3 font-medium">Status</th>
@@ -172,7 +178,7 @@ export default function AdminOrdersPage() {
                   {order.profiles?.full_name ?? "-"}
                   {order.profiles?.phone ? ` · ${order.profiles.phone}` : ""}
                 </td>
-                <td className="px-4 py-3 capitalize text-ink/70">{order.channel}</td>
+                <td className="px-4 py-3 text-ink/70">{paymentMethodLabel(order)}</td>
                 <td className="px-4 py-3">
                   {order.payment_status === "unpaid" ? (
                     <span className="rounded-pill bg-berry px-3 py-1 text-xs font-semibold text-cream">

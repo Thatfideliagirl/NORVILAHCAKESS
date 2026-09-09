@@ -705,3 +705,26 @@ alter table public.products add column if not exists discount_percent integer;
 alter table public.settings add column if not exists website_payment_method text
   not null default 'bank_transfer'
   check (website_payment_method in ('bank_transfer', 'paystack'));
+
+-- The address EmailJS admin alerts (new order / new inquiry) are sent
+-- to. EmailJS templates read this via a {{to_email}} variable in the
+-- template's own "To Email" field -- it doesn't work as a fixed
+-- address typed into the template, since that can't be set from code.
+alter table public.settings add column if not exists notification_email text;
+
+-- =========================================================
+-- 22. ORDER PAYMENT METHOD
+-- channel (website/whatsapp) says which door the order came through;
+-- payment_method says how it was actually paid, since a website order
+-- can now be either a manual bank transfer or a Paystack card charge.
+-- =========================================================
+alter table public.orders add column if not exists payment_method text
+  not null default 'bank_transfer'
+  check (payment_method in ('bank_transfer', 'card'));
+
+-- =========================================================
+-- 23. PRODUCT DISPLAY ORDER
+-- Lets admin drag products into whatever order they should appear on
+-- the menu, same idea as categories.sort_order.
+-- =========================================================
+alter table public.products add column if not exists sort_order integer not null default 0;

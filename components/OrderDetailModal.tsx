@@ -22,6 +22,7 @@ type OrderDetail = {
   status: string;
   channel: string;
   payment_status: string;
+  payment_method: string;
   customer_name: string | null;
   delivery_address: string | null;
   notes: string | null;
@@ -51,7 +52,7 @@ export default function OrderDetailModal({
     supabase
       .from("orders")
       .select(
-        "id, order_number, status, channel, payment_status, customer_name, delivery_address, notes, subtotal_naira, delivery_fee_naira, total_naira, receipt_url, created_at, delivery_locations(name), order_items(product_name, variant_label, unit_price_naira, quantity, line_total_naira, products(image_url)), profiles(full_name, phone)"
+        "id, order_number, status, channel, payment_status, payment_method, customer_name, delivery_address, notes, subtotal_naira, delivery_fee_naira, total_naira, receipt_url, created_at, delivery_locations(name), order_items(product_name, variant_label, unit_price_naira, quantity, line_total_naira, products(image_url)), profiles(full_name, phone)"
       )
       .eq("id", orderId)
       .single<OrderDetail>()
@@ -113,8 +114,12 @@ export default function OrderDetailModal({
               <span className="rounded-pill bg-plaster/40 px-3 py-1 text-xs font-semibold capitalize text-ink/70">
                 {order.status.replace("_", " ")}
               </span>
-              <span className="rounded-pill bg-plaster/40 px-3 py-1 text-xs font-semibold capitalize text-ink/70">
-                {order.channel}
+              <span className="rounded-pill bg-plaster/40 px-3 py-1 text-xs font-semibold text-ink/70">
+                {order.channel === "whatsapp"
+                  ? "WhatsApp"
+                  : order.payment_method === "card"
+                    ? "Website · Card"
+                    : "Website · Bank Transfer"}
               </span>
               {showCustomer &&
                 (order.payment_status === "unpaid" ? (

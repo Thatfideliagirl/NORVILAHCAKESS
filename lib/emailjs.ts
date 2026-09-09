@@ -21,6 +21,7 @@ function send(templateId: string | undefined, params: Record<string, string>) {
 }
 
 export function sendOrderAlert(params: {
+  to_email: string;
   order_number: string;
   customer_name: string;
   customer_phone: string;
@@ -30,14 +31,23 @@ export function sendOrderAlert(params: {
   order_channel: string;
   payment_method: string;
 }) {
+  if (!params.to_email) {
+    console.warn("No notification email set in Admin Settings -- skipping order alert email.");
+    return;
+  }
   send(ORDER_TEMPLATE_ID, params);
 }
 
 export function sendInquiryAlert(params: {
+  to_email: string;
   customer_name: string;
   customer_phone: string;
   event_date: string;
   inquiry_message: string;
 }) {
+  if (!params.to_email) {
+    console.warn("No notification email set in Admin Settings -- skipping inquiry alert email.");
+    return;
+  }
   send(INQUIRY_TEMPLATE_ID, params);
 }

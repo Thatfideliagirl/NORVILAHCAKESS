@@ -532,7 +532,13 @@ function InquiryForm({
       setError("Could not send your inquiry. Please try again.");
       return;
     }
+    const { data: settings } = await supabase
+      .from("settings")
+      .select("notification_email")
+      .eq("id", true)
+      .single();
     sendInquiryAlert({
+      to_email: settings?.notification_email ?? "",
       customer_name: name.trim(),
       customer_phone: phone.trim(),
       event_date: eventDate || "Not specified",

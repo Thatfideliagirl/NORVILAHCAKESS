@@ -11,13 +11,14 @@ type Settings = {
   bank_account_name: string | null;
   bank_account_number: string | null;
   website_payment_method: "bank_transfer" | "paystack";
+  notification_email: string | null;
 };
 
 function fetchSettings() {
   return supabase
     .from("settings")
     .select(
-      "website_ordering_enabled, whatsapp_ordering_enabled, bank_name, bank_account_name, bank_account_number, website_payment_method"
+      "website_ordering_enabled, whatsapp_ordering_enabled, bank_name, bank_account_name, bank_account_number, website_payment_method, notification_email"
     )
     .eq("id", true)
     .single();
@@ -50,6 +51,7 @@ export default function AdminSettingsPage() {
         bank_account_name: settings.bank_account_name,
         bank_account_number: settings.bank_account_number,
         website_payment_method: settings.website_payment_method,
+        notification_email: settings.notification_email,
       })
       .eq("id", true);
     if (error) setLoadError(error.message);
@@ -93,6 +95,23 @@ export default function AdminSettingsPage() {
               />
               Accept orders via WhatsApp
             </label>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <p className="font-body text-small font-semibold text-ink/70">
+              New order / inquiry alert email
+            </p>
+            <p className="font-body text-xs text-ink/50">
+              Where the &quot;a new order came in&quot; and &quot;a new inquiry came in&quot;
+              emails get sent.
+            </p>
+            <input
+              type="email"
+              placeholder="you@example.com"
+              value={settings.notification_email ?? ""}
+              onChange={(e) => setSettings({ ...settings, notification_email: e.target.value })}
+              className={inputClasses}
+            />
           </div>
 
           <div className="flex flex-col gap-3">

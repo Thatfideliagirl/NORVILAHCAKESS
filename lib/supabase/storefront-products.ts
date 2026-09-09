@@ -49,6 +49,7 @@ export function useStorefrontProducts(): { products: Product[]; loading: boolean
         .select(
           "id, slug, name, description, ingredients, benefits, image_url, price_naira, active, featured, on_sale, discount_percent, categories(slug)"
         )
+        .order("sort_order")
         .returns<DbProductRow[]>(),
       supabase
         .from("product_variants")
@@ -60,70 +61,56 @@ export function useStorefrontProducts(): { products: Product[]; loading: boolean
         setLoading(false);
         return;
       }
-      const staticSlugs = new Set(staticProducts.map((p) => p.slug));
+      const staticBySlug = new Map(staticProducts.map((p) => [p.slug, p]));
       const variantsByProductId = new Map<string, DbVariantRow[]>();
       for (const row of variantRows ?? []) {
         const list = variantsByProductId.get(row.product_id) ?? [];
         list.push(row);
         variantsByProductId.set(row.product_id, list);
       }
-      function variantsFor(dbRow: DbProductRow | undefined) {
-        const rows = dbRow ? variantsByProductId.get(dbRow.id) : undefined;
+      function variantsFor(dbRow: DbProductRow) {
+        const rows = variantsByProductId.get(dbRow.id);
         return rows?.length
           ? rows.map((v) => ({ id: v.id, label: v.label, priceNaira: v.price_naira }))
           : undefined;
       }
 
-      // A static seed product with no matching (active) DB row has been
-      // deleted or deactivated from the admin -- drop it instead of
-      // falling back to the hardcoded copy, otherwise deletions never
-      // take visible effect on the storefront. Every other field is
-      // taken from the DB row too, so admin edits (name, price,
-      // description, category, sale) to a seed product show up here,
-      // not just photo/variant swaps.
-      const withImageOverrides: Product[] = staticProducts.flatMap((product) => {
-        const dbRow = data.find((row) => row.slug === product.slug);
-        if (!dbRow || !dbRow.active) return [];
-        const dbVariants = variantsFor(dbRow);
+      // The database (in admin's chosen sort_order) is the single
+      // source of truth: a static seed product with no matching active
+      // row here has been deleted or deactivated from admin, so it's
+      // dropped rather than falling back to the hardcoded copy --
+      // otherwise deletions would never take visible effect on the
+      // storefront. `id` is kept stable off the static entry where one
+      // exists (existing carts reference it), everything else comes
+      // from the DB row, so admin edits show up immediately.
+      const merged: Product[] = data.flatMap((row) => {
+        if (!row.active) return [];
+        const staticProduct = staticBySlug.get(row.slug);
+        const categorySlug = row.categories?.slug ?? staticProduct?.categorySlug;
+        if (!categorySlug) return [];
+        const fallbackImage = staticProduct?.image ?? "/products/cakes.jpg";
+        const dbVariants = variantsFor(row);
         return [
           {
-            ...product,
-            name: dbRow.name,
-            description: dbRow.description ?? product.description,
-            ingredients: dbRow.ingredients ?? product.ingredients,
-            benefits: dbRow.benefits ?? product.benefits,
-            categorySlug: dbRow.categories?.slug ?? product.categorySlug,
-            priceNaira: dbRow.price_naira,
-            available: dbRow.active,
-            featured: dbRow.featured,
-            onSale: dbRow.on_sale,
-            discountPercent: dbRow.discount_percent ?? undefined,
-            ...(isUploadedImage(dbRow.image_url) ? { image: dbRow.image_url } : {}),
-            ...(dbVariants ? { variants: dbVariants } : {}),
+            id: staticProduct?.id ?? row.slug,
+            slug: row.slug,
+            name: row.name,
+            categorySlug,
+            description: row.description ?? staticProduct?.description ?? "",
+            image: isUploadedImage(row.image_url) ? row.image_url : fallbackImage,
+            priceNaira: row.price_naira,
+            variants: dbVariants ?? staticProduct?.variants,
+            ingredients: row.ingredients ?? staticProduct?.ingredients ?? undefined,
+            benefits: row.benefits ?? staticProduct?.benefits ?? undefined,
+            available: row.active,
+            featured: row.featured,
+            onSale: row.on_sale,
+            discountPercent: row.discount_percent ?? undefined,
           },
         ];
       });
 
-      const addedByAdmin: Product[] = data
-        .filter((row) => !staticSlugs.has(row.slug) && row.active && row.categories?.slug)
-        .map((row) => ({
-          id: row.slug,
-          slug: row.slug,
-          name: row.name,
-          categorySlug: row.categories!.slug,
-          description: row.description ?? "",
-          image: row.image_url ?? "/products/cakes.jpg",
-          priceNaira: row.price_naira,
-          variants: variantsFor(row),
-          ingredients: row.ingredients ?? undefined,
-          benefits: row.benefits ?? undefined,
-          available: row.active,
-          featured: row.featured,
-          onSale: row.on_sale,
-          discountPercent: row.discount_percent ?? undefined,
-        }));
-
-      setProducts([...withImageOverrides, ...addedByAdmin]);
+      setProducts(merged);
       setLoading(false);
     });
   }, []);

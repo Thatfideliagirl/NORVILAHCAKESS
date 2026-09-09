@@ -97,6 +97,7 @@ export default function CheckoutPage() {
   const [websitePaymentMethod, setWebsitePaymentMethod] = useState<"bank_transfer" | "paystack">(
     "bank_transfer"
   );
+  const [notificationEmail, setNotificationEmail] = useState("");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -113,7 +114,7 @@ export default function CheckoutPage() {
     supabase
       .from("settings")
       .select(
-        "website_ordering_enabled, whatsapp_ordering_enabled, bank_name, bank_account_name, bank_account_number, website_payment_method"
+        "website_ordering_enabled, whatsapp_ordering_enabled, bank_name, bank_account_name, bank_account_number, website_payment_method, notification_email"
       )
       .eq("id", true)
       .single()
@@ -131,6 +132,7 @@ export default function CheckoutPage() {
             accountNumber: data.bank_account_number,
           });
           setWebsitePaymentMethod(data.website_payment_method);
+          setNotificationEmail(data.notification_email ?? "");
         }
       });
   }, []);
@@ -202,6 +204,7 @@ export default function CheckoutPage() {
           delivery_fee_naira: fee,
           total_naira: total,
           payment_status: "awaiting_confirmation",
+          payment_method: "bank_transfer",
           receipt_url: path,
         })
         .select("id")
@@ -211,6 +214,7 @@ export default function CheckoutPage() {
       await insertOrderItems(order.id);
 
       sendOrderAlert({
+        to_email: notificationEmail,
         order_number: orderNumber,
         customer_name: name,
         customer_phone: phone,
@@ -277,6 +281,7 @@ export default function CheckoutPage() {
           delivery_fee_naira: fee,
           total_naira: total,
           payment_status: "awaiting_confirmation",
+          payment_method: "bank_transfer",
           receipt_url: path,
         })
         .select("id")
@@ -286,6 +291,7 @@ export default function CheckoutPage() {
       await insertOrderItems(order.id);
 
       sendOrderAlert({
+        to_email: notificationEmail,
         order_number: orderNumber,
         customer_name: name,
         customer_phone: phone,
@@ -332,6 +338,7 @@ export default function CheckoutPage() {
           delivery_fee_naira: fee,
           total_naira: total,
           payment_status: "unpaid",
+          payment_method: "card",
         })
         .select("id")
         .single();
@@ -359,6 +366,7 @@ export default function CheckoutPage() {
             if (!res.ok) throw new Error("verification failed");
 
             sendOrderAlert({
+              to_email: notificationEmail,
               order_number: orderNumber,
               customer_name: name,
               customer_phone: phone,
