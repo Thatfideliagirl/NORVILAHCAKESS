@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase/client";
 import { formatNaira } from "@/lib/format";
 import { OCCASIONS, type Occasion } from "@/lib/whatsapp";
 import { markMessagesRead } from "@/lib/supabase/messages";
+import { sendInquiryAlert } from "@/lib/emailjs";
 import Avatar from "@/components/Avatar";
 import NotificationBell from "@/components/NotificationBell";
 import ProfileSection from "@/components/account/ProfileSection";
@@ -521,6 +522,12 @@ function InquiryForm({
       setError("Could not send your inquiry. Please try again.");
       return;
     }
+    sendInquiryAlert({
+      customer_name: name.trim(),
+      customer_phone: phone.trim(),
+      event_date: eventDate || "Not specified",
+      inquiry_message: message.trim() || "No message provided.",
+    });
     onSaved();
   }
 

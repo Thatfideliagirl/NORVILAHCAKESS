@@ -9,6 +9,7 @@ import { useCartStore } from "@/store/cart";
 import { formatNaira } from "@/lib/format";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 import { useStorefrontProducts } from "@/lib/supabase/storefront-products";
+import { sendOrderAlert } from "@/lib/emailjs";
 
 type DeliveryZone = {
   id: string;
@@ -56,6 +57,15 @@ function buildOrderMessage(
   lines.push(`Total: ${formatNaira(total)}`);
   lines.push("", "I've made my bank transfer and uploaded my receipt on the website.");
   return lines.join("\n");
+}
+
+function formatOrderItemsList(items: ReturnType<typeof useCartStore.getState>["items"]): string {
+  return items
+    .map((item) => {
+      const variant = item.variantLabel ? ` (${item.variantLabel})` : "";
+      return `${item.quantity} x ${item.name}${variant} — ${formatNaira(item.priceNaira * item.quantity)}`;
+    })
+    .join("\n");
 }
 
 const inputClasses =
@@ -183,6 +193,17 @@ export default function CheckoutPage() {
 
       await insertOrderItems(order.id);
 
+      sendOrderAlert({
+        order_number: orderNumber,
+        customer_name: name,
+        customer_phone: phone,
+        order_items: formatOrderItemsList(items),
+        order_total: formatNaira(total),
+        delivery_location: selectedZone.name,
+        order_channel: "WhatsApp",
+        payment_method: "Bank transfer (receipt uploaded)",
+      });
+
       const message = buildOrderMessage(
         items,
         selectedZone.name,
@@ -246,6 +267,17 @@ export default function CheckoutPage() {
       if (orderError) throw orderError;
 
       await insertOrderItems(order.id);
+
+      sendOrderAlert({
+        order_number: orderNumber,
+        customer_name: name,
+        customer_phone: phone,
+        order_items: formatOrderItemsList(items),
+        order_total: formatNaira(total),
+        delivery_location: selectedZone.name,
+        order_channel: "Website",
+        payment_method: "Bank transfer (receipt uploaded)",
+      });
 
       clearCart();
       setConfirmedOrder({ orderNumber, total });
