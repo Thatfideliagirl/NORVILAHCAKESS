@@ -118,7 +118,7 @@ export default function OrderDetailModal({
                 {order.channel === "whatsapp"
                   ? "WhatsApp"
                   : order.payment_method === "card"
-                    ? "Website · Card"
+                    ? "Website · Paystack"
                     : "Website · Bank Transfer"}
               </span>
               {showCustomer &&

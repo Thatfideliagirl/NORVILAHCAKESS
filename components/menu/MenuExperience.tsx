@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Search } from "lucide-react";
@@ -131,6 +132,33 @@ export default function MenuExperience() {
           </motion.div>
         </motion.div>
       </div>
+
+      {activeProduct && (
+        <div className="sr-only" aria-hidden="true">
+          {/* Warms the browser/CDN image cache for the adjacent product
+              before the visitor clicks prev/next, so heavier photos
+              (pre-dating automatic upload compression) don't stall the
+              modal on every click. */}
+          {activeIndex > 0 && (
+            <Image
+              src={filteredProducts[activeIndex - 1].image}
+              alt=""
+              fill
+              sizes="(min-width: 768px) 50vw, 100vw"
+              priority
+            />
+          )}
+          {activeIndex < filteredProducts.length - 1 && (
+            <Image
+              src={filteredProducts[activeIndex + 1].image}
+              alt=""
+              fill
+              sizes="(min-width: 768px) 50vw, 100vw"
+              priority
+            />
+          )}
+        </div>
+      )}
 
       <ProductDetailModal
         product={activeProduct}

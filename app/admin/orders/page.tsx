@@ -33,7 +33,7 @@ type Order = {
 
 function paymentMethodLabel(order: Pick<Order, "channel" | "payment_method">): string {
   if (order.channel === "whatsapp") return "WhatsApp";
-  return order.payment_method === "card" ? "Website · Card" : "Website · Bank Transfer";
+  return order.payment_method === "card" ? "Website · Paystack" : "Website · Bank Transfer";
 }
 
 function fetchOrders() {
