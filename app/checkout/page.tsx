@@ -89,6 +89,7 @@ export default function CheckoutPage() {
   const [address, setAddress] = useState("");
   const [additionalInfo, setAdditionalInfo] = useState("");
   const [channel, setChannel] = useState<"website" | "whatsapp">("whatsapp");
+  const [paymentMethod, setPaymentMethod] = useState<"bank_transfer" | "card">("bank_transfer");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -288,6 +289,90 @@ export default function CheckoutPage() {
     }
   }
 
+  async function onCardOrder(session: Session) {
+    if (!selectedZone) {
+      setError("Please choose a delivery location.");
+      return;
+    }
+    if (!session.user.email) {
+      setError("Your account needs an email address to pay by card.");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      const orderNumber = generateOrderNumber();
+      const { data: order, error: orderError } = await supabase
+        .from("orders")
+        .insert({
+          order_number: orderNumber,
+          customer_id: session.user.id,
+          channel: "website",
+          delivery_location_id: selectedZone.id,
+          delivery_address: address,
+          customer_name: name,
+          notes: additionalInfo || null,
+          subtotal_naira: subtotal,
+          delivery_fee_naira: fee,
+          total_naira: total,
+          payment_status: "unpaid",
+        })
+        .select("id")
+        .single();
+      if (orderError) throw orderError;
+
+      await insertOrderItems(order.id);
+
+      // Loaded dynamically: this SDK touches `window` at import time,
+      // which breaks Next.js's server-side prerendering of this page
+      // if imported statically at the top of the file.
+      const { default: PaystackPop } = await import("@paystack/inline-js");
+      const popup = new PaystackPop();
+      popup.newTransaction({
+        key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY as string,
+        email: session.user.email,
+        amount: total * 100,
+        reference: orderNumber,
+        onSuccess: async (transaction) => {
+          try {
+            const res = await fetch("/api/paystack/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ reference: transaction.reference, orderId: order.id }),
+            });
+            if (!res.ok) throw new Error("verification failed");
+
+            sendOrderAlert({
+              order_number: orderNumber,
+              customer_name: name,
+              customer_phone: phone,
+              order_items: formatOrderItemsList(items),
+              order_total: formatNaira(total),
+              delivery_location: selectedZone.name,
+              order_channel: "Website",
+              payment_method: "Card (paid via Paystack)",
+            });
+
+            clearCart();
+            setConfirmedOrder({ orderNumber, total });
+          } catch {
+            setError(
+              "Payment went through but we couldn't confirm it automatically. We'll verify it shortly -- contact us if it doesn't show as paid."
+            );
+          } finally {
+            setSubmitting(false);
+          }
+        },
+        onCancel: () => {
+          setSubmitting(false);
+        },
+      });
+    } catch {
+      setError("Something went wrong placing your order. Please try again.");
+      setSubmitting(false);
+    }
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!session) {
@@ -295,6 +380,7 @@ export default function CheckoutPage() {
       return;
     }
     if (channel === "whatsapp") await onWhatsAppOrder(session.user.id);
+    else if (paymentMethod === "card") await onCardOrder(session);
     else await onWebsiteOrder(session.user.id);
   }
 
@@ -448,7 +534,10 @@ export default function CheckoutPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setChannel("whatsapp")}
+                onClick={() => {
+                  setChannel("whatsapp");
+                  setPaymentMethod("bank_transfer");
+                }}
                 className={`flex-1 rounded-pill border px-4 py-2.5 font-body text-small font-medium ${
                   channel === "whatsapp" ? "border-berry bg-berry text-cream" : "border-clay/30 text-ink/70"
                 }`}
@@ -458,41 +547,73 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          {bankDetails.accountNumber && (
-            <div className="rounded-panel bg-plaster/30 p-4">
-              <p className="font-body text-small font-medium text-ink/70">
-                Instructions: transfer to this account number below, then upload your receipt
-                before {channel === "whatsapp" ? "tapping Continue on WhatsApp" : "clicking Place Order"}.
-              </p>
-              <div className="mt-2 font-body text-small text-ink">
-                <p>Bank: {bankDetails.bankName}</p>
-                <p>Account name: {bankDetails.accountName}</p>
-                <p className="font-semibold text-berry">Account number: {bankDetails.accountNumber}</p>
-              </div>
+          {channel === "website" && (
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setPaymentMethod("card")}
+                className={`flex-1 rounded-pill border px-4 py-2.5 font-body text-small font-medium ${
+                  paymentMethod === "card" ? "border-berry bg-berry text-cream" : "border-clay/30 text-ink/70"
+                }`}
+              >
+                Pay by Card
+              </button>
+              <button
+                type="button"
+                onClick={() => setPaymentMethod("bank_transfer")}
+                className={`flex-1 rounded-pill border px-4 py-2.5 font-body text-small font-medium ${
+                  paymentMethod === "bank_transfer" ? "border-berry bg-berry text-cream" : "border-clay/30 text-ink/70"
+                }`}
+              >
+                Bank Transfer
+              </button>
             </div>
           )}
 
-          <div>
-            <label
-              htmlFor="receipt-upload"
-              className="font-body text-small font-semibold text-ink"
-            >
-              Upload your payment receipt (image or PDF)
-            </label>
-            <label
-              htmlFor="receipt-upload"
-              className="mt-2 flex cursor-pointer items-center justify-center gap-2 rounded-pill border-2 border-dashed border-berry/50 bg-berry/5 px-4 py-3 font-body text-small font-semibold text-berry transition-colors hover:bg-berry/10"
-            >
-              {receiptFile ? receiptFile.name : "Tap to choose a file"}
-            </label>
-            <input
-              id="receipt-upload"
-              type="file"
-              accept="image/*,application/pdf"
-              onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)}
-              className="sr-only"
-            />
-          </div>
+          {channel === "website" && paymentMethod === "card" ? (
+            <p className="rounded-panel bg-plaster/30 p-4 font-body text-small text-ink/70">
+              You&apos;ll pay securely by card on the next step. Your order is confirmed
+              automatically as soon as payment goes through -- no receipt needed.
+            </p>
+          ) : (
+            <>
+              {bankDetails.accountNumber && (
+                <div className="rounded-panel bg-plaster/30 p-4">
+                  <p className="font-body text-small font-medium text-ink/70">
+                    Instructions: transfer to this account number below, then upload your receipt
+                    before {channel === "whatsapp" ? "tapping Continue on WhatsApp" : "clicking Place Order"}.
+                  </p>
+                  <div className="mt-2 font-body text-small text-ink">
+                    <p>Bank: {bankDetails.bankName}</p>
+                    <p>Account name: {bankDetails.accountName}</p>
+                    <p className="font-semibold text-berry">Account number: {bankDetails.accountNumber}</p>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label
+                  htmlFor="receipt-upload"
+                  className="font-body text-small font-semibold text-ink"
+                >
+                  Upload your payment receipt (image or PDF)
+                </label>
+                <label
+                  htmlFor="receipt-upload"
+                  className="mt-2 flex cursor-pointer items-center justify-center gap-2 rounded-pill border-2 border-dashed border-berry/50 bg-berry/5 px-4 py-3 font-body text-small font-semibold text-berry transition-colors hover:bg-berry/10"
+                >
+                  {receiptFile ? receiptFile.name : "Tap to choose a file"}
+                </label>
+                <input
+                  id="receipt-upload"
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)}
+                  className="sr-only"
+                />
+              </div>
+            </>
+          )}
 
           {error && <p className="font-body text-small text-berry">{error}</p>}
 
@@ -505,7 +626,9 @@ export default function CheckoutPage() {
               ? "Placing order..."
               : channel === "whatsapp"
                 ? "Continue on WhatsApp"
-                : "Place Order"}
+                : paymentMethod === "card"
+                  ? "Pay Now"
+                  : "Place Order"}
           </button>
         </form>
       </div>
