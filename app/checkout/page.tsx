@@ -71,6 +71,11 @@ function formatOrderItemsList(items: ReturnType<typeof useCartStore.getState>["i
 const inputClasses =
   "w-full rounded-panel border border-clay/25 bg-cream px-4 py-3 font-body text-body text-ink placeholder:text-ink/40 focus-visible:border-berry";
 
+// Baked in at build time from NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY. Kept
+// hidden until that's actually set (and the site rebuilt), so real
+// customers never see a "Pay by Card" button that isn't wired up yet.
+const cardPaymentEnabled = !!process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY;
+
 export default function CheckoutPage() {
   const items = useCartStore((state) => state.items);
   const clearCart = useCartStore((state) => state.clear);
@@ -547,7 +552,7 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          {channel === "website" && (
+          {channel === "website" && cardPaymentEnabled && (
             <div className="flex gap-3">
               <button
                 type="button"
