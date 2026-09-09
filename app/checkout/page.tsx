@@ -179,6 +179,12 @@ export default function CheckoutPage() {
       setError("Please choose a delivery location.");
       return;
     }
+    // Opened synchronously, before any awaits, so it stays inside the
+    // click/submit gesture the browser requires to allow window.open --
+    // opening it after the upload/insert calls below (as before) meant
+    // it fired outside that window and got silently blocked, which is
+    // exactly what looked like "order placed but never opened WhatsApp".
+    const whatsappWindow = window.open("", "_blank");
     setSubmitting(true);
     setError(null);
     try {
@@ -236,11 +242,14 @@ export default function CheckoutPage() {
         additionalInfo,
         orderNumber
       );
-      window.open(buildWhatsAppLink(message), "_blank", "noopener,noreferrer");
+      const whatsappLink = buildWhatsAppLink(message);
+      if (whatsappWindow) whatsappWindow.location.href = whatsappLink;
+      else window.open(whatsappLink, "_blank", "noopener,noreferrer");
 
       clearCart();
       setConfirmedOrder({ orderNumber, total });
     } catch {
+      whatsappWindow?.close();
       setError("Something went wrong placing your order. Please try again.");
     } finally {
       setSubmitting(false);
