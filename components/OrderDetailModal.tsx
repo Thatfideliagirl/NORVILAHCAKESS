@@ -206,7 +206,7 @@ export default function OrderDetailModal({
               </div>
             </div>
 
-            {order.channel === "website" && (
+            {order.payment_method === "bank_transfer" && (
               <div>
                 <p className="font-body text-small font-medium text-ink/70">Payment receipt</p>
                 {receiptUrl ? (

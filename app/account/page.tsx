@@ -63,18 +63,7 @@ export default function AccountPage() {
   }
 
   if (checkEmailFor) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-cream px-6 pt-24 text-center">
-        <div className="max-w-sm">
-          <p className="font-display text-heading text-berry">Check your email</p>
-          <p className="mt-4 font-body text-body text-ink/70">
-            We sent a verification link to <strong>{checkEmailFor}</strong>.
-            Confirm it to finish creating your account, then come back here
-            to sign in.
-          </p>
-        </div>
-      </main>
-    );
+    return <VerifyCodeForm email={checkEmailFor} onBack={() => setCheckEmailFor(null)} />;
   }
 
   return (
@@ -189,7 +178,6 @@ function SignUpForm({ onSignedUp }: { onSignedUp: (email: string) => void }) {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/account`,
           data: {
             full_name: fullName,
             phone,
@@ -305,5 +293,81 @@ function SignUpForm({ onSignedUp }: { onSignedUp: (email: string) => void }) {
         {loading ? "Creating account..." : "Create account"}
       </button>
     </form>
+  );
+}
+
+// Confirming by code instead of a link means the whole thing happens in
+// one tab -- no jumping to a mail app that opens a different, logged-out
+// browser session. Once verifyOtp succeeds it returns a real session, so
+// the onAuthStateChange listener above picks it up and signs them
+// straight in -- no separate "now go log in" step needed.
+function VerifyCodeForm({ email, onBack }: { email: string; onBack: () => void }) {
+  const [code, setCode] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState(false);
+  const [resent, setResent] = useState(false);
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setVerifying(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({ email, token: code.trim(), type: "signup" });
+      if (error) setError("That code didn't work. Check it and try again.");
+    } catch {
+      setError("Could not reach the account service. Check your connection and try again.");
+    } finally {
+      setVerifying(false);
+    }
+  }
+
+  async function resendCode() {
+    setError(null);
+    setResent(false);
+    const { error } = await supabase.auth.resend({ type: "signup", email });
+    if (error) setError("Could not resend the code. Please try again shortly.");
+    else setResent(true);
+  }
+
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-cream px-6 pt-24">
+      <div className="w-full max-w-sm text-center">
+        <p className="font-display text-heading text-berry">Check your email</p>
+        <p className="mt-4 font-body text-body text-ink/70">
+          We sent a 6-digit code to <strong>{email}</strong>. Enter it below to confirm your account.
+        </p>
+        <form onSubmit={onSubmit} className="mt-8 flex flex-col gap-4">
+          <input
+            required
+            inputMode="numeric"
+            autoFocus
+            maxLength={6}
+            placeholder="000000"
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+            className={`${inputClasses} text-center tracking-[0.5em]`}
+          />
+          {error && <p className="font-body text-small text-berry">{error}</p>}
+          {resent && <p className="font-body text-small text-ink/60">Code resent — check your email.</p>}
+          <button
+            type="submit"
+            disabled={verifying || code.length < 6}
+            className="rounded-pill bg-cocoa px-8 py-3.5 font-body font-medium text-cream transition-colors duration-200 hover:bg-ink disabled:opacity-60"
+          >
+            {verifying ? "Verifying..." : "Confirm account"}
+          </button>
+        </form>
+        <button
+          type="button"
+          onClick={resendCode}
+          className="mt-4 font-body text-small font-medium text-berry"
+        >
+          Resend code
+        </button>
+        <button type="button" onClick={onBack} className="mt-2 block w-full font-body text-small text-ink/50">
+          Back
+        </button>
+      </div>
+    </main>
   );
 }

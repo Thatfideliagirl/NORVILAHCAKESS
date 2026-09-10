@@ -72,6 +72,14 @@ type Message = {
 const TABS = ["Overview", "My Orders", "My Inquiries", "Messages", "Favourites", "Profile Settings"] as const;
 type Tab = (typeof TABS)[number];
 
+// The onboarding tour points at these tabs by their real position on
+// screen, so it needs a stable hook to find them in the DOM.
+const TOUR_TARGET_BY_TAB: Partial<Record<Tab, string>> = {
+  "My Orders": "orders",
+  "My Inquiries": "inquiries",
+  Messages: "messages",
+};
+
 const inputClasses =
   "w-full rounded-panel border border-clay/25 bg-cream px-4 py-3 font-body text-body text-ink";
 
@@ -208,6 +216,7 @@ export default function SignedInAccount({ session }: { session: Session }) {
         <button
           key={t}
           type="button"
+          data-tour={TOUR_TARGET_BY_TAB[t]}
           onClick={() => {
             setTab(t);
             setDrawerOpen(false);
@@ -466,7 +475,11 @@ export default function SignedInAccount({ session }: { session: Session }) {
         <InquiryDetailModal inquiryId={detailInquiryId} onClose={() => setDetailInquiryId(null)} />
       )}
       {showOnboarding && (
-        <OnboardingTour name={profile?.full_name || "there"} onFinish={finishOnboarding} />
+        <OnboardingTour
+          name={profile?.full_name || "there"}
+          onFinish={finishOnboarding}
+          onSetDrawerOpen={setDrawerOpen}
+        />
       )}
     </main>
   );
