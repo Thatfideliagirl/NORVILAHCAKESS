@@ -18,6 +18,7 @@ export default function AdminDeliveryPage() {
   const [fee, setFee] = useState("");
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   function fetchZones() {
     return supabase.from("delivery_locations").select("id, name, fee_naira, active").order("sort_order");
@@ -45,6 +46,17 @@ export default function AdminDeliveryPage() {
   async function toggleActive(zone: Zone) {
     setZones((current) => current.map((z) => (z.id === zone.id ? { ...z, active: !z.active } : z)));
     await supabase.from("delivery_locations").update({ active: !zone.active }).eq("id", zone.id);
+  }
+
+  function onZoneUpdated(updated: Zone) {
+    setZones((current) => current.map((z) => (z.id === updated.id ? updated : z)));
+    setEditingId(null);
+  }
+
+  async function deleteZone(zone: Zone) {
+    if (!window.confirm(`Delete "${zone.name}"? This can't be undone.`)) return;
+    setZones((current) => current.filter((z) => z.id !== zone.id));
+    await supabase.from("delivery_locations").delete().eq("id", zone.id);
   }
 
   return (
@@ -80,35 +92,129 @@ export default function AdminDeliveryPage() {
       {loadError && <AdminErrorBanner message={loadError} />}
 
       <div className="mt-8 overflow-x-auto rounded-panel bg-cream shadow-warm">
-        <table className="w-full min-w-[420px] text-left font-body text-small">
+        <table className="w-full min-w-[560px] text-left font-body text-small">
           <thead>
             <tr className="border-b border-clay/15 text-ink/50">
               <th className="px-4 py-3 font-medium">Zone</th>
               <th className="px-4 py-3 font-medium">Fee</th>
               <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {zones.map((zone) => (
-              <tr key={zone.id} className="border-b border-clay/10 last:border-none">
-                <td className="px-4 py-3 text-ink">{zone.name}</td>
-                <td className="px-4 py-3 font-medium text-berry">{formatNaira(zone.fee_naira)}</td>
-                <td className="px-4 py-3">
-                  <button
-                    type="button"
-                    onClick={() => toggleActive(zone)}
-                    className={`rounded-pill px-4 py-1.5 text-xs font-semibold ${
-                      zone.active ? "bg-berry/15 text-berry" : "bg-clay/15 text-ink/50"
-                    }`}
-                  >
-                    {zone.active ? "Active" : "Inactive"}
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {zones.map((zone) =>
+              editingId === zone.id ? (
+                <EditZoneRow
+                  key={zone.id}
+                  zone={zone}
+                  onSaved={onZoneUpdated}
+                  onCancel={() => setEditingId(null)}
+                />
+              ) : (
+                <tr key={zone.id} className="border-b border-clay/10 last:border-none">
+                  <td className="px-4 py-3 text-ink">{zone.name}</td>
+                  <td className="px-4 py-3 font-medium text-berry">{formatNaira(zone.fee_naira)}</td>
+                  <td className="px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={() => toggleActive(zone)}
+                      className={`rounded-pill px-4 py-1.5 text-xs font-semibold ${
+                        zone.active ? "bg-berry/15 text-berry" : "bg-clay/15 text-ink/50"
+                      }`}
+                    >
+                      {zone.active ? "Active" : "Inactive"}
+                    </button>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(zone.id)}
+                        className="font-body text-small font-medium text-ink/60 hover:text-berry"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteZone(zone)}
+                        className="font-body text-small font-medium text-ink/50 hover:text-berry"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )
+            )}
           </tbody>
         </table>
       </div>
     </div>
+  );
+}
+
+function EditZoneRow({
+  zone,
+  onSaved,
+  onCancel,
+}: {
+  zone: Zone;
+  onSaved: (zone: Zone) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState(zone.name);
+  const [fee, setFee] = useState(String(zone.fee_naira));
+  const [saving, setSaving] = useState(false);
+
+  async function onSave() {
+    const feeValue = Number(fee);
+    if (!name.trim() || !Number.isFinite(feeValue)) return;
+    setSaving(true);
+    await supabase
+      .from("delivery_locations")
+      .update({ name: name.trim(), fee_naira: feeValue })
+      .eq("id", zone.id);
+    setSaving(false);
+    onSaved({ ...zone, name: name.trim(), fee_naira: feeValue });
+  }
+
+  return (
+    <tr className="border-b border-clay/10 bg-plaster/20 last:border-none">
+      <td className="px-4 py-3">
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="w-full rounded-panel border border-clay/25 bg-cream px-3 py-1.5 font-body text-small text-ink"
+        />
+      </td>
+      <td className="px-4 py-3">
+        <input
+          value={fee}
+          onChange={(e) => setFee(e.target.value)}
+          inputMode="numeric"
+          className="w-24 rounded-panel border border-clay/25 bg-cream px-3 py-1.5 font-body text-small text-ink"
+        />
+      </td>
+      <td className="px-4 py-3 text-ink/40">--</td>
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={saving}
+            className="font-body text-small font-medium text-berry disabled:opacity-60"
+          >
+            {saving ? "Saving..." : "Save"}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="font-body text-small font-medium text-ink/50"
+          >
+            Cancel
+          </button>
+        </div>
+      </td>
+    </tr>
   );
 }
