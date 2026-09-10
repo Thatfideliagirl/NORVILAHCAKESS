@@ -178,6 +178,11 @@ function SignUpForm({ onSignedUp }: { onSignedUp: (email: string) => void }) {
         email,
         password,
         options: {
+          // Belt-and-suspenders: the code is the primary path (see
+          // VerifyCodeForm), but the email can also carry a plain link
+          // for anyone who clicks it instead of typing the code -- this
+          // is where that link lands, rather than a blank page.
+          emailRedirectTo: `${window.location.origin}/account/confirmed`,
           data: {
             full_name: fullName,
             phone,
