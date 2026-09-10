@@ -101,7 +101,7 @@ export default function CelebrationsSection() {
           />
           <Arch
             src="/celebrations.jpg"
-            alt="A spread of parfaits, cupcakes and meat pies laid out for an event, with candles and flowers alongside."
+            alt="Rows of Norvilah parfait cups displayed on tiered wooden risers at an event, styled with hanging flowers and butterfly lights."
             sizes="(min-width: 768px) 384px, 0px"
             className="relative"
             imageClassName="transition-transform duration-500 ease-out group-hover:scale-105"
