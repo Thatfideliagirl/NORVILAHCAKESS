@@ -759,3 +759,13 @@ create policy "testimonials_admin_write" on public.testimonials
 -- on their account page, so it only shows once.
 -- =========================================================
 alter table public.profiles add column if not exists has_seen_onboarding boolean not null default false;
+
+-- =========================================================
+-- 26. NEW SIGN-UP NOTIFICATIONS (ADMIN)
+-- Same "unviewed" pattern already used for orders and inquiries.
+-- Backfill existing accounts as already-viewed so this doesn't flood
+-- the admin bell with every account ever created the moment it ships --
+-- only genuinely new sign-ups from here on show up as unread.
+-- =========================================================
+alter table public.profiles add column if not exists viewed_at timestamptz;
+update public.profiles set viewed_at = created_at where viewed_at is null;

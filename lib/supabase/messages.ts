@@ -6,7 +6,7 @@ import { formatNaira } from "@/lib/format";
 
 export type NotificationItem = {
   id: string;
-  kind: "message" | "inquiry" | "order" | "broadcast";
+  kind: "message" | "inquiry" | "order" | "broadcast" | "signup";
   title: string;
   body: string;
   createdAt: string;
@@ -49,6 +49,13 @@ type OrderRow = {
   id: string;
   order_number: string;
   total_naira: number;
+  created_at: string;
+};
+
+type ProfileRow = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
   created_at: string;
 };
 
@@ -95,6 +102,17 @@ export function useNotifications(role: "customer" | "admin"): {
             .returns<OrderRow[]>()
         : null;
 
+    const signupsQuery =
+      role === "admin"
+        ? supabase
+            .from("profiles")
+            .select("id, full_name, email, created_at")
+            .is("viewed_at", null)
+            .order("created_at", { ascending: false })
+            .limit(5)
+            .returns<ProfileRow[]>()
+        : null;
+
     const now = new Date().toISOString();
     const announcementsQuery =
       role === "customer"
@@ -113,8 +131,9 @@ export function useNotifications(role: "customer" | "admin"): {
       messagesQuery,
       inquiriesQuery ?? Promise.resolve({ data: [] as InquiryRow[] }),
       ordersQuery ?? Promise.resolve({ data: [] as OrderRow[] }),
+      signupsQuery ?? Promise.resolve({ data: [] as ProfileRow[] }),
       announcementsQuery ?? Promise.resolve({ data: [] as AnnouncementRow[] }),
-    ]).then(([messagesRes, inquiriesRes, ordersRes, announcementsRes]) => {
+    ]).then(([messagesRes, inquiriesRes, ordersRes, signupsRes, announcementsRes]) => {
       const messageItems: NotificationItem[] = (messagesRes.data ?? []).map((m) => ({
         id: `message-${m.id}`,
         kind: "message",
@@ -142,6 +161,15 @@ export function useNotifications(role: "customer" | "admin"): {
         href: "/admin/orders",
         markRead: () => markOrderViewed(o.id),
       }));
+      const signupItems: NotificationItem[] = (signupsRes.data ?? []).map((p) => ({
+        id: `signup-${p.id}`,
+        kind: "signup",
+        title: "New sign-up",
+        body: p.full_name || p.email || "Someone created an account",
+        createdAt: p.created_at,
+        href: "/admin/customers",
+        markRead: () => markProfileViewed(p.id),
+      }));
       const announcementItems: NotificationItem[] = (announcementsRes.data ?? [])
         .filter((a) => {
           try {
@@ -160,8 +188,8 @@ export function useNotifications(role: "customer" | "admin"): {
           markRead: () => dismissAnnouncement(a.id),
         }));
       setItems(
-        [...messageItems, ...inquiryItems, ...orderItems, ...announcementItems].sort((a, b) =>
-          b.createdAt.localeCompare(a.createdAt)
+        [...messageItems, ...inquiryItems, ...orderItems, ...signupItems, ...announcementItems].sort(
+          (a, b) => b.createdAt.localeCompare(a.createdAt)
         )
       );
     });
@@ -203,6 +231,15 @@ export async function markOrderViewed(orderId: string) {
     .eq("id", orderId)
     .is("viewed_at", null);
   if (error) console.error("markOrderViewed failed:", error.message);
+}
+
+export async function markProfileViewed(profileId: string) {
+  const { error } = await supabase
+    .from("profiles")
+    .update({ viewed_at: new Date().toISOString() })
+    .eq("id", profileId)
+    .is("viewed_at", null);
+  if (error) console.error("markProfileViewed failed:", error.message);
 }
 
 export async function dismissAnnouncement(id: string) {
