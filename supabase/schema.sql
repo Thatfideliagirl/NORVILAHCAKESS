@@ -752,3 +752,10 @@ create policy "testimonials_public_read" on public.testimonials
 drop policy if exists "testimonials_admin_write" on public.testimonials;
 create policy "testimonials_admin_write" on public.testimonials
   for all using (public.is_admin()) with check (public.is_admin());
+
+-- =========================================================
+-- 25. FIRST-LOGIN ONBOARDING TOUR
+-- Tracks whether a customer has already seen the welcome walkthrough
+-- on their account page, so it only shows once.
+-- =========================================================
+alter table public.profiles add column if not exists has_seen_onboarding boolean not null default false;

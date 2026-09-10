@@ -14,6 +14,7 @@ import { sendInquiryAlert } from "@/lib/emailjs";
 import Avatar from "@/components/Avatar";
 import NotificationBell from "@/components/NotificationBell";
 import ProfileSection from "@/components/account/ProfileSection";
+import OnboardingTour from "@/components/account/OnboardingTour";
 import OrderDetailModal from "@/components/OrderDetailModal";
 import InquiryDetailModal from "@/components/InquiryDetailModal";
 
@@ -25,6 +26,7 @@ type Profile = {
   about: string | null;
   role: string | null;
   avatar_url: string | null;
+  has_seen_onboarding: boolean;
   created_at: string;
 };
 
@@ -85,15 +87,25 @@ export default function SignedInAccount({ session }: { session: Session }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
   const [detailInquiryId, setDetailInquiryId] = useState<string | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const messagesLoaded = useRef(false);
 
   function fetchProfile() {
     return supabase
       .from("profiles")
-      .select("full_name, email, phone, location, about, role, avatar_url, created_at")
+      .select("full_name, email, phone, location, about, role, avatar_url, has_seen_onboarding, created_at")
       .eq("id", session.user.id)
       .single()
-      .then(({ data }) => setProfile(data));
+      .then(({ data }) => {
+        setProfile(data);
+        if (data && data.role === "customer" && !data.has_seen_onboarding) setShowOnboarding(true);
+      });
+  }
+
+  async function finishOnboarding() {
+    setShowOnboarding(false);
+    setProfile((current) => (current ? { ...current, has_seen_onboarding: true } : current));
+    await supabase.from("profiles").update({ has_seen_onboarding: true }).eq("id", session.user.id);
   }
 
   useEffect(() => {
@@ -452,6 +464,9 @@ export default function SignedInAccount({ session }: { session: Session }) {
       )}
       {detailInquiryId && (
         <InquiryDetailModal inquiryId={detailInquiryId} onClose={() => setDetailInquiryId(null)} />
+      )}
+      {showOnboarding && (
+        <OnboardingTour name={profile?.full_name || "there"} onFinish={finishOnboarding} />
       )}
     </main>
   );
