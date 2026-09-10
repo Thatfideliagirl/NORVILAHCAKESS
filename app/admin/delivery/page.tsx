@@ -54,7 +54,7 @@ export default function AdminDeliveryPage() {
         Add new delivery zones and set the fee for each.
       </p>
 
-      <form onSubmit={addZone} className="mt-6 flex max-w-lg gap-3">
+      <form onSubmit={addZone} className="mt-6 flex flex-col gap-3 sm:max-w-lg sm:flex-row">
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -66,12 +66,12 @@ export default function AdminDeliveryPage() {
           onChange={(e) => setFee(e.target.value)}
           placeholder="Fee (₦)"
           inputMode="numeric"
-          className="w-32 rounded-panel border border-clay/25 bg-cream px-4 py-2.5 font-body text-body text-ink"
+          className="rounded-panel border border-clay/25 bg-cream px-4 py-2.5 font-body text-body text-ink sm:w-32"
         />
         <button
           type="submit"
           disabled={saving}
-          className="rounded-pill bg-cocoa px-6 py-2.5 font-body text-small font-medium text-cream disabled:opacity-60"
+          className="shrink-0 rounded-pill bg-cocoa px-6 py-2.5 font-body text-small font-medium text-cream disabled:opacity-60"
         >
           Add
         </button>

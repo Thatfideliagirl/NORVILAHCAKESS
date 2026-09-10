@@ -16,6 +16,19 @@ type Announcement = {
   ends_at: string | null;
 };
 
+// The "active" column is just admin's own on/off switch -- it doesn't
+// flip itself off once ends_at passes. The popup itself already reads
+// ends_at correctly and stops showing to visitors on time, but the
+// admin list was showing the raw switch as "Active" even after the
+// schedule had actually ended, which is what looked like a bug.
+function announcementStatus(a: Announcement): "Active" | "Scheduled" | "Ended" | "Off" {
+  if (!a.active) return "Off";
+  const now = Date.now();
+  if (new Date(a.starts_at).getTime() > now) return "Scheduled";
+  if (a.ends_at && new Date(a.ends_at).getTime() < now) return "Ended";
+  return "Active";
+}
+
 function fetchAnnouncements() {
   return supabase
     .from("announcements")
@@ -107,11 +120,16 @@ export default function AdminAnnouncementsPage() {
             <button
               type="button"
               onClick={() => toggleActive(announcement)}
+              title="Click to switch this broadcast on or off"
               className={`shrink-0 rounded-pill px-4 py-1.5 text-xs font-semibold ${
-                announcement.active ? "bg-berry/15 text-berry" : "bg-clay/15 text-ink/50"
+                announcementStatus(announcement) === "Active"
+                  ? "bg-berry/15 text-berry"
+                  : announcementStatus(announcement) === "Scheduled"
+                    ? "bg-clay/20 text-clay"
+                    : "bg-clay/15 text-ink/50"
               }`}
             >
-              {announcement.active ? "Active" : "Inactive"}
+              {announcementStatus(announcement)}
             </button>
             <button
               type="button"

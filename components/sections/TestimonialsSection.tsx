@@ -4,23 +4,7 @@ import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { revealContainer, revealUp } from "@/lib/motion";
-
-// Placeholder reviews, to be replaced with real ones (brief section 6).
-const TESTIMONIALS = [
-  {
-    quote: "The parfaits are everything. So fresh and delicious.",
-    name: "Teni A.",
-  },
-  {
-    quote:
-      "Ordered for my sister birthday and it was perfect. Beautiful and tastes amazing.",
-    name: "Chioma K.",
-  },
-  {
-    quote: "Best meat pies in Lagos. Everyone at my event loved it.",
-    name: "Daniel O.",
-  },
-];
+import { useStorefrontTestimonials } from "@/lib/supabase/storefront-testimonials";
 
 function initials(name: string): string {
   return name
@@ -34,6 +18,7 @@ function initials(name: string): string {
 export default function TestimonialsSection() {
   const trackRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const TESTIMONIALS = useStorefrontTestimonials();
 
   const scrollToIndex = (index: number) => {
     const track = trackRef.current;

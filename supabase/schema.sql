@@ -728,3 +728,27 @@ alter table public.orders add column if not exists payment_method text
 -- the menu, same idea as categories.sort_order.
 -- =========================================================
 alter table public.products add column if not exists sort_order integer not null default 0;
+
+-- =========================================================
+-- 24. TESTIMONIALS
+-- Admin-managed reviews shown in the "Cravings approved" section on
+-- the landing page -- previously a hardcoded placeholder list with no
+-- admin control at all.
+-- =========================================================
+create table if not exists public.testimonials (
+  id uuid primary key default gen_random_uuid(),
+  quote text not null,
+  name text not null,
+  active boolean not null default true,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+alter table public.testimonials enable row level security;
+
+drop policy if exists "testimonials_public_read" on public.testimonials;
+create policy "testimonials_public_read" on public.testimonials
+  for select using (active or public.is_admin());
+drop policy if exists "testimonials_admin_write" on public.testimonials;
+create policy "testimonials_admin_write" on public.testimonials
+  for all using (public.is_admin()) with check (public.is_admin());

@@ -6,13 +6,28 @@ import { formatNaira } from "@/lib/format";
 
 export type NotificationItem = {
   id: string;
-  kind: "message" | "inquiry" | "order";
+  kind: "message" | "inquiry" | "order" | "broadcast";
   title: string;
   body: string;
   createdAt: string;
   href: string;
   markRead: () => Promise<void>;
 };
+
+type AnnouncementRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  starts_at: string;
+};
+
+// Same dismissal key AnnouncementPopup uses, so dismissing a broadcast
+// from either the popup or the notification bell clears both -- there's
+// no per-user "read" column for announcements, this localStorage flag
+// is the only read-state that exists for them.
+function announcementDismissedKey(id: string): string {
+  return `norvilah-announcement-dismissed-${id}`;
+}
 
 type MessageRow = {
   id: string;
@@ -80,11 +95,26 @@ export function useNotifications(role: "customer" | "admin"): {
             .returns<OrderRow[]>()
         : null;
 
+    const now = new Date().toISOString();
+    const announcementsQuery =
+      role === "customer"
+        ? supabase
+            .from("announcements")
+            .select("id, title, description, starts_at")
+            .eq("active", true)
+            .lte("starts_at", now)
+            .or(`ends_at.is.null,ends_at.gte.${now}`)
+            .order("starts_at", { ascending: false })
+            .limit(5)
+            .returns<AnnouncementRow[]>()
+        : null;
+
     Promise.all([
       messagesQuery,
       inquiriesQuery ?? Promise.resolve({ data: [] as InquiryRow[] }),
       ordersQuery ?? Promise.resolve({ data: [] as OrderRow[] }),
-    ]).then(([messagesRes, inquiriesRes, ordersRes]) => {
+      announcementsQuery ?? Promise.resolve({ data: [] as AnnouncementRow[] }),
+    ]).then(([messagesRes, inquiriesRes, ordersRes, announcementsRes]) => {
       const messageItems: NotificationItem[] = (messagesRes.data ?? []).map((m) => ({
         id: `message-${m.id}`,
         kind: "message",
@@ -112,8 +142,25 @@ export function useNotifications(role: "customer" | "admin"): {
         href: "/admin/orders",
         markRead: () => markOrderViewed(o.id),
       }));
+      const announcementItems: NotificationItem[] = (announcementsRes.data ?? [])
+        .filter((a) => {
+          try {
+            return !localStorage.getItem(announcementDismissedKey(a.id));
+          } catch {
+            return true;
+          }
+        })
+        .map((a) => ({
+          id: `broadcast-${a.id}`,
+          kind: "broadcast",
+          title: "New broadcast",
+          body: a.title + (a.description ? ` · ${a.description}` : ""),
+          createdAt: a.starts_at,
+          href: "/",
+          markRead: () => dismissAnnouncement(a.id),
+        }));
       setItems(
-        [...messageItems, ...inquiryItems, ...orderItems].sort((a, b) =>
+        [...messageItems, ...inquiryItems, ...orderItems, ...announcementItems].sort((a, b) =>
           b.createdAt.localeCompare(a.createdAt)
         )
       );
@@ -156,4 +203,12 @@ export async function markOrderViewed(orderId: string) {
     .eq("id", orderId)
     .is("viewed_at", null);
   if (error) console.error("markOrderViewed failed:", error.message);
+}
+
+export async function dismissAnnouncement(id: string) {
+  try {
+    localStorage.setItem(announcementDismissedKey(id), "1");
+  } catch {
+    // localStorage unavailable -- ignore
+  }
 }
