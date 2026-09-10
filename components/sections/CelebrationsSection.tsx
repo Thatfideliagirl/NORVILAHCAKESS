@@ -91,7 +91,7 @@ export default function CelebrationsSection() {
           </AnimatePresence>
         </motion.div>
 
-        <motion.div variants={revealUp} className="group relative mx-auto hidden w-full max-w-sm md:block">
+        <motion.div variants={revealUp} className="group relative mx-auto w-full max-w-sm">
           <motion.div
             aria-hidden="true"
             animate={{ scale: [1.2, 1.28, 1.2], opacity: [0.85, 1, 0.85] }}
@@ -102,7 +102,7 @@ export default function CelebrationsSection() {
           <Arch
             src="/celebrations.jpg"
             alt="Rows of Norvilah parfait cups displayed on tiered wooden risers at an event, styled with hanging flowers and butterfly lights."
-            sizes="(min-width: 768px) 384px, 0px"
+            sizes="(min-width: 768px) 384px, calc(100vw - 48px)"
             className="relative"
             imageClassName="transition-transform duration-500 ease-out group-hover:scale-105"
           />
