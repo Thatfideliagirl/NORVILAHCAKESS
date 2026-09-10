@@ -5,6 +5,7 @@ import { Pencil } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { compressImage } from "@/lib/compress-image";
 import Avatar from "@/components/Avatar";
+import ChangePasswordForm from "@/components/account/ChangePasswordForm";
 
 type ProfileLike = {
   full_name: string | null;
@@ -29,55 +30,56 @@ export default function ProfileSection<T extends ProfileLike>({
 }) {
   const [editing, setEditing] = useState(false);
 
-  if (!editing) {
-    return (
-      <div className="max-w-md rounded-panel bg-plaster/25 p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <Avatar url={profile.avatar_url} name={profile.full_name} size={56} />
-            <div>
-              <p className="font-display text-product text-ink">{profile.full_name || "Add your name"}</p>
-              <p className="mt-1 font-body text-small text-ink/60">{profile.email}</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            aria-label="Edit profile"
-            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-cream text-ink/70 transition-colors hover:text-berry"
-          >
-            <Pencil className="size-4" strokeWidth={1.75} />
-          </button>
-        </div>
-        <dl className="mt-5 flex flex-col gap-2 font-body text-small text-ink/70">
-          <div className="flex justify-between">
-            <dt className="text-ink/50">Phone</dt>
-            <dd>{profile.phone || "-"}</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-ink/50">Address</dt>
-            <dd className="max-w-[70%] text-right">{profile.location || "-"}</dd>
-          </div>
-        </dl>
-        {profile.about && (
-          <p className="mt-4 border-t border-clay/15 pt-4 font-body text-small text-ink/70">
-            {profile.about}
-          </p>
-        )}
-      </div>
-    );
-  }
-
   return (
-    <ProfileForm
-      userId={userId}
-      profile={profile}
-      onSaved={(updated) => {
-        onSaved(updated);
-        setEditing(false);
-      }}
-      onCancel={() => setEditing(false)}
-    />
+    <div className="flex flex-col gap-6">
+      {editing ? (
+        <ProfileForm
+          userId={userId}
+          profile={profile}
+          onSaved={(updated) => {
+            onSaved(updated);
+            setEditing(false);
+          }}
+          onCancel={() => setEditing(false)}
+        />
+      ) : (
+        <div className="max-w-md rounded-panel bg-plaster/25 p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <Avatar url={profile.avatar_url} name={profile.full_name} size={56} />
+              <div>
+                <p className="font-display text-product text-ink">{profile.full_name || "Add your name"}</p>
+                <p className="mt-1 font-body text-small text-ink/60">{profile.email}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              aria-label="Edit profile"
+              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-cream text-ink/70 transition-colors hover:text-berry"
+            >
+              <Pencil className="size-4" strokeWidth={1.75} />
+            </button>
+          </div>
+          <dl className="mt-5 flex flex-col gap-2 font-body text-small text-ink/70">
+            <div className="flex justify-between">
+              <dt className="text-ink/50">Phone</dt>
+              <dd>{profile.phone || "-"}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-ink/50">Address</dt>
+              <dd className="max-w-[70%] text-right">{profile.location || "-"}</dd>
+            </div>
+          </dl>
+          {profile.about && (
+            <p className="mt-4 border-t border-clay/15 pt-4 font-body text-small text-ink/70">
+              {profile.about}
+            </p>
+          )}
+        </div>
+      )}
+      {profile.email && <ChangePasswordForm email={profile.email} />}
+    </div>
   );
 }
 

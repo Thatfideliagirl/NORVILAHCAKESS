@@ -115,6 +115,8 @@ function SignInForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resetMode, setResetMode] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,6 +131,81 @@ function SignInForm() {
       setLoading(false);
     }
   };
+
+  async function onResetRequest(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/account/reset-password`,
+      });
+      if (error) setError("Could not send a reset link. Please try again.");
+      else setResetSent(true);
+    } catch {
+      setError("Could not reach the account service. Check your connection and try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (resetSent) {
+    return (
+      <div className="mt-8 text-center">
+        <p className="font-display text-product text-ink">Check your email</p>
+        <p className="mt-3 font-body text-body text-ink/70">
+          We sent a password reset link to <strong>{email}</strong>. Click it to set a new password.
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setResetMode(false);
+            setResetSent(false);
+          }}
+          className="mt-6 font-body text-small font-medium text-berry"
+        >
+          Back to log in
+        </button>
+      </div>
+    );
+  }
+
+  if (resetMode) {
+    return (
+      <form onSubmit={onResetRequest} className="mt-8 flex flex-col gap-4">
+        <h1 className="font-display text-product text-ink">Reset your password</h1>
+        <p className="font-body text-small text-ink/60">
+          Enter your account email and we&apos;ll send you a link to set a new password.
+        </p>
+        <input
+          type="email"
+          required
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className={inputClasses}
+        />
+        {error && <p className="font-body text-small text-berry">{error}</p>}
+        <button
+          type="submit"
+          disabled={loading}
+          className="rounded-pill bg-cocoa px-8 py-3.5 font-body font-medium text-cream transition-colors duration-200 hover:bg-ink disabled:opacity-60"
+        >
+          {loading ? "Sending..." : "Send reset link"}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setResetMode(false);
+            setError(null);
+          }}
+          className="font-body text-small font-medium text-ink/60"
+        >
+          Back to log in
+        </button>
+      </form>
+    );
+  }
 
   return (
     <form onSubmit={onSubmit} className="mt-8 flex flex-col gap-4">
@@ -149,7 +226,21 @@ function SignInForm() {
         onChange={(e) => setPassword(e.target.value)}
         className={inputClasses}
       />
-      {error && <p className="font-body text-small text-berry">{error}</p>}
+      {error && (
+        <div className="flex flex-col items-start gap-1">
+          <p className="font-body text-small text-berry">{error}</p>
+          <button
+            type="button"
+            onClick={() => {
+              setResetMode(true);
+              setError(null);
+            }}
+            className="font-body text-small font-medium text-berry underline"
+          >
+            Forgot password?
+          </button>
+        </div>
+      )}
       <button
         type="submit"
         disabled={loading}
