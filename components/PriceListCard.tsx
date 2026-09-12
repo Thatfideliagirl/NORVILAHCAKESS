@@ -29,7 +29,7 @@ export default function PriceListCard({
 
   return (
     <div
-      className="h-[420px] w-[200px] shrink-0 snap-center overflow-hidden rounded-panel shadow-warm-lg transition-[transform,opacity,filter] duration-300 ease-out md:h-[480px] md:w-[240px]"
+      className="h-[440px] w-[240px] shrink-0 snap-center overflow-hidden rounded-panel shadow-warm-lg transition-[transform,opacity,filter] duration-300 ease-out md:h-[480px] md:w-[240px]"
       style={{
         transform: isActive ? "scale(1.08)" : "scale(0.92)",
         opacity: isActive ? 1 : 0.75,

@@ -13,7 +13,26 @@ export default function PriceListPage() {
   const { priceLists, loading } = useStorefrontPriceLists();
   const [active, setActive] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const hasCentered = useRef(false);
   const count = priceLists.length;
+
+  // Opens on the middle category, not the first one -- so there's
+  // always somewhere to go in both directions right away, rather than
+  // starting at one end of the list.
+  useEffect(() => {
+    if (count === 0 || hasCentered.current) return;
+    hasCentered.current = true;
+    const middle = Math.floor((count - 1) / 2);
+    setActive(middle);
+    const container = scrollRef.current;
+    const child = container?.children[middle] as HTMLElement | undefined;
+    if (container && child) {
+      container.scrollTo({
+        left: child.offsetLeft - (container.clientWidth - child.clientWidth) / 2,
+        behavior: "auto",
+      });
+    }
+  }, [count]);
 
   function go(index: number) {
     const clamped = Math.max(0, Math.min(count - 1, index));
@@ -141,7 +160,7 @@ export default function PriceListPage() {
             // still reach dead centre while leaving a huge, obviously
             // empty margin on wide screens (a flat vw value doesn't scale
             // with the fixed card width the way this calc does).
-            className="flex snap-x snap-mandatory gap-4 overflow-x-auto px-[calc(50vw-100px)] pb-2 [-ms-overflow-style:none] [scrollbar-width:none] md:gap-6 md:px-[calc(50vw-120px)] [&::-webkit-scrollbar]:hidden"
+            className="flex snap-x snap-mandatory gap-4 overflow-x-auto px-[calc(50vw-120px)] pb-2 [-ms-overflow-style:none] [scrollbar-width:none] md:gap-6 [&::-webkit-scrollbar]:hidden"
           >
             {priceLists.map((priceList, index) => (
               <PriceListCard key={priceList.id} priceList={priceList} isActive={index === active} />
