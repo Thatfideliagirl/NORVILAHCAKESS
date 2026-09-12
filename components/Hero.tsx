@@ -101,13 +101,13 @@ export default function Hero() {
         </motion.h1>
         <motion.p
           variants={itemVariants}
-          className="mt-4 font-display text-2xl font-semibold text-cream drop-shadow-[0_1px_8px_rgba(58,36,31,0.9)] md:text-product md:text-cocoa md:drop-shadow-[0_1px_8px_rgba(246,235,227,0.85)]"
+          className="mt-4 font-display text-2xl font-semibold text-cream drop-shadow-[0_1px_8px_rgba(58,36,31,0.9)] md:text-product"
         >
           Premium layers, timeless taste.
         </motion.p>
         <motion.p
           variants={itemVariants}
-          className="measure mt-4 font-body text-lg font-medium text-cream/95 drop-shadow-[0_1px_6px_rgba(58,36,31,0.9)] md:text-lead md:text-cocoa md:drop-shadow-[0_1px_6px_rgba(246,235,227,0.85)]"
+          className="measure mt-4 font-body text-lg font-medium text-cream/95 drop-shadow-[0_1px_6px_rgba(58,36,31,0.9)] md:text-lead"
         >
           From indulgent cakes and creamy parfaits to savoury bites, we make
           everything fresh for your special moments, and the random cravings
@@ -122,7 +122,7 @@ export default function Hero() {
           </Link>
           <Link
             href="/price-list"
-            className="inline-block rounded-pill border border-cream/70 px-8 py-3.5 font-body font-medium text-cream drop-shadow-[0_1px_6px_rgba(58,36,31,0.9)] transition-colors duration-200 hover:bg-cream/15 active:scale-[0.99] md:border-cocoa/60 md:text-cocoa md:drop-shadow-[0_1px_6px_rgba(246,235,227,0.85)] md:hover:bg-cocoa/10"
+            className="inline-block rounded-pill border border-cream/70 px-8 py-3.5 font-body font-medium text-cream drop-shadow-[0_1px_6px_rgba(58,36,31,0.9)] transition-colors duration-200 hover:bg-cream/15 active:scale-[0.99]"
           >
             View Price List
           </Link>

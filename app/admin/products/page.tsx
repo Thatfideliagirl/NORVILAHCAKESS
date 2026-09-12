@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { GripVertical } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
@@ -215,6 +215,29 @@ export default function AdminProductsPage() {
     );
   }
 
+  const editingProduct = products.find((p) => p.id === editingId) ?? null;
+
+  // Editing used to expand inline as an extra table row -- with the
+  // rest of the list still showing below it, "edit" meant scrolling
+  // past every other product to find the form. It now replaces the
+  // whole list view instead, with its own way back.
+  if (editingProduct) {
+    return (
+      <div>
+        <button
+          type="button"
+          onClick={() => setEditingId(null)}
+          className="font-body text-small font-medium text-ink/60 hover:text-berry"
+        >
+          &larr; Back to Products
+        </button>
+        <div className="mt-4 rounded-panel bg-cream p-5 shadow-warm">
+          <EditProductForm product={editingProduct} categories={categories} onSaved={onSaved} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between">
@@ -269,8 +292,8 @@ export default function AdminProductsPage() {
               </tr>
             )}
             {products.map((product, index) => (
-              <Fragment key={product.id}>
                 <tr
+                  key={product.id}
                   draggable
                   onDragStart={() => setDragIndex(index)}
                   onDragOver={(e) => e.preventDefault()}
@@ -324,10 +347,10 @@ export default function AdminProductsPage() {
                     <div className="flex items-center gap-3">
                       <button
                         type="button"
-                        onClick={() => setEditingId(editingId === product.id ? null : product.id)}
+                        onClick={() => setEditingId(product.id)}
                         className="font-body text-small font-medium text-berry"
                       >
-                        {editingId === product.id ? "Close" : "Edit"}
+                        Edit
                       </button>
                       <button
                         type="button"
@@ -340,14 +363,6 @@ export default function AdminProductsPage() {
                     </div>
                   </td>
                 </tr>
-                {editingId === product.id && (
-                  <tr className="border-b border-clay/10 last:border-none">
-                    <td colSpan={7} className="bg-plaster/15 px-4 py-5">
-                      <EditProductForm product={product} categories={categories} onSaved={onSaved} />
-                    </td>
-                  </tr>
-                )}
-              </Fragment>
             ))}
           </tbody>
         </table>
