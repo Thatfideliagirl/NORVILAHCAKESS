@@ -32,15 +32,16 @@ export default function PriceListSection() {
           className="object-cover object-[center_25%]"
         />
       </div>
-      {/* Kept light so the photo itself (the fruit, the toppings) stays
-          clearly visible -- contrast for the copy comes from the vignette
-          and per-element shadows below, not from darkening the whole shot. */}
-      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-cocoa/8 via-transparent to-cocoa/45" />
+      {/* The same cocoa the rest of the site's dark sections use
+          (Celebrations, the footer) -- a confident wash over the whole
+          photo, darkest right behind the copy, but never so heavy the
+          photo itself disappears. */}
+      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-cocoa/40 via-cocoa/50 to-cocoa/80" />
       <div
         className="absolute inset-0 -z-10"
         style={{
           background:
-            "radial-gradient(60% 60% at 50% 55%, rgba(58,36,31,0.7) 0%, rgba(58,36,31,0.2) 68%, rgba(58,36,31,0) 100%)",
+            "radial-gradient(65% 65% at 50% 55%, rgba(58,36,31,0.82) 0%, rgba(58,36,31,0.48) 60%, rgba(58,36,31,0.28) 100%)",
         }}
       />
 

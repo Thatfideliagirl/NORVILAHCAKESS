@@ -1,21 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type TouchEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { motion, useMotionValue } from "framer-motion";
+import { motion } from "framer-motion";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { revealContainer, revealUp } from "@/lib/motion";
 import { useStorefrontPriceLists } from "@/lib/supabase/storefront-price-lists";
 import PriceListCard from "@/components/PriceListCard";
 
-const SWIPE_THRESHOLD = 60;
+const SWIPE_THRESHOLD = 50;
 
 export default function PriceListPage() {
   const { priceLists, loading } = useStorefrontPriceLists();
   const [active, setActive] = useState(0);
   const [spacing, setSpacing] = useState(130);
-  const dragX = useMotionValue(0);
+  const touchStartX = useRef<number | null>(null);
   const count = priceLists.length;
 
   useEffect(() => {
@@ -69,11 +69,21 @@ export default function PriceListPage() {
     setActive(Math.max(0, Math.min(priceLists.length - 1, index)));
   }
 
-  function onDragEnd() {
-    const delta = dragX.get();
+  // Plain touch tracking instead of a draggable transform on the deck
+  // itself -- there is nothing here to ever get left mid-slide, so the
+  // active card can't end up sitting off its centred position the way a
+  // stuck drag offset could. Each card still animates via its own
+  // transition when the offset changes.
+  function onTouchStart(e: TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+  }
+
+  function onTouchEnd(e: TouchEvent) {
+    if (touchStartX.current === null) return;
+    const delta = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
     if (delta < -SWIPE_THRESHOLD) go(clampedActive + 1);
     else if (delta > SWIPE_THRESHOLD) go(clampedActive - 1);
-    dragX.set(0);
   }
 
   return (
@@ -90,15 +100,16 @@ export default function PriceListPage() {
             className="object-cover object-[center_25%]"
           />
         </div>
-        {/* Kept light so the photo itself stays clearly visible -- contrast
-            for the copy comes from the vignette and per-element shadows
-            below, not from darkening the whole shot. */}
-        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-cocoa/8 via-transparent to-cocoa/70" />
+        {/* The same cocoa the rest of the site's dark sections use
+            (Celebrations, the footer) -- a confident wash over the whole
+            photo, darkest right behind the copy, but never so heavy the
+            photo itself disappears. */}
+        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-cocoa/45 via-cocoa/55 to-cocoa/85" />
         <div
           className="absolute inset-0 -z-10"
           style={{
             background:
-              "radial-gradient(60% 60% at 50% 60%, rgba(58,36,31,0.72) 0%, rgba(58,36,31,0.2) 68%, rgba(58,36,31,0) 100%)",
+              "radial-gradient(65% 65% at 50% 60%, rgba(58,36,31,0.85) 0%, rgba(58,36,31,0.5) 60%, rgba(58,36,31,0.3) 100%)",
           }}
         />
 
@@ -160,12 +171,9 @@ export default function PriceListPage() {
           </motion.p>
         </motion.div>
 
-        <motion.div
-          drag="x"
-          dragElastic={0.15}
-          dragConstraints={{ left: 0, right: 0 }}
-          onDragEnd={onDragEnd}
-          style={{ x: dragX }}
+        <div
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
           className="relative mx-auto mt-14 h-[560px] max-w-content cursor-grab touch-pan-y active:cursor-grabbing md:h-[600px]"
         >
           {priceLists.map((priceList, index) => (
@@ -176,7 +184,7 @@ export default function PriceListPage() {
               spacing={spacing}
             />
           ))}
-        </motion.div>
+        </div>
 
         <div className="mt-9 flex items-center justify-center gap-6">
           <button
@@ -210,7 +218,7 @@ export default function PriceListPage() {
           </button>
         </div>
         <p className="mt-4 text-center font-body text-small text-plaster/60">
-          Drag the cards, use the arrows, or your keyboard&apos;s arrow keys.
+          Swipe the cards, use the arrows, or your keyboard&apos;s arrow keys.
         </p>
 
         <div className="mt-12 text-center">

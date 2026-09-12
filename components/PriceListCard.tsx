@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Plus } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { formatNaira } from "@/lib/format";
 import type { PriceList } from "@/lib/supabase/storefront-price-lists";
 
@@ -50,14 +50,18 @@ export default function PriceListCard({
       />
       <div className="absolute inset-0 bg-gradient-to-t from-cocoa/10 via-cocoa/55 to-cocoa/85" />
       <div className="absolute inset-x-4 top-5">
-        <h4 className="font-display text-subheading text-cream">{priceList.title}</h4>
+        <h4 className="font-display text-subheading text-cream drop-shadow-[0_2px_8px_rgba(58,36,31,0.85)]">
+          {priceList.title}
+        </h4>
+        {priceList.tagline && (
+          <p className="mt-0.5 font-script text-xl text-rose drop-shadow-[0_1px_6px_rgba(58,36,31,0.85)]">
+            {priceList.tagline}
+          </p>
+        )}
       </div>
 
       <div className="absolute inset-x-3 bottom-3 max-h-[68%] rounded-panel bg-cream/90 text-left backdrop-blur-sm">
         <div className="max-h-full overflow-y-auto p-4 pb-6">
-          {priceList.tagline && (
-            <p className="mb-2 font-body text-xs font-semibold text-berry">{priceList.tagline}</p>
-          )}
           {priceList.items.map((item, index) => {
             const prevGroup = index > 0 ? priceList.items[index - 1].group_label : null;
             const showGroupHeading = item.group_label && item.group_label !== prevGroup;
@@ -77,8 +81,8 @@ export default function PriceListCard({
                       aria-label={isOpen ? "Hide what's included" : "Show what's included"}
                       className="flex size-4 shrink-0 items-center justify-center rounded-full bg-berry/15 text-berry"
                     >
-                      <Plus
-                        className={`size-2.5 transition-transform ${isOpen ? "rotate-45" : ""}`}
+                      <ChevronDown
+                        className={`size-2.5 transition-transform ${isOpen ? "rotate-180" : ""}`}
                         strokeWidth={2.5}
                       />
                     </button>
