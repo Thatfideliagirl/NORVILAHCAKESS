@@ -9,7 +9,9 @@ import { supabase } from "@/lib/supabase/client";
 // Mounted globally in the root layout so it's available on any page a
 // logged-in customer or admin might land on (menu, cart, checkout, etc.),
 // not just one hero section. Hidden on /account and /admin since those
-// pages already are the dashboard.
+// pages already are the dashboard, and on /price-list since that page
+// has its own "Back to Home" links and this fixed pill was overlapping
+// the swipeable cards as the page scrolled.
 export default function BackToDashboardLink() {
   const pathname = usePathname();
   const [href, setHref] = useState<string | null>(null);
@@ -35,7 +37,13 @@ export default function BackToDashboardLink() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  if (!href || pathname?.startsWith("/account") || pathname?.startsWith("/admin")) return null;
+  if (
+    !href ||
+    pathname?.startsWith("/account") ||
+    pathname?.startsWith("/admin") ||
+    pathname?.startsWith("/price-list")
+  )
+    return null;
 
   return (
     <Link

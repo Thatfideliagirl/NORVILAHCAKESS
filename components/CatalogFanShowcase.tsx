@@ -32,7 +32,7 @@ export default function CatalogFanShowcase({
   const fan = (
     <div
       className={`relative mx-auto w-full ${
-        big ? "h-[340px] max-w-sm md:h-[460px] md:max-w-none" : "h-[220px] max-w-xs md:h-[280px]"
+        big ? "h-[340px] max-w-sm md:h-[460px] md:max-w-none" : "h-[300px] max-w-sm md:h-[380px]"
       }`}
     >
       {cards.map((priceList, index) => {
@@ -41,8 +41,8 @@ export default function CatalogFanShowcase({
         const scale = Math.max(1 - distance * 0.14, 0.62);
         const cardSize = big
           ? "h-[230px] w-[164px] md:h-[320px] md:w-[220px]"
-          : "h-[150px] w-[108px] md:h-[190px] md:w-[136px]";
-        const spread = big ? 68 : 42;
+          : "h-[210px] w-[150px] md:h-[270px] md:w-[192px]";
+        const spread = big ? 68 : 58;
         return (
           <div
             key={priceList.id}

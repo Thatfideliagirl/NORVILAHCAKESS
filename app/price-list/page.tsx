@@ -94,7 +94,7 @@ export default function PriceListPage() {
           landing-page fan (no left/right split, since with no button to
           balance it that read as lopsided here), sized like the /menu
           page's own banner rather than a full landing-page section. */}
-      <section className="relative overflow-hidden bg-cocoa pb-6 pt-20 md:pb-8 md:pt-24">
+      <section className="relative overflow-hidden bg-cocoa pb-4 pt-16 md:pb-6 md:pt-20">
         <div className="relative mx-auto max-w-content px-6">
           <Link
             href="/"
@@ -104,7 +104,7 @@ export default function PriceListPage() {
             Back to Home
           </Link>
         </div>
-        <div className="mt-5">
+        <div className="mt-4">
           <CatalogFanShowcase priceLists={priceLists} layout="stacked" />
         </div>
       </section>

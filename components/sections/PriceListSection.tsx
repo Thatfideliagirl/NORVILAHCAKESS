@@ -15,7 +15,12 @@ export default function PriceListSection() {
   if (loading || priceLists.length === 0) return null;
 
   return (
-    <section id="catalog" className="bg-cocoa py-28 md:py-36">
+    // overflow-x-hidden matters here: the fan's outer cards sit wider
+    // than their own container on a narrow phone, and without this the
+    // whole homepage gains real horizontal scroll -- which is exactly
+    // the kind of thing that can leave a later page's own layout
+    // reading as shifted/inconsistent after navigating here first.
+    <section id="catalog" className="overflow-x-hidden bg-cocoa py-28 md:py-36">
       <CatalogFanShowcase priceLists={priceLists} cta={{ href: "/price-list", label: "View Price List" }} />
     </section>
   );
