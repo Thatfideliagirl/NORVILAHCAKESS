@@ -14,7 +14,7 @@ const SWIPE_THRESHOLD = 50;
 export default function PriceListPage() {
   const { priceLists, loading } = useStorefrontPriceLists();
   const [active, setActive] = useState(0);
-  const [step, setStep] = useState({ x: 34, y: 22 });
+  const [spacing, setSpacing] = useState(130);
   const touchStartX = useRef<number | null>(null);
   const count = priceLists.length;
 
@@ -28,9 +28,12 @@ export default function PriceListPage() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [count]);
 
+  // Neighbouring cards should only ever peek in from the edges, never
+  // crowd the active one -- the same fixed spacing used on desktop
+  // pushed them too close together on a narrow phone screen.
   useEffect(() => {
     function onResize() {
-      setStep(window.innerWidth < 640 ? { x: 22, y: 16 } : { x: 34, y: 22 });
+      setSpacing(window.innerWidth < 640 ? 78 : 130);
     }
     onResize();
     window.addEventListener("resize", onResize);
@@ -62,14 +65,15 @@ export default function PriceListPage() {
     setActive(((index % count) + count) % count);
   }
 
-  // Rank 0 is always the front (active) card. The rest count up in a
-  // fixed rotation, so moving to the next category sends the old front
-  // card to the very back of the stack rather than mirroring it out to
-  // the opposite side -- a single stack cascading one way, instead of
-  // two cards fanned symmetrically and competing to read as "the middle
-  // one."
-  function rankOf(index: number) {
-    return (index - clampedActive + count) % count;
+  // Wraps past either end instead of clamping -- swiping past the last
+  // category cycles back around to the first, like flipping through a
+  // deck, and keeps the fan peeking out on both sides of the active
+  // card no matter which one that is.
+  function wrappedOffset(index: number) {
+    let diff = index - clampedActive;
+    if (diff > count / 2) diff -= count;
+    if (diff < -count / 2) diff += count;
+    return diff;
   }
 
   function onTouchStart(e: TouchEvent) {
@@ -87,8 +91,10 @@ export default function PriceListPage() {
   return (
     <main className="min-h-screen overflow-x-hidden bg-cocoa">
       {/* This page's own hero -- the exact same fanned-cards image as the
-          landing-page teaser, just without its button. */}
-      <section className="relative overflow-hidden bg-cocoa pb-20 pt-32 md:pb-24 md:pt-40">
+          landing-page teaser, just without its button. Sized to match
+          the /menu page's banner rather than the taller padding a full
+          landing-page section gets. */}
+      <section className="relative overflow-hidden bg-cocoa pb-8 pt-24 md:pb-10 md:pt-28">
         <div className="relative mx-auto max-w-content px-6">
           <Link
             href="/"
@@ -98,7 +104,7 @@ export default function PriceListPage() {
             Back to Home
           </Link>
         </div>
-        <div className="mt-8">
+        <div className="mt-6">
           <CatalogFanShowcase priceLists={priceLists} />
         </div>
       </section>
@@ -132,8 +138,8 @@ export default function PriceListPage() {
             <PriceListCard
               key={priceList.id}
               priceList={priceList}
-              rank={rankOf(index)}
-              step={step}
+              offset={wrappedOffset(index)}
+              spacing={spacing}
             />
           ))}
         </div>

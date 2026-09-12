@@ -11,11 +11,9 @@ import type { PriceList } from "@/lib/supabase/storefront-price-lists";
 // CTA) and, unchanged, as this same image becoming the /price-list
 // page's own hero (without one).
 //
-// The fan deliberately cascades in ONE direction only -- each card
-// behind the front one steps further down-and-left and gets smaller and
-// dimmer. Earlier drafts fanned symmetrically from a centre card, which
-// left two side cards reading as equally prominent and "competing" for
-// the middle instead of one clear card leading a stack.
+// The fan spreads out symmetrically from one clear centre card, smaller
+// siblings peeking out to either side -- matching the reference image
+// exactly, not stacked off to one side.
 export default function CatalogFanShowcase({
   priceLists,
   cta,
@@ -24,21 +22,23 @@ export default function CatalogFanShowcase({
   cta?: { href: string; label: string };
 }) {
   const cards = priceLists.slice(0, 5);
+  const centerIndex = Math.floor((cards.length - 1) / 2);
 
   return (
     <div className="mx-auto grid max-w-content items-center gap-14 px-6 md:grid-cols-[1.05fr_0.95fr] md:gap-10">
-      <div className="relative mx-auto h-[320px] w-full max-w-sm md:h-[420px] md:max-w-none">
+      <div className="relative mx-auto h-[300px] w-full max-w-sm md:h-[400px] md:max-w-none">
         {cards.map((priceList, index) => {
-          const rank = index;
-          const scale = Math.max(1 - rank * 0.07, 0.72);
+          const offset = index - centerIndex;
+          const distance = Math.abs(offset);
+          const scale = Math.max(1 - distance * 0.14, 0.62);
           return (
             <div
               key={priceList.id}
-              className="absolute left-1/2 top-1/2 h-[220px] w-[160px] overflow-hidden rounded-panel shadow-warm-lg md:h-[300px] md:w-[210px]"
+              className="absolute left-1/2 top-1/2 h-[210px] w-[150px] overflow-hidden rounded-panel shadow-warm-lg md:h-[290px] md:w-[200px]"
               style={{
-                transform: `translate(-50%, -50%) translate(${-rank * 26}px, ${rank * 18}px) rotate(${-rank * 5}deg) scale(${scale})`,
-                zIndex: cards.length - rank,
-                filter: rank === 0 ? "none" : `brightness(${1 - rank * 0.1}) saturate(0.85)`,
+                transform: `translate(-50%, -50%) translateX(${offset * 62}px) rotate(${offset * 7}deg) scale(${scale})`,
+                zIndex: cards.length - distance,
+                filter: distance === 0 ? "none" : `brightness(${1 - distance * 0.08}) saturate(0.85)`,
               }}
             >
               <Image
