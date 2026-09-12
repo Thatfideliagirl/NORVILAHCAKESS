@@ -194,6 +194,33 @@ export default function AdminPriceListsPage() {
     setAdding(false);
   }
 
+  const editingPriceList = priceLists.find((p) => p.id === editingId) ?? null;
+
+  // Editing used to expand inline inside the list -- with the list still
+  // showing below it, "edit" meant scrolling past every other row to find
+  // the form. It now replaces the whole list view instead, with its own
+  // way back.
+  if (editingPriceList) {
+    return (
+      <div>
+        <button
+          type="button"
+          onClick={() => setEditingId(null)}
+          className="font-body text-small font-medium text-ink/60 hover:text-berry"
+        >
+          &larr; Back to Price Lists
+        </button>
+        <div className="mt-4 rounded-panel bg-cream p-5 shadow-warm">
+          <EditPriceListForm
+            priceList={editingPriceList}
+            onSaved={onSaved}
+            onCancel={() => setEditingId(null)}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between">
@@ -227,16 +254,7 @@ export default function AdminPriceListsPage() {
             No price lists yet.
           </p>
         )}
-        {priceLists.map((priceList, index) =>
-          editingId === priceList.id ? (
-            <div key={priceList.id} className="rounded-panel bg-cream p-5 shadow-warm">
-              <EditPriceListForm
-                priceList={priceList}
-                onSaved={onSaved}
-                onCancel={() => setEditingId(null)}
-              />
-            </div>
-          ) : (
+        {priceLists.map((priceList, index) => (
             <div
               key={priceList.id}
               draggable
@@ -333,8 +351,7 @@ export default function AdminPriceListsPage() {
                 </button>
               </div>
             </div>
-          )
-        )}
+        ))}
       </div>
     </div>
   );
