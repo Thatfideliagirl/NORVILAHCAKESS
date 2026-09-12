@@ -14,7 +14,7 @@ const SWIPE_THRESHOLD = 50;
 export default function PriceListPage() {
   const { priceLists, loading } = useStorefrontPriceLists();
   const [active, setActive] = useState(0);
-  const [spacing, setSpacing] = useState(95);
+  const [spacing, setSpacing] = useState(115);
   const touchStartX = useRef<number | null>(null);
   const count = priceLists.length;
 
@@ -33,7 +33,7 @@ export default function PriceListPage() {
   // pushed them too close together on a narrow phone screen.
   useEffect(() => {
     function onResize() {
-      setSpacing(window.innerWidth < 640 ? 55 : 95);
+      setSpacing(window.innerWidth < 640 ? 68 : 115);
     }
     onResize();
     window.addEventListener("resize", onResize);
@@ -93,8 +93,10 @@ export default function PriceListPage() {
       {/* This page's own hero -- the exact same two-column catalog
           showcase as the landing page (image left, copy right), just
           without the button, since the visitor is already here. Reads
-          as a continuation of that section, not a different design. */}
-      <section className="relative overflow-hidden bg-cocoa pb-16 pt-28 md:pb-20 md:pt-32">
+          as a continuation of that section, not a different design.
+          Kept compact now that the header has its own solid backdrop
+          rather than floating transparently over it. */}
+      <section className="relative overflow-hidden bg-cocoa pb-8 pt-20 md:pb-10 md:pt-24">
         <div className="relative mx-auto max-w-content px-6">
           <Link
             href="/"
@@ -104,23 +106,22 @@ export default function PriceListPage() {
             Back to Home
           </Link>
         </div>
-        <div className="mt-8">
+        <div className="mt-5">
           <CatalogFanShowcase priceLists={priceLists} />
         </div>
       </section>
 
       {/* The swipeable deck -- this page's actual content, on the same
-          cream ground the admin panel uses. The card group is kept to a
-          contained width (not the full content area) and clipped on the
-          x-axis, so it reads as one focused catalog browser sitting in
-          the middle of the page rather than spreading edge to edge. */}
-      <section className="relative overflow-x-hidden bg-cream pb-24 pt-16 md:pb-32">
+          cream ground the admin panel uses. Clipped on the x-axis so it
+          can't cause horizontal scroll, but wide enough that the fan
+          reads as spread out and balanced rather than clustered. */}
+      <section className="relative overflow-x-hidden bg-cream pb-24 pt-10 md:pb-32 md:pt-12">
         <motion.div
           variants={revealContainer}
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, amount: 0.2 }}
-          className="mx-auto max-w-2xl px-6 text-center"
+          className="mx-auto max-w-3xl px-6 text-center"
         >
           <motion.h2 variants={revealUp} className="font-display text-subheading text-berry">
             Swipe through &amp; see it all
@@ -133,7 +134,7 @@ export default function PriceListPage() {
         <div
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
-          className="relative mx-auto mt-14 h-[560px] max-w-2xl cursor-grab touch-pan-y active:cursor-grabbing md:h-[600px]"
+          className="relative mx-auto mt-10 h-[560px] max-w-3xl cursor-grab touch-pan-y active:cursor-grabbing md:h-[600px]"
         >
           {priceLists.map((priceList, index) => (
             <PriceListCard

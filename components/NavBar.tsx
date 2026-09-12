@@ -15,7 +15,10 @@ import Logo from "@/components/Logo";
 // Pages with a full-bleed photo behind the header at scroll 0 -- every
 // other route (cart, account, admin) has a plain light background, so
 // the transparent/cream-text header treatment would be unreadable there.
-const HERO_BACKDROP_ROUTES = ["/", "/menu", "/price-list"];
+// /price-list is deliberately excluded even though its hero is dark --
+// the logo and nav need a solid backdrop there rather than floating
+// transparently over the catalog cards.
+const HERO_BACKDROP_ROUTES = ["/", "/menu"];
 
 export default function NavBar() {
   const scrolledPast = useScrollPast(80);

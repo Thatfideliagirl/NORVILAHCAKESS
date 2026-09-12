@@ -17,10 +17,7 @@ export default function PriceListCard({
 }) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const distance = Math.abs(offset);
-  // Only the immediate neighbour peeks in on either side -- keeps the
-  // group compact and reads as one focused card with a hint of what's
-  // next, rather than a wide spread of extra cards.
-  const visible = distance <= 1;
+  const visible = distance <= 2;
 
   function toggle(id: string) {
     setExpanded((current) => {
