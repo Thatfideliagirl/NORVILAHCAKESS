@@ -21,8 +21,8 @@ export default function PriceListPage() {
   useEffect(() => {
     if (count === 0) return;
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "ArrowLeft") setActive((current) => Math.max(0, current - 1));
-      if (e.key === "ArrowRight") setActive((current) => Math.min(count - 1, current + 1));
+      if (e.key === "ArrowLeft") setActive((current) => (current - 1 + count) % count);
+      if (e.key === "ArrowRight") setActive((current) => (current + 1) % count);
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -60,13 +60,26 @@ export default function PriceListPage() {
     );
   }
 
-  const clampedActive = Math.min(active, priceLists.length - 1);
+  const clampedActive = ((active % count) + count) % count;
   const heroImage =
     priceLists.find((p) => p.title.toLowerCase().includes("parfait"))?.image_url ??
     priceLists[0].image_url;
 
+  // Loops around instead of stopping at the ends -- with a plain
+  // index-based offset, being on the first or last card left every
+  // neighbour bunched on one side (nothing exists "before" card 0),
+  // which is exactly what read as "everything is on this side, not in
+  // the middle." Wrapping keeps the fan balanced on both sides no
+  // matter which card is active.
   function go(index: number) {
-    setActive(Math.max(0, Math.min(priceLists.length - 1, index)));
+    setActive(((index % count) + count) % count);
+  }
+
+  function wrappedOffset(index: number) {
+    let diff = index - clampedActive;
+    if (diff > count / 2) diff -= count;
+    if (diff < -count / 2) diff += count;
+    return diff;
   }
 
   // Plain touch tracking instead of a draggable transform on the deck
@@ -155,7 +168,22 @@ export default function PriceListPage() {
           side that, left unclipped, they widen the page's own scrollable
           area and the "centred" card ends up reading as off-centre once
           the phone lets you drag that extra width into view. */}
-      <section className="overflow-x-hidden pb-24 pt-4 md:pb-32">
+      <section className="relative overflow-x-hidden pb-24 pt-16 md:pb-32">
+        {/* Same wave motif the FAQ section uses for its own demarcation --
+            a clear, decorative break from the hero above instead of one
+            flat cocoa block running straight into the next. */}
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 1440 60"
+          preserveAspectRatio="none"
+          className="absolute inset-x-0 top-0 h-8 w-full -translate-y-1/2 text-rose/25 md:h-10"
+        >
+          <path
+            fill="currentColor"
+            d="M0,32 C240,72 480,0 720,20 C960,40 1200,72 1440,24 L1440,60 L0,60 Z"
+          />
+        </svg>
+
         <motion.div
           variants={revealContainer}
           initial="hidden"
@@ -180,7 +208,7 @@ export default function PriceListPage() {
             <PriceListCard
               key={priceList.id}
               priceList={priceList}
-              offset={index - clampedActive}
+              offset={wrappedOffset(index)}
               spacing={spacing}
             />
           ))}

@@ -16,7 +16,8 @@ export default function PriceListCard({
   spacing: number;
 }) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const visible = Math.abs(offset) <= 2;
+  const distance = Math.abs(offset);
+  const visible = distance <= 2;
 
   function toggle(id: string) {
     setExpanded((current) => {
@@ -31,13 +32,15 @@ export default function PriceListCard({
     <div
       className="absolute left-1/2 top-0 h-full w-[270px] -translate-x-1/2 overflow-hidden rounded-panel shadow-warm-lg transition-[transform,opacity,filter] duration-500 ease-out md:w-[300px]"
       style={{
-        transform: `translateX(calc(-50% + ${offset * spacing}px)) scale(${Math.max(
-          1 - Math.abs(offset) * 0.18,
-          0.58
-        )}) rotate(${offset * 5}deg)`,
-        zIndex: 10 - Math.abs(offset),
-        opacity: visible ? (offset === 0 ? 1 : 0.4) : 0,
-        filter: offset === 0 ? "none" : "brightness(0.65) saturate(0.8)",
+        // Cards fan out like a hand of cards, pivoting from below: each
+        // step out gets a bigger rotation and drops slightly, instead of
+        // just sliding sideways in a flat row.
+        transform: `translateX(calc(-50% + ${offset * spacing}px)) translateY(${
+          distance * 22
+        }px) scale(${Math.max(1 - distance * 0.16, 0.6)}) rotate(${offset * 9}deg)`,
+        zIndex: 10 - distance,
+        opacity: visible ? (distance === 0 ? 1 : distance === 1 ? 0.85 : 0.45) : 0,
+        filter: distance === 0 ? "none" : `brightness(${1 - distance * 0.12}) saturate(0.85)`,
         pointerEvents: offset === 0 ? "auto" : "none",
       }}
     >

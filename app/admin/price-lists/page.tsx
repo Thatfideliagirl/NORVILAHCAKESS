@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { GripVertical } from "lucide-react";
+import { ChevronDown, ChevronUp, GripVertical } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { compressImage } from "@/lib/compress-image";
 import AdminErrorBanner from "@/components/admin/AdminErrorBanner";
@@ -247,42 +247,91 @@ export default function AdminPriceListsPage() {
                 setDragIndex(null);
               }}
               onDragEnd={() => setDragIndex(null)}
-              className="flex items-center gap-4 rounded-panel bg-cream p-5 shadow-warm"
+              className="flex flex-col gap-4 rounded-panel bg-cream p-5 shadow-warm sm:flex-row sm:items-center"
             >
-              <GripVertical className="size-4 shrink-0 cursor-grab text-ink/30" />
-              <div className="relative size-14 shrink-0 overflow-hidden rounded-panel">
-                <Image src={priceList.image_url} alt={priceList.title} fill sizes="56px" className="object-cover" />
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                {/* Drag-and-drop (above) is mouse-only and does nothing on a
+                    touch screen, so these arrows are the reordering control
+                    that actually works on mobile; desktop can still drag. */}
+                <div className="hidden shrink-0 flex-col text-ink/40 sm:flex">
+                  <button
+                    type="button"
+                    onClick={() => moveCard(index, index - 1)}
+                    disabled={index === 0}
+                    aria-label="Move up"
+                    className="disabled:opacity-25"
+                  >
+                    <ChevronUp className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveCard(index, index + 1)}
+                    disabled={index === priceLists.length - 1}
+                    aria-label="Move down"
+                    className="disabled:opacity-25"
+                  >
+                    <ChevronDown className="size-4" />
+                  </button>
+                </div>
+                <GripVertical className="hidden size-4 shrink-0 cursor-grab text-ink/30 sm:block" />
+                <div className="relative size-14 shrink-0 overflow-hidden rounded-panel">
+                  <Image src={priceList.image_url} alt={priceList.title} fill sizes="56px" className="object-cover" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-display text-body text-ink">{priceList.title}</p>
+                  {priceList.tagline && (
+                    <p className="mt-1 truncate font-body text-small text-ink/60">{priceList.tagline}</p>
+                  )}
+                </div>
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-display text-body text-ink">{priceList.title}</p>
-                {priceList.tagline && (
-                  <p className="mt-1 truncate font-body text-small text-ink/60">{priceList.tagline}</p>
-                )}
+              <div className="flex shrink-0 flex-wrap items-center gap-3">
+                {/* Mobile-only reorder buttons -- same as the desktop pair
+                    above, since that column is hidden below sm. */}
+                <div className="flex items-center gap-1 text-ink/40 sm:hidden">
+                  <button
+                    type="button"
+                    onClick={() => moveCard(index, index - 1)}
+                    disabled={index === 0}
+                    aria-label="Move up"
+                    className="flex size-8 items-center justify-center disabled:opacity-25"
+                  >
+                    <ChevronUp className="size-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveCard(index, index + 1)}
+                    disabled={index === priceLists.length - 1}
+                    aria-label="Move down"
+                    className="flex size-8 items-center justify-center disabled:opacity-25"
+                  >
+                    <ChevronDown className="size-5" />
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => toggleActive(priceList)}
+                  title="Click to switch this price list on or off"
+                  className={`shrink-0 rounded-pill px-4 py-1.5 text-xs font-semibold ${
+                    priceList.active ? "bg-berry/15 text-berry" : "bg-clay/15 text-ink/50"
+                  }`}
+                >
+                  {priceList.active ? "Active" : "Inactive"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingId(priceList.id)}
+                  className="shrink-0 font-body text-small font-medium text-ink/60 hover:text-berry"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => deletePriceList(priceList)}
+                  className="shrink-0 font-body text-small font-medium text-ink/50 hover:text-berry"
+                >
+                  Delete
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => toggleActive(priceList)}
-                title="Click to switch this price list on or off"
-                className={`shrink-0 rounded-pill px-4 py-1.5 text-xs font-semibold ${
-                  priceList.active ? "bg-berry/15 text-berry" : "bg-clay/15 text-ink/50"
-                }`}
-              >
-                {priceList.active ? "Active" : "Inactive"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setEditingId(priceList.id)}
-                className="shrink-0 font-body text-small font-medium text-ink/60 hover:text-berry"
-              >
-                Edit
-              </button>
-              <button
-                type="button"
-                onClick={() => deletePriceList(priceList)}
-                className="shrink-0 font-body text-small font-medium text-ink/50 hover:text-berry"
-              >
-                Delete
-              </button>
             </div>
           )
         )}
