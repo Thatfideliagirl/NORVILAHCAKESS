@@ -8,16 +8,15 @@ import type { PriceList } from "@/lib/supabase/storefront-price-lists";
 
 export default function PriceListCard({
   priceList,
-  offset,
-  spacing,
+  rank,
+  step,
 }: {
   priceList: PriceList;
-  offset: number;
-  spacing: number;
+  rank: number;
+  step: { x: number; y: number };
 }) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const distance = Math.abs(offset);
-  const visible = distance <= 2;
+  const visible = rank <= 3;
 
   function toggle(id: string) {
     setExpanded((current) => {
@@ -32,16 +31,19 @@ export default function PriceListCard({
     <div
       className="absolute left-1/2 top-0 h-full w-[270px] -translate-x-1/2 overflow-hidden rounded-panel shadow-warm-lg transition-[transform,opacity,filter] duration-500 ease-out md:w-[300px]"
       style={{
-        // Cards fan out like a hand of cards, pivoting from below: each
-        // step out gets a bigger rotation and drops slightly, instead of
-        // just sliding sideways in a flat row.
-        transform: `translateX(calc(-50% + ${offset * spacing}px)) translateY(${
-          distance * 22
-        }px) scale(${Math.max(1 - distance * 0.16, 0.6)}) rotate(${offset * 9}deg)`,
-        zIndex: 10 - distance,
-        opacity: visible ? (distance === 0 ? 1 : distance === 1 ? 0.85 : 0.45) : 0,
-        filter: distance === 0 ? "none" : `brightness(${1 - distance * 0.12}) saturate(0.85)`,
-        pointerEvents: offset === 0 ? "auto" : "none",
+        // The stack cascades in one direction only -- each card behind
+        // the front one steps further down-and-left, instead of fanning
+        // out symmetrically on both sides of it. That symmetric version
+        // left two side cards reading as equally prominent, "competing"
+        // for the middle instead of one clear card leading a single
+        // stack that recedes to one side.
+        transform: `translateX(calc(-50% - ${rank * step.x}px)) translateY(${
+          rank * step.y
+        }px) scale(${Math.max(1 - rank * 0.08, 0.7)}) rotate(${-rank * 4}deg)`,
+        zIndex: 10 - rank,
+        opacity: visible ? (rank === 0 ? 1 : rank === 1 ? 0.9 : rank === 2 ? 0.6 : 0.35) : 0,
+        filter: rank === 0 ? "none" : `brightness(${1 - rank * 0.1}) saturate(0.85)`,
+        pointerEvents: rank === 0 ? "auto" : "none",
       }}
     >
       <Image
