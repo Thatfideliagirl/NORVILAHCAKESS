@@ -113,12 +113,18 @@ export default function Hero() {
           everything fresh for your special moments, and the random cravings
           too.
         </motion.p>
-        <motion.div variants={itemVariants} className="mt-10">
+        <motion.div variants={itemVariants} className="mt-10 flex flex-wrap items-center gap-4">
           <Link
             href="/menu"
             className="inline-block rounded-pill bg-cocoa px-8 py-3.5 font-body font-medium text-cream transition-colors duration-200 hover:bg-ink active:scale-[0.99]"
           >
             Shop Now
+          </Link>
+          <Link
+            href="/#catalog"
+            className="inline-block rounded-pill border border-cream/70 px-8 py-3.5 font-body font-medium text-cream drop-shadow-[0_1px_6px_rgba(58,36,31,0.9)] transition-colors duration-200 hover:bg-cream/15 active:scale-[0.99] md:border-cocoa/60 md:text-cocoa md:drop-shadow-[0_1px_6px_rgba(246,235,227,0.85)] md:hover:bg-cocoa/10"
+          >
+            View Price List
           </Link>
         </motion.div>
       </motion.div>

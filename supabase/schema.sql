@@ -769,3 +769,59 @@ alter table public.profiles add column if not exists has_seen_onboarding boolean
 -- =========================================================
 alter table public.profiles add column if not exists viewed_at timestamptz;
 update public.profiles set viewed_at = created_at where viewed_at is null;
+
+-- =========================================================
+-- 27. PRICE LISTS
+-- The landing-page "Norvilah Catalog" -- deliberately independent of
+-- products/categories (its own image, its own line items) so a price
+-- list can exist for anything Norvilah sells even if it doesn't match
+-- a real ordering category one-to-one.
+-- =========================================================
+create table if not exists public.price_lists (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  tagline text,
+  image_url text not null,
+  active boolean not null default true,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+-- One row per price line on a card. group_label clusters related lines
+-- under a small subheading (e.g. "Mini Banana Bread" vs "Medium Banana
+-- Bread") -- leave null for a flat list like Parfait sizes. contents is
+-- the optional "what's included" detail for pack-style items (Small
+-- Chops) -- leave null for a plain size/price line; the storefront only
+-- shows the expandable "+" when it's actually filled in.
+create table if not exists public.price_list_items (
+  id uuid primary key default gen_random_uuid(),
+  price_list_id uuid not null references public.price_lists(id) on delete cascade,
+  group_label text,
+  label text not null,
+  price_naira integer not null,
+  contents text,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+alter table public.price_lists enable row level security;
+alter table public.price_list_items enable row level security;
+
+drop policy if exists "price_lists_public_read" on public.price_lists;
+create policy "price_lists_public_read" on public.price_lists
+  for select using (active or public.is_admin());
+drop policy if exists "price_lists_admin_write" on public.price_lists;
+create policy "price_lists_admin_write" on public.price_lists
+  for all using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "price_list_items_public_read" on public.price_list_items;
+create policy "price_list_items_public_read" on public.price_list_items
+  for select using (
+    exists (
+      select 1 from public.price_lists pl
+      where pl.id = price_list_id and (pl.active or public.is_admin())
+    )
+  );
+drop policy if exists "price_list_items_admin_write" on public.price_list_items;
+create policy "price_list_items_admin_write" on public.price_list_items
+  for all using (public.is_admin()) with check (public.is_admin());
