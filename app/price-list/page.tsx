@@ -169,21 +169,6 @@ export default function PriceListPage() {
           area and the "centred" card ends up reading as off-centre once
           the phone lets you drag that extra width into view. */}
       <section className="relative overflow-x-hidden pb-24 pt-16 md:pb-32">
-        {/* Same wave motif the FAQ section uses for its own demarcation --
-            a clear, decorative break from the hero above instead of one
-            flat cocoa block running straight into the next. */}
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 1440 60"
-          preserveAspectRatio="none"
-          className="absolute inset-x-0 top-0 h-8 w-full -translate-y-1/2 text-rose/25 md:h-10"
-        >
-          <path
-            fill="currentColor"
-            d="M0,32 C240,72 480,0 720,20 C960,40 1200,72 1440,24 L1440,60 L0,60 Z"
-          />
-        </svg>
-
         <motion.div
           variants={revealContainer}
           initial="hidden"
