@@ -121,7 +121,7 @@ export default function Hero() {
             Shop Now
           </Link>
           <Link
-            href="/#catalog"
+            href="/price-list"
             className="inline-block rounded-pill border border-cream/70 px-8 py-3.5 font-body font-medium text-cream drop-shadow-[0_1px_6px_rgba(58,36,31,0.9)] transition-colors duration-200 hover:bg-cream/15 active:scale-[0.99] md:border-cocoa/60 md:text-cocoa md:drop-shadow-[0_1px_6px_rgba(246,235,227,0.85)] md:hover:bg-cocoa/10"
           >
             View Price List
