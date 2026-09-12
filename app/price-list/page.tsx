@@ -86,7 +86,7 @@ export default function PriceListPage() {
           as a continuation of that section, not a different design.
           Kept compact now that the header has its own solid backdrop
           rather than floating transparently over it. */}
-      <section className="relative overflow-hidden bg-cocoa pb-8 pt-20 md:pb-10 md:pt-24">
+      <section className="relative overflow-hidden bg-cocoa pb-5 pt-16 md:pb-6 md:pt-20">
         <div className="relative mx-auto max-w-content px-6">
           <Link
             href="/"
@@ -136,7 +136,12 @@ export default function PriceListPage() {
           <div
             ref={scrollRef}
             onScroll={onScroll}
-            className="flex snap-x snap-mandatory gap-4 overflow-x-auto px-[38vw] pb-2 [-ms-overflow-style:none] [scrollbar-width:none] md:gap-6 md:px-[30vw] [&::-webkit-scrollbar]:hidden"
+            // Padding is exactly half a viewport minus half a card, not a
+            // flat percentage -- that's what let the first/last card
+            // still reach dead centre while leaving a huge, obviously
+            // empty margin on wide screens (a flat vw value doesn't scale
+            // with the fixed card width the way this calc does).
+            className="flex snap-x snap-mandatory gap-4 overflow-x-auto px-[calc(50vw-100px)] pb-2 [-ms-overflow-style:none] [scrollbar-width:none] md:gap-6 md:px-[calc(50vw-120px)] [&::-webkit-scrollbar]:hidden"
           >
             {priceLists.map((priceList, index) => (
               <PriceListCard key={priceList.id} priceList={priceList} isActive={index === active} />

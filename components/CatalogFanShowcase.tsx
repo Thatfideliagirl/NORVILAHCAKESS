@@ -22,8 +22,8 @@ export default function CatalogFanShowcase({
   const centerIndex = Math.floor((cards.length - 1) / 2);
 
   return (
-    <div className="mx-auto grid max-w-content items-center gap-14 px-6 md:grid-cols-[1.05fr_0.95fr] md:gap-10">
-      <div className="relative mx-auto h-[340px] w-full max-w-sm md:h-[460px] md:max-w-none">
+    <div className="mx-auto grid max-w-content items-center gap-8 px-6 md:grid-cols-[1.05fr_0.95fr] md:gap-10">
+      <div className="relative mx-auto h-[280px] w-full max-w-sm md:h-[460px] md:max-w-none">
         {cards.map((priceList, index) => {
           const offset = index - centerIndex;
           const distance = Math.abs(offset);
