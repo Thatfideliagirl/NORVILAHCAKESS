@@ -32,7 +32,17 @@ export default function PriceListSection() {
           className="object-cover object-[center_25%]"
         />
       </div>
-      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-cocoa/15 via-cocoa/35 to-cocoa/80" />
+      {/* Kept light so the photo itself (the fruit, the toppings) stays
+          clearly visible -- contrast for the copy comes from the vignette
+          and per-element shadows below, not from darkening the whole shot. */}
+      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-cocoa/8 via-transparent to-cocoa/45" />
+      <div
+        className="absolute inset-0 -z-10"
+        style={{
+          background:
+            "radial-gradient(60% 60% at 50% 55%, rgba(58,36,31,0.7) 0%, rgba(58,36,31,0.2) 68%, rgba(58,36,31,0) 100%)",
+        }}
+      />
 
       <motion.div
         variants={revealContainer}
@@ -43,20 +53,26 @@ export default function PriceListSection() {
       >
         <motion.p
           variants={revealUp}
-          className="font-body text-xs font-semibold uppercase tracking-[0.2em] text-plaster"
+          className="inline-block rounded-pill bg-cream/90 px-4 py-1.5 font-body text-xs font-semibold uppercase tracking-[0.2em] text-ink shadow-warm"
         >
           A little more to crave
         </motion.p>
         <motion.h2
           variants={revealUp}
-          className="mt-3 font-display text-heading text-cream md:text-[4rem]"
+          className="mt-3 font-display text-heading text-cream drop-shadow-[0_2px_14px_rgba(58,36,31,0.9)] md:text-[4rem]"
         >
           The Norvilah Catalog
         </motion.h2>
-        <motion.p variants={revealUp} className="mt-2 font-script text-2xl text-rose md:text-3xl">
+        <motion.p
+          variants={revealUp}
+          className="mt-2 font-script text-2xl text-rose drop-shadow-[0_1px_8px_rgba(58,36,31,0.85)] md:text-3xl"
+        >
           Good food, brighter days
         </motion.p>
-        <motion.p variants={revealUp} className="measure mx-auto mt-5 font-body text-lead text-plaster/90">
+        <motion.p
+          variants={revealUp}
+          className="measure mx-auto mt-5 font-body text-lead text-plaster/95 drop-shadow-[0_1px_6px_rgba(58,36,31,0.85)]"
+        >
           Every category, every size, every price -- browse it like flipping
           through a deck of your favourite treats.
         </motion.p>

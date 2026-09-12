@@ -77,7 +77,7 @@ export default function PriceListPage() {
   }
 
   return (
-    <main className="min-h-screen bg-cocoa">
+    <main className="min-h-screen overflow-x-hidden bg-cocoa">
       {/* This page's own hero -- same look as the landing-page teaser. */}
       <section className="relative overflow-hidden pb-20 pt-32 md:pb-24 md:pt-40">
         <div className="absolute inset-0 -z-20">
@@ -90,12 +90,22 @@ export default function PriceListPage() {
             className="object-cover object-[center_25%]"
           />
         </div>
-        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-cocoa/15 via-cocoa/40 to-cocoa" />
+        {/* Kept light so the photo itself stays clearly visible -- contrast
+            for the copy comes from the vignette and per-element shadows
+            below, not from darkening the whole shot. */}
+        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-cocoa/8 via-transparent to-cocoa/70" />
+        <div
+          className="absolute inset-0 -z-10"
+          style={{
+            background:
+              "radial-gradient(60% 60% at 50% 60%, rgba(58,36,31,0.72) 0%, rgba(58,36,31,0.2) 68%, rgba(58,36,31,0) 100%)",
+          }}
+        />
 
         <div className="relative mx-auto max-w-content px-6">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 font-body text-small font-medium text-plaster transition-colors hover:text-cream"
+            className="inline-flex items-center gap-2 font-body text-small font-medium text-plaster drop-shadow-[0_1px_6px_rgba(58,36,31,0.85)] transition-colors hover:text-cream"
           >
             <ArrowLeft className="size-4" strokeWidth={1.75} />
             Back to Home
@@ -110,24 +120,31 @@ export default function PriceListPage() {
         >
           <motion.p
             variants={revealUp}
-            className="font-body text-xs font-semibold uppercase tracking-[0.2em] text-plaster"
+            className="inline-block rounded-pill bg-cream/90 px-4 py-1.5 font-body text-xs font-semibold uppercase tracking-[0.2em] text-ink shadow-warm"
           >
             A little more to crave
           </motion.p>
           <motion.h1
             variants={revealUp}
-            className="mt-3 font-display text-heading text-cream md:text-[4rem]"
+            className="mt-3 font-display text-heading text-cream drop-shadow-[0_2px_14px_rgba(58,36,31,0.9)] md:text-[4rem]"
           >
             The Norvilah Catalog
           </motion.h1>
-          <motion.p variants={revealUp} className="mt-2 font-script text-2xl text-rose md:text-3xl">
+          <motion.p
+            variants={revealUp}
+            className="mt-2 font-script text-2xl text-rose drop-shadow-[0_1px_8px_rgba(58,36,31,0.85)] md:text-3xl"
+          >
             Good food, brighter days
           </motion.p>
         </motion.div>
       </section>
 
-      {/* The swipeable deck -- this page's actual content. */}
-      <section className="pb-24 pt-4 md:pb-32">
+      {/* The swipeable deck -- this page's actual content. Clipped on the
+          x-axis: the un-shown neighbour cards sit far enough off either
+          side that, left unclipped, they widen the page's own scrollable
+          area and the "centred" card ends up reading as off-centre once
+          the phone lets you drag that extra width into view. */}
+      <section className="overflow-x-hidden pb-24 pt-4 md:pb-32">
         <motion.div
           variants={revealContainer}
           initial="hidden"
