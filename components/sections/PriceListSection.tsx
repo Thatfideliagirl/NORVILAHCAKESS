@@ -24,9 +24,15 @@ export default function PriceListSection() {
   return (
     <section id="catalog" className="relative overflow-hidden py-28 md:py-36">
       <div className="absolute inset-0 -z-20">
-        <Image src={backdrop} alt="" fill sizes="100vw" className="object-cover" />
+        <Image
+          src={backdrop}
+          alt=""
+          fill
+          sizes="100vw"
+          className="object-cover object-[center_25%]"
+        />
       </div>
-      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-cocoa/45 via-cocoa/60 to-cocoa/85" />
+      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-cocoa/15 via-cocoa/35 to-cocoa/80" />
 
       <motion.div
         variants={revealContainer}
@@ -43,7 +49,7 @@ export default function PriceListSection() {
         </motion.p>
         <motion.h2
           variants={revealUp}
-          className="mt-3 font-display text-heading text-cream md:text-[3.5rem]"
+          className="mt-3 font-display text-heading text-cream md:text-[4rem]"
         >
           The Norvilah Catalog
         </motion.h2>

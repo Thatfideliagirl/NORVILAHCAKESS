@@ -6,9 +6,15 @@ import { Plus } from "lucide-react";
 import { formatNaira } from "@/lib/format";
 import type { PriceList } from "@/lib/supabase/storefront-price-lists";
 
-export const CARD_SPACING = 130;
-
-export default function PriceListCard({ priceList, offset }: { priceList: PriceList; offset: number }) {
+export default function PriceListCard({
+  priceList,
+  offset,
+  spacing,
+}: {
+  priceList: PriceList;
+  offset: number;
+  spacing: number;
+}) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const visible = Math.abs(offset) <= 2;
 
@@ -25,13 +31,13 @@ export default function PriceListCard({ priceList, offset }: { priceList: PriceL
     <div
       className="absolute left-1/2 top-0 h-full w-[270px] -translate-x-1/2 overflow-hidden rounded-panel shadow-warm-lg transition-[transform,opacity,filter] duration-500 ease-out md:w-[300px]"
       style={{
-        transform: `translateX(calc(-50% + ${offset * CARD_SPACING}px)) scale(${Math.max(
-          1 - Math.abs(offset) * 0.14,
-          0.62
+        transform: `translateX(calc(-50% + ${offset * spacing}px)) scale(${Math.max(
+          1 - Math.abs(offset) * 0.18,
+          0.58
         )}) rotate(${offset * 5}deg)`,
         zIndex: 10 - Math.abs(offset),
-        opacity: visible ? (offset === 0 ? 1 : 0.55) : 0,
-        filter: offset === 0 ? "none" : "brightness(0.7) saturate(0.85)",
+        opacity: visible ? (offset === 0 ? 1 : 0.4) : 0,
+        filter: offset === 0 ? "none" : "brightness(0.65) saturate(0.8)",
         pointerEvents: offset === 0 ? "auto" : "none",
       }}
     >
@@ -44,7 +50,7 @@ export default function PriceListCard({ priceList, offset }: { priceList: PriceL
       />
       <div className="absolute inset-0 bg-gradient-to-t from-cocoa/10 via-cocoa/55 to-cocoa/85" />
       <div className="absolute inset-x-4 top-5">
-        <h4 className="font-display text-product text-cream">{priceList.title}</h4>
+        <h4 className="font-display text-subheading text-cream">{priceList.title}</h4>
       </div>
 
       <div className="absolute inset-x-3 bottom-3 max-h-[62%] overflow-y-auto rounded-panel bg-cream/90 p-4 text-left backdrop-blur-sm">

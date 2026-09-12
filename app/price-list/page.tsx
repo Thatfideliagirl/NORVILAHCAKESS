@@ -14,6 +14,7 @@ const SWIPE_THRESHOLD = 60;
 export default function PriceListPage() {
   const { priceLists, loading } = useStorefrontPriceLists();
   const [active, setActive] = useState(0);
+  const [spacing, setSpacing] = useState(130);
   const dragX = useMotionValue(0);
   const count = priceLists.length;
 
@@ -26,6 +27,19 @@ export default function PriceListPage() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [count]);
+
+  // Neighbouring cards should only ever peek in from the edges, never
+  // crowd the active one -- on a narrow phone screen the same fixed
+  // spacing used on desktop pushed them close enough to make the
+  // centred card look off-centre.
+  useEffect(() => {
+    function onResize() {
+      setSpacing(window.innerWidth < 640 ? 78 : 130);
+    }
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   if (loading) {
     return (
@@ -67,9 +81,16 @@ export default function PriceListPage() {
       {/* This page's own hero -- same look as the landing-page teaser. */}
       <section className="relative overflow-hidden pb-20 pt-32 md:pb-24 md:pt-40">
         <div className="absolute inset-0 -z-20">
-          <Image src={heroImage} alt="" fill priority sizes="100vw" className="object-cover" />
+          <Image
+            src={heroImage}
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-[center_25%]"
+          />
         </div>
-        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-cocoa/45 via-cocoa/65 to-cocoa" />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-cocoa/15 via-cocoa/40 to-cocoa" />
 
         <div className="relative mx-auto max-w-content px-6">
           <Link
@@ -95,7 +116,7 @@ export default function PriceListPage() {
           </motion.p>
           <motion.h1
             variants={revealUp}
-            className="mt-3 font-display text-heading text-cream md:text-[3.5rem]"
+            className="mt-3 font-display text-heading text-cream md:text-[4rem]"
           >
             The Norvilah Catalog
           </motion.h1>
@@ -131,7 +152,12 @@ export default function PriceListPage() {
           className="relative mx-auto mt-14 h-[560px] max-w-content cursor-grab touch-pan-y active:cursor-grabbing md:h-[600px]"
         >
           {priceLists.map((priceList, index) => (
-            <PriceListCard key={priceList.id} priceList={priceList} offset={index - clampedActive} />
+            <PriceListCard
+              key={priceList.id}
+              priceList={priceList}
+              offset={index - clampedActive}
+              spacing={spacing}
+            />
           ))}
         </motion.div>
 
