@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type TouchEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
@@ -9,36 +9,55 @@ import { useStorefrontPriceLists } from "@/lib/supabase/storefront-price-lists";
 import CatalogFanShowcase from "@/components/CatalogFanShowcase";
 import PriceListCard from "@/components/PriceListCard";
 
-const SWIPE_THRESHOLD = 50;
-
 export default function PriceListPage() {
   const { priceLists, loading } = useStorefrontPriceLists();
   const [active, setActive] = useState(0);
-  const [spacing, setSpacing] = useState(115);
-  const touchStartX = useRef<number | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const count = priceLists.length;
+
+  function go(index: number) {
+    const clamped = Math.max(0, Math.min(count - 1, index));
+    setActive(clamped);
+    const container = scrollRef.current;
+    const child = container?.children[clamped] as HTMLElement | undefined;
+    if (!container || !child) return;
+    container.scrollTo({
+      left: child.offsetLeft - (container.clientWidth - child.clientWidth) / 2,
+      behavior: "smooth",
+    });
+  }
+
+  // Tracks which card is centred as the visitor scrolls/swipes the row
+  // by hand, so the arrows, dots and active-card styling stay in sync
+  // with a plain native scroll instead of a custom drag gesture.
+  function onScroll() {
+    const container = scrollRef.current;
+    if (!container) return;
+    const center = container.scrollLeft + container.clientWidth / 2;
+    let closest = 0;
+    let closestDistance = Infinity;
+    Array.from(container.children).forEach((node, index) => {
+      const el = node as HTMLElement;
+      const elCenter = el.offsetLeft + el.offsetWidth / 2;
+      const distance = Math.abs(elCenter - center);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closest = index;
+      }
+    });
+    setActive(closest);
+  }
 
   useEffect(() => {
     if (count === 0) return;
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "ArrowLeft") setActive((current) => (current - 1 + count) % count);
-      if (e.key === "ArrowRight") setActive((current) => (current + 1) % count);
+      if (e.key === "ArrowLeft") go(active - 1);
+      if (e.key === "ArrowRight") go(active + 1);
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [count]);
-
-  // Neighbouring cards should only ever peek in from the edges, never
-  // crowd the active one -- the same fixed spacing used on desktop
-  // pushed them too close together on a narrow phone screen.
-  useEffect(() => {
-    function onResize() {
-      setSpacing(window.innerWidth < 640 ? 68 : 115);
-    }
-    onResize();
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, count]);
 
   if (loading) {
     return (
@@ -57,35 +76,6 @@ export default function PriceListPage() {
         </Link>
       </main>
     );
-  }
-
-  const clampedActive = ((active % count) + count) % count;
-
-  function go(index: number) {
-    setActive(((index % count) + count) % count);
-  }
-
-  // Wraps past either end instead of clamping -- swiping past the last
-  // category cycles back around to the first, like flipping through a
-  // deck, and keeps the fan peeking out on both sides of the active
-  // card no matter which one that is.
-  function wrappedOffset(index: number) {
-    let diff = index - clampedActive;
-    if (diff > count / 2) diff -= count;
-    if (diff < -count / 2) diff += count;
-    return diff;
-  }
-
-  function onTouchStart(e: TouchEvent) {
-    touchStartX.current = e.touches[0].clientX;
-  }
-
-  function onTouchEnd(e: TouchEvent) {
-    if (touchStartX.current === null) return;
-    const delta = e.changedTouches[0].clientX - touchStartX.current;
-    touchStartX.current = null;
-    if (delta < -SWIPE_THRESHOLD) go(clampedActive + 1);
-    else if (delta > SWIPE_THRESHOLD) go(clampedActive - 1);
   }
 
   return (
@@ -111,17 +101,18 @@ export default function PriceListPage() {
         </div>
       </section>
 
-      {/* The swipeable deck -- this page's actual content, on the same
-          cream ground the admin panel uses. Clipped on the x-axis so it
-          can't cause horizontal scroll, but wide enough that the fan
-          reads as spread out and balanced rather than clustered. */}
+      {/* The card row -- this page's actual content, on the same cream
+          ground the admin panel uses. A flat, evenly-spaced row instead
+          of an overlapping fan: every category is visible at once, the
+          active one reads slightly larger, and it scrolls/snaps like a
+          native carousel rather than a custom drag gesture. */}
       <section className="relative overflow-x-hidden bg-cream pb-24 pt-10 md:pb-32 md:pt-12">
         <motion.div
           variants={revealContainer}
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, amount: 0.2 }}
-          className="mx-auto max-w-3xl px-6 text-center"
+          className="mx-auto max-w-2xl px-6 text-center"
         >
           <motion.h2 variants={revealUp} className="font-display text-subheading text-berry">
             Swipe through &amp; see it all
@@ -131,51 +122,50 @@ export default function PriceListPage() {
           </motion.p>
         </motion.div>
 
-        <div
-          onTouchStart={onTouchStart}
-          onTouchEnd={onTouchEnd}
-          className="relative mx-auto mt-10 h-[560px] max-w-3xl cursor-grab touch-pan-y active:cursor-grabbing md:h-[600px]"
-        >
-          {priceLists.map((priceList, index) => (
-            <PriceListCard
-              key={priceList.id}
-              priceList={priceList}
-              offset={wrappedOffset(index)}
-              spacing={spacing}
-            />
-          ))}
-        </div>
-
-        <div className="mt-9 flex items-center justify-center gap-6">
+        <div className="relative mt-10">
           <button
             type="button"
-            onClick={() => go(clampedActive - 1)}
+            onClick={() => go(active - 1)}
+            disabled={active === 0}
             aria-label="Previous category"
-            className="flex size-11 items-center justify-center rounded-full border border-ink/15 text-ink transition-colors hover:border-berry hover:text-berry"
+            className="absolute left-2 top-1/2 z-20 flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-ink/15 bg-cream text-ink shadow-warm transition-colors hover:border-berry hover:text-berry disabled:pointer-events-none disabled:opacity-30 md:left-6"
           >
             <ChevronLeft className="size-5" strokeWidth={1.75} />
           </button>
-          <div className="flex gap-2">
+
+          <div
+            ref={scrollRef}
+            onScroll={onScroll}
+            className="flex snap-x snap-mandatory gap-4 overflow-x-auto px-[38vw] pb-2 [-ms-overflow-style:none] [scrollbar-width:none] md:gap-6 md:px-[30vw] [&::-webkit-scrollbar]:hidden"
+          >
             {priceLists.map((priceList, index) => (
-              <button
-                key={priceList.id}
-                type="button"
-                onClick={() => go(index)}
-                aria-label={`Go to ${priceList.title}`}
-                className={`size-2 rounded-full transition-colors ${
-                  index === clampedActive ? "bg-berry" : "bg-ink/15"
-                }`}
-              />
+              <PriceListCard key={priceList.id} priceList={priceList} isActive={index === active} />
             ))}
           </div>
+
           <button
             type="button"
-            onClick={() => go(clampedActive + 1)}
+            onClick={() => go(active + 1)}
+            disabled={active === count - 1}
             aria-label="Next category"
-            className="flex size-11 items-center justify-center rounded-full border border-ink/15 text-ink transition-colors hover:border-berry hover:text-berry"
+            className="absolute right-2 top-1/2 z-20 flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-ink/15 bg-cream text-ink shadow-warm transition-colors hover:border-berry hover:text-berry disabled:pointer-events-none disabled:opacity-30 md:right-6"
           >
             <ChevronRight className="size-5" strokeWidth={1.75} />
           </button>
+        </div>
+
+        <div className="mt-6 flex items-center justify-center gap-2">
+          {priceLists.map((priceList, index) => (
+            <button
+              key={priceList.id}
+              type="button"
+              onClick={() => go(index)}
+              aria-label={`Go to ${priceList.title}`}
+              className={`size-2 rounded-full transition-colors ${
+                index === active ? "bg-berry" : "bg-ink/15"
+              }`}
+            />
+          ))}
         </div>
         <p className="mt-4 text-center font-body text-small text-ink/50">
           Swipe the cards, use the arrows, or your keyboard&apos;s arrow keys.
