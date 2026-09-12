@@ -90,11 +90,11 @@ export default function PriceListPage() {
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-cocoa">
-      {/* This page's own hero -- the exact same fanned-cards image as the
-          landing-page teaser, just without its button. Sized to match
-          the /menu page's banner rather than the taller padding a full
-          landing-page section gets. */}
-      <section className="relative overflow-hidden bg-cocoa pb-8 pt-24 md:pb-10 md:pt-28">
+      {/* This page's own hero -- a compact, fully-centred version of the
+          landing-page fan (no left/right split, since with no button to
+          balance it that read as lopsided here), sized like the /menu
+          page's own banner rather than a full landing-page section. */}
+      <section className="relative overflow-hidden bg-cocoa pb-6 pt-20 md:pb-8 md:pt-24">
         <div className="relative mx-auto max-w-content px-6">
           <Link
             href="/"
@@ -104,8 +104,8 @@ export default function PriceListPage() {
             Back to Home
           </Link>
         </div>
-        <div className="mt-6">
-          <CatalogFanShowcase priceLists={priceLists} />
+        <div className="mt-5">
+          <CatalogFanShowcase priceLists={priceLists} layout="stacked" />
         </div>
       </section>
 
