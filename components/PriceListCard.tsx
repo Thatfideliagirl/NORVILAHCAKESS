@@ -57,9 +57,14 @@ export default function PriceListCard({
           )}
         </div>
 
-        <div className="absolute inset-x-3 bottom-3 max-h-[68%] rounded-panel bg-cream/90 text-left backdrop-blur-sm">
+        <div className="absolute inset-x-3 bottom-3 flex max-h-[68%] flex-col rounded-panel bg-cream/90 text-left backdrop-blur-sm">
+          {/* min-h-0 is what lets this shrink inside the flex column and
+              actually hit its own bottom edge -- without it, a percentage
+              max-height here can't resolve against a parent that only has
+              max-height (not height) set, so the box just grows to fit
+              all the content instead of ever needing to scroll. */}
           <div
-            className="max-h-full overflow-y-auto pl-4 pr-2 pt-4 pb-6 [scrollbar-width:thin] [scrollbar-color:rgba(142,47,68,0.45)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-berry/40"
+            className="min-h-0 flex-1 overflow-y-auto pl-4 pr-2 pt-4 pb-6 [scrollbar-width:thin] [scrollbar-color:rgba(142,47,68,0.45)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-berry/40"
           >
             {priceList.items.map((item, index) => {
               const prevGroup = index > 0 ? priceList.items[index - 1].group_label : null;
