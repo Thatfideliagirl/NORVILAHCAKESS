@@ -24,6 +24,7 @@ type DbProductRow = {
   featured: boolean;
   on_sale: boolean;
   discount_percent: number | null;
+  min_select: number | null;
   categories: { slug: string } | null;
 };
 
@@ -32,6 +33,19 @@ type DbVariantRow = {
   product_id: string;
   label: string;
   price_naira: number;
+};
+
+type DbOptionRow = {
+  id: string;
+  product_id: string;
+  label: string;
+  price_naira: number;
+  image_url: string | null;
+};
+
+type DbProductCategoryRow = {
+  product_id: string;
+  categories: { slug: string } | null;
 };
 
 function isUploadedImage(url: string | null): url is string {
@@ -47,7 +61,7 @@ export function useStorefrontProducts(): { products: Product[]; loading: boolean
       supabase
         .from("products")
         .select(
-          "id, slug, name, description, ingredients, benefits, image_url, price_naira, active, featured, on_sale, discount_percent, categories(slug)"
+          "id, slug, name, description, ingredients, benefits, image_url, price_naira, active, featured, on_sale, discount_percent, min_select, categories(slug)"
         )
         .order("sort_order")
         .returns<DbProductRow[]>(),
@@ -56,7 +70,17 @@ export function useStorefrontProducts(): { products: Product[]; loading: boolean
         .select("id, product_id, label, price_naira")
         .order("sort_order")
         .returns<DbVariantRow[]>(),
-    ]).then(([{ data }, { data: variantRows }]) => {
+      supabase
+        .from("product_options")
+        .select("id, product_id, label, price_naira, image_url")
+        .eq("active", true)
+        .order("sort_order")
+        .returns<DbOptionRow[]>(),
+      supabase
+        .from("product_categories")
+        .select("product_id, categories(slug)")
+        .returns<DbProductCategoryRow[]>(),
+    ]).then(([{ data }, { data: variantRows }, { data: optionRows }, { data: productCategoryRows }]) => {
       if (!data) {
         setLoading(false);
         return;
@@ -75,6 +99,43 @@ export function useStorefrontProducts(): { products: Product[]; loading: boolean
           : undefined;
       }
 
+      const optionsByProductId = new Map<string, DbOptionRow[]>();
+      for (const row of optionRows ?? []) {
+        const list = optionsByProductId.get(row.product_id) ?? [];
+        list.push(row);
+        optionsByProductId.set(row.product_id, list);
+      }
+      function optionsFor(dbRow: DbProductRow) {
+        const rows = optionsByProductId.get(dbRow.id);
+        return rows?.length
+          ? rows.map((o) => ({
+              id: o.id,
+              label: o.label,
+              priceNaira: o.price_naira,
+              imageUrl: o.image_url,
+            }))
+          : undefined;
+      }
+
+      // A product's main category comes from its `categories` join
+      // above (via category_id); this table adds any extra categories
+      // on top -- e.g. a Mix & Match product also listed under
+      // "Choices" -- so it shows up in both places on the menu.
+      const extraCategoriesByProductId = new Map<string, Set<string>>();
+      for (const row of productCategoryRows ?? []) {
+        const slug = row.categories?.slug;
+        if (!slug) continue;
+        const set = extraCategoriesByProductId.get(row.product_id) ?? new Set<string>();
+        set.add(slug);
+        extraCategoriesByProductId.set(row.product_id, set);
+      }
+      function extraCategorySlugsFor(dbRow: DbProductRow, mainCategorySlug: string) {
+        const set = extraCategoriesByProductId.get(dbRow.id);
+        if (!set) return undefined;
+        const extras = Array.from(set).filter((slug) => slug !== mainCategorySlug);
+        return extras.length ? extras : undefined;
+      }
+
       // The database (in admin's chosen sort_order) is the single
       // source of truth: a static seed product with no matching active
       // row here has been deleted or deactivated from admin, so it's
@@ -90,16 +151,20 @@ export function useStorefrontProducts(): { products: Product[]; loading: boolean
         if (!categorySlug) return [];
         const fallbackImage = staticProduct?.image ?? "/products/cakes.jpg";
         const dbVariants = variantsFor(row);
+        const dbOptions = optionsFor(row);
         return [
           {
             id: staticProduct?.id ?? row.slug,
             slug: row.slug,
             name: row.name,
             categorySlug,
+            extraCategorySlugs: extraCategorySlugsFor(row, categorySlug),
             description: row.description ?? staticProduct?.description ?? "",
             image: isUploadedImage(row.image_url) ? row.image_url : fallbackImage,
             priceNaira: row.price_naira,
             variants: dbVariants ?? staticProduct?.variants,
+            options: dbOptions,
+            minSelect: row.min_select ?? undefined,
             ingredients: row.ingredients ?? staticProduct?.ingredients ?? undefined,
             benefits: row.benefits ?? staticProduct?.benefits ?? undefined,
             available: row.active,

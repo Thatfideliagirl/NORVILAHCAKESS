@@ -20,7 +20,19 @@ export function displayPrice(priceNaira: number, product: Product): number {
     : priceNaira;
 }
 
+// A Mix & Match product's cheapest possible total: the price of its
+// minSelect (or 1, if that's somehow unset) cheapest options added up
+// -- since the customer's real total depends on what they pick, this
+// is only ever shown as a "From" price, never charged as-is.
+export function cheapestOptionsTotal(product: Product): number {
+  const options = product.options ?? [];
+  const count = Math.max(product.minSelect ?? 1, 1);
+  const cheapest = [...options].sort((a, b) => a.priceNaira - b.priceNaira).slice(0, count);
+  return cheapest.reduce((sum, o) => sum + o.priceNaira, 0);
+}
+
 export function basePrice(product: Product): number {
+  if (product.options && product.options.length > 0) return cheapestOptionsTotal(product);
   if (!product.variants || product.variants.length === 0) return product.priceNaira;
   return Math.min(...product.variants.map((v) => v.priceNaira));
 }
@@ -30,6 +42,9 @@ export function lowestPrice(product: Product): number {
 }
 
 export function priceLabel(product: Product): string {
+  if (product.options && product.options.length > 0) {
+    return `From ${formatNaira(lowestPrice(product))}`;
+  }
   if (!product.variants || product.variants.length === 0) {
     return formatNaira(lowestPrice(product));
   }
@@ -44,7 +59,13 @@ export function filterAndSortProducts(
 
   const filtered = products.filter((product) => {
     if (!product.available) return false;
-    if (category !== "all" && product.categorySlug !== category) return false;
+    if (
+      category !== "all" &&
+      product.categorySlug !== category &&
+      !product.extraCategorySlugs?.includes(category)
+    ) {
+      return false;
+    }
     if (
       normalizedQuery &&
       !product.name.toLowerCase().includes(normalizedQuery) &&

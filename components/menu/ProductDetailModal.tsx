@@ -4,12 +4,54 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, ShoppingBag, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, ShoppingBag, Sparkles, X } from "lucide-react";
 import type { Product } from "@/data/products";
 import { useCartStore } from "@/store/cart";
 import { formatNaira } from "@/lib/format";
 import { displayPrice } from "@/lib/menu";
 import QuantityStepper from "@/components/menu/QuantityStepper";
+
+// One flavour tile in a Mix & Match picker -- a checkbox card, not a
+// radio: the customer can select as many as they like, never just one.
+function OptionTile({
+  option,
+  selected,
+  onToggle,
+}: {
+  option: NonNullable<Product["options"]>[number];
+  selected: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={selected}
+      className={`overflow-hidden rounded-panel border-2 text-left transition-colors duration-150 ${
+        selected ? "border-berry" : "border-clay/20"
+      }`}
+    >
+      <div className="relative aspect-square bg-plaster/30">
+        {option.imageUrl && (
+          <Image src={option.imageUrl} alt={option.label} fill sizes="130px" className="object-cover" />
+        )}
+        <span
+          className={`absolute right-1.5 top-1.5 flex size-6 items-center justify-center rounded-full border-2 transition-colors duration-150 ${
+            selected ? "border-berry bg-berry text-cream" : "border-clay/40 bg-cream/90 text-transparent"
+          }`}
+        >
+          <Check className="size-3.5" strokeWidth={3} />
+        </span>
+      </div>
+      <div className="px-2.5 py-2">
+        <p className="font-body text-small font-semibold text-ink">{option.label}</p>
+        <p className="mt-0.5 font-body text-small font-semibold text-berry">
+          {formatNaira(option.priceNaira)}
+        </p>
+      </div>
+    </button>
+  );
+}
 
 // Keyed by product.id in the parent so a fresh mount (and fresh local
 // state) happens whenever the shown product changes, instead of an
@@ -33,11 +75,30 @@ function ProductDetailPanel({
   const [variantId, setVariantId] = useState(product.variants?.[0]?.id);
   const [quantity, setQuantity] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
+  const [selectedOptionIds, setSelectedOptionIds] = useState<Set<string>>(new Set());
 
   const selectedVariant = product.variants?.find((v) => v.id === variantId);
   const unitPrice = selectedVariant?.priceNaira ?? product.priceNaira;
   const salePriceNaira = displayPrice(unitPrice, product);
   const isOnSale = product.onSale && !!product.discountPercent;
+
+  // Mix & Match: no single price, no size, no quantity stepper -- the
+  // customer picks several flavours from product.options instead, and
+  // the whole selection becomes one cart line.
+  const isMixAndMatch = !!product.options && product.options.length > 0;
+  const minSelect = Math.max(product.minSelect ?? 1, 1);
+  const selectedOptions = (product.options ?? []).filter((o) => selectedOptionIds.has(o.id));
+  const selectionTotal = selectedOptions.reduce((sum, o) => sum + o.priceNaira, 0);
+  const selectionReady = selectedOptions.length >= minSelect;
+
+  function toggleOption(id: string) {
+    setSelectedOptionIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   function handleAddToCart() {
     addItem({
@@ -47,6 +108,23 @@ function ProductDetailPanel({
       variantLabel: selectedVariant?.label,
       priceNaira: salePriceNaira,
       quantity,
+    });
+    setJustAdded(true);
+    setTimeout(() => setJustAdded(false), 1500);
+  }
+
+  function handleAddSelectionToCart() {
+    // Reused as the cart's uniqueness key (see store/cart.ts): sorted
+    // so picking the same flavours in a different order still matches
+    // an existing line instead of creating a duplicate one.
+    const syntheticId = `opt:${Array.from(selectedOptionIds).sort().join(",")}`;
+    addItem({
+      productId: product.id,
+      variantId: syntheticId,
+      name: product.name,
+      variantLabel: selectedOptions.map((o) => o.label).join(", "),
+      priceNaira: selectionTotal,
+      quantity: 1,
     });
     setJustAdded(true);
     setTimeout(() => setJustAdded(false), 1500);
@@ -124,16 +202,36 @@ function ProductDetailPanel({
         <p className="mt-3 font-body text-lead text-ink/75">
           {product.description}
         </p>
-        <p className="mt-4 flex items-baseline gap-3 font-body text-product font-semibold text-ink">
-          {isOnSale ? (
-            <>
-              <span className="text-lead text-ink/40 line-through">{formatNaira(unitPrice)}</span>
-              <span className="text-berry">{formatNaira(salePriceNaira)}</span>
-            </>
-          ) : (
-            formatNaira(unitPrice)
-          )}
-        </p>
+        {isMixAndMatch ? (
+          <span className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-pill bg-rose/50 px-3.5 py-1.5 font-body text-small font-semibold text-berry">
+            <Sparkles className="size-3.5" strokeWidth={2} />
+            Pick at least {minSelect}
+          </span>
+        ) : (
+          <p className="mt-4 flex items-baseline gap-3 font-body text-product font-semibold text-ink">
+            {isOnSale ? (
+              <>
+                <span className="text-lead text-ink/40 line-through">{formatNaira(unitPrice)}</span>
+                <span className="text-berry">{formatNaira(salePriceNaira)}</span>
+              </>
+            ) : (
+              formatNaira(unitPrice)
+            )}
+          </p>
+        )}
+
+        {isMixAndMatch && (
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {product.options!.map((option) => (
+              <OptionTile
+                key={option.id}
+                option={option}
+                selected={selectedOptionIds.has(option.id)}
+                onToggle={() => toggleOption(option.id)}
+              />
+            ))}
+          </div>
+        )}
 
         {product.variants && product.variants.length > 0 && (
           <div className="mt-6 flex flex-wrap gap-2">
@@ -185,45 +283,100 @@ function ProductDetailPanel({
           </div>
         ) : null}
 
-        <div className="mt-8 flex items-center gap-4">
-          <QuantityStepper quantity={quantity} onChange={setQuantity} size="large" />
-          <motion.button
-            type="button"
-            onClick={handleAddToCart}
-            whileTap={{ scale: 0.95 }}
-            animate={justAdded ? { scale: [1, 1.06, 1] } : { scale: 1 }}
-            transition={{ duration: 0.35, ease: "easeOut" }}
-            className="flex flex-1 items-center justify-center gap-2 rounded-pill bg-berry px-6 py-3.5 font-body font-medium text-cream transition-colors duration-200 hover:bg-cocoa"
-          >
-            <AnimatePresence mode="wait" initial={false}>
-              {justAdded ? (
-                <motion.span
-                  key="added"
-                  initial={{ opacity: 0, y: -6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 6 }}
-                  transition={{ duration: 0.18 }}
-                  className="flex items-center gap-2"
-                >
-                  <Check className="size-4" strokeWidth={2} />
-                  Added
-                </motion.span>
-              ) : (
-                <motion.span
-                  key="add"
-                  initial={{ opacity: 0, y: -6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 6 }}
-                  transition={{ duration: 0.18 }}
-                  className="flex items-center gap-2"
-                >
-                  <ShoppingBag className="size-4" strokeWidth={1.75} />
-                  Add to Cart
-                </motion.span>
+        {isMixAndMatch ? (
+          <div className="sticky bottom-0 mt-8 flex items-center justify-between gap-3 rounded-panel bg-cocoa px-5 py-4 text-cream">
+            <div className="font-body text-small font-semibold">
+              <span className={selectionReady ? "text-[#8fd6a3]" : "text-wood"}>
+                {selectedOptions.length} of {minSelect}
+              </span>{" "}
+              picked
+              {selectedOptions.length > 0 && (
+                <span className="ml-2 font-display text-product text-cream">
+                  {formatNaira(selectionTotal)}
+                </span>
               )}
-            </AnimatePresence>
-          </motion.button>
-        </div>
+            </div>
+            <motion.button
+              type="button"
+              onClick={handleAddSelectionToCart}
+              disabled={!selectionReady}
+              whileTap={selectionReady ? { scale: 0.95 } : undefined}
+              animate={justAdded ? { scale: [1, 1.06, 1] } : { scale: 1 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+              className="flex shrink-0 items-center justify-center gap-2 rounded-pill bg-berry px-6 py-3 font-body font-medium text-cream transition-colors duration-200 hover:bg-berry/90 disabled:cursor-not-allowed disabled:bg-cream/15 disabled:text-cream/50"
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                {justAdded ? (
+                  <motion.span
+                    key="added"
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 6 }}
+                    transition={{ duration: 0.18 }}
+                    className="flex items-center gap-2"
+                  >
+                    <Check className="size-4" strokeWidth={2} />
+                    Added
+                  </motion.span>
+                ) : (
+                  <motion.span
+                    key="add"
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 6 }}
+                    transition={{ duration: 0.18 }}
+                    className="flex items-center gap-2"
+                  >
+                    <ShoppingBag className="size-4" strokeWidth={1.75} />
+                    {selectionReady
+                      ? "Add to Cart"
+                      : `Pick ${minSelect - selectedOptions.length} more`}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </motion.button>
+          </div>
+        ) : (
+          <div className="mt-8 flex items-center gap-4">
+            <QuantityStepper quantity={quantity} onChange={setQuantity} size="large" />
+            <motion.button
+              type="button"
+              onClick={handleAddToCart}
+              whileTap={{ scale: 0.95 }}
+              animate={justAdded ? { scale: [1, 1.06, 1] } : { scale: 1 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+              className="flex flex-1 items-center justify-center gap-2 rounded-pill bg-berry px-6 py-3.5 font-body font-medium text-cream transition-colors duration-200 hover:bg-cocoa"
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                {justAdded ? (
+                  <motion.span
+                    key="added"
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 6 }}
+                    transition={{ duration: 0.18 }}
+                    className="flex items-center gap-2"
+                  >
+                    <Check className="size-4" strokeWidth={2} />
+                    Added
+                  </motion.span>
+                ) : (
+                  <motion.span
+                    key="add"
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 6 }}
+                    transition={{ duration: 0.18 }}
+                    className="flex items-center gap-2"
+                  >
+                    <ShoppingBag className="size-4" strokeWidth={1.75} />
+                    Add to Cart
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </motion.button>
+          </div>
+        )}
       </div>
     </motion.div>
   );

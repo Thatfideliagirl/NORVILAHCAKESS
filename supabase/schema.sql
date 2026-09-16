@@ -825,3 +825,121 @@ create policy "price_list_items_public_read" on public.price_list_items
 drop policy if exists "price_list_items_admin_write" on public.price_list_items;
 create policy "price_list_items_admin_write" on public.price_list_items
   for all using (public.is_admin()) with check (public.is_admin());
+
+-- =========================================================
+-- 28. PRODUCT OPTIONS ("Mix & Match") + MULTI-CATEGORY PRODUCTS
+-- A second pricing mode alongside Sizes: instead of one price (or a
+-- few fixed size/price options), a product can offer a list of
+-- options -- e.g. Banana Bread Mini's flavours -- each with its own
+-- price and photo, where the customer picks at least min_select of
+-- them and the total adds up from what they picked. Untouched:
+-- Sizes/product_variants and the plain single-price flow both keep
+-- working exactly as before -- a product only becomes an "Options"
+-- product when it actually has rows here, same convention as Sizes.
+-- =========================================================
+alter table public.products add column if not exists min_select integer;
+
+create table if not exists public.product_options (
+  id uuid primary key default gen_random_uuid(),
+  product_id uuid not null references public.products (id) on delete cascade,
+  label text not null,                    -- "Chocolate Chip"
+  price_naira integer not null,
+  image_url text,
+  active boolean not null default true,   -- OFF = hidden from customers, not deleted
+  sort_order int not null default 0
+);
+
+alter table public.product_options enable row level security;
+
+drop policy if exists "options_public_read" on public.product_options;
+create policy "options_public_read" on public.product_options
+  for select using (active or public.is_admin());
+drop policy if exists "options_admin_write" on public.product_options;
+create policy "options_admin_write" on public.product_options
+  for all using (public.is_admin()) with check (public.is_admin());
+
+-- A product can now sit in more than one category (e.g. Banana Bread
+-- Mini shows under both "Banana Bread" and a "Choices" category that
+-- gathers every mix-and-match product together). products.category_id
+-- stays as the product's main/primary category -- unchanged, so
+-- nothing that already reads it breaks -- this table adds any extra
+-- categories on top of that.
+create table if not exists public.product_categories (
+  product_id uuid not null references public.products (id) on delete cascade,
+  category_id uuid not null references public.categories (id) on delete cascade,
+  primary key (product_id, category_id)
+);
+
+alter table public.product_categories enable row level security;
+
+drop policy if exists "product_categories_public_read" on public.product_categories;
+create policy "product_categories_public_read" on public.product_categories
+  for select using (true);
+drop policy if exists "product_categories_admin_write" on public.product_categories;
+create policy "product_categories_admin_write" on public.product_categories
+  for all using (public.is_admin()) with check (public.is_admin());
+
+-- Backfill: every product's existing single category also becomes a
+-- row here, so "all categories a product belongs to" is always a
+-- complete read of this table, primary category included.
+insert into public.product_categories (product_id, category_id)
+select id, category_id from public.products where category_id is not null
+on conflict do nothing;
+
+-- A "Choices" category to gather every mix-and-match product.
+insert into public.categories (slug, name, blurb, sort_order)
+select 'choices', 'Choices', 'Mix and match your own from these flexible favourites.',
+  (select coalesce(max(sort_order), 0) + 1 from public.categories)
+where not exists (select 1 from public.categories where slug = 'choices');
+
+-- Seed data: Banana Bread Mini and Medium, using the flavours and
+-- prices already entered in the Norvilah Catalog price list, so
+-- nothing needs retyping in Admin -- just review and edit from here.
+insert into public.products (slug, name, category_id, description, image_url, price_naira, min_select, active, featured)
+select 'banana-bread-mini', 'Banana Bread — Mini', c.id,
+  'Moist mini banana bread loaves -- pick any 4 (or more) flavours to mix and match.',
+  'https://nderaiijbtfvdeanuplo.supabase.co/storage/v1/object/public/product-images/price-lists/banana-bread-1789241341363.jpg',
+  1700, 4, true, false
+from public.categories c where c.slug = 'banana-bread'
+on conflict (slug) do nothing;
+
+insert into public.products (slug, name, category_id, description, image_url, price_naira, min_select, active, featured)
+select 'banana-bread-medium', 'Banana Bread — Medium', c.id,
+  'A full medium banana bread loaf -- choose your flavour.',
+  'https://nderaiijbtfvdeanuplo.supabase.co/storage/v1/object/public/product-images/price-lists/banana-bread-1789241341363.jpg',
+  7200, 1, true, false
+from public.categories c where c.slug = 'banana-bread'
+on conflict (slug) do nothing;
+
+-- Both new products' primary category, plus "Choices" on top.
+insert into public.product_categories (product_id, category_id)
+select p.id, p.category_id from public.products p
+where p.slug in ('banana-bread-mini', 'banana-bread-medium') and p.category_id is not null
+on conflict do nothing;
+
+insert into public.product_categories (product_id, category_id)
+select p.id, c.id from public.products p, public.categories c
+where p.slug in ('banana-bread-mini', 'banana-bread-medium') and c.slug = 'choices'
+on conflict do nothing;
+
+insert into public.product_options (product_id, label, price_naira, image_url, sort_order)
+select p.id, v.label, v.price_naira, p.image_url, v.sort_order
+from public.products p
+join (values
+  ('Classic', 1700, 0), ('Chocolate Chip', 2400, 1), ('Coconut', 2000, 2),
+  ('Oreo', 2100, 3), ('Baileys', 3000, 4), ('Raisins', 2200, 5),
+  ('Cashew & Coconut', 1900, 6), ('Marble', 2400, 7), ('Choc Chunk', 2700, 8)
+) as v(label, price_naira, sort_order) on true
+where p.slug = 'banana-bread-mini'
+and not exists (select 1 from public.product_options where product_id = p.id);
+
+insert into public.product_options (product_id, label, price_naira, image_url, sort_order)
+select p.id, v.label, v.price_naira, p.image_url, v.sort_order
+from public.products p
+join (values
+  ('Classic', 7200, 0), ('Chocolate Chip', 8900, 1), ('Coconut', 7400, 2),
+  ('Oreo', 8100, 3), ('Baileys', 10000, 4), ('Raisins', 7800, 5),
+  ('Almonds Raisins', 8400, 6), ('Oreo Overload', 12000, 7)
+) as v(label, price_naira, sort_order) on true
+where p.slug = 'banana-bread-medium'
+and not exists (select 1 from public.product_options where product_id = p.id);

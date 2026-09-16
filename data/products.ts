@@ -12,15 +12,35 @@ export type Variant = {
   priceNaira: number;
 };
 
+// A "Mix & Match" choice -- e.g. one flavour of Banana Bread Mini.
+// Distinct from Variant (pick exactly one size): a product with
+// options has the customer pick several of these, minSelect or more,
+// and the total is whatever they picked added up.
+export type ProductOption = {
+  id: string;
+  label: string; // "Chocolate Chip"
+  priceNaira: number;
+  imageUrl: string | null;
+};
+
 export type Product = {
   id: string;
   slug: string;
   name: string;
   categorySlug: string;
+  // Extra categories this product also appears under, on top of
+  // categorySlug (its main one) -- e.g. a Mix & Match product also
+  // listed under "Choices".
+  extraCategorySlugs?: string[];
   description: string;
   image: string;
   priceNaira: number; // base price, or the lowest variant
   variants?: Variant[];
+  // Present only for a "Mix & Match" product: a list of choices the
+  // customer picks from instead of one price or a size. minSelect is
+  // the fewest they must pick (they can always pick more).
+  options?: ProductOption[];
+  minSelect?: number;
   // Left undefined until the client supplies real, product-specific
   // copy: these are food-safety-sensitive (allergens, nutrition) and
   // must never be guessed. "benefits" is deliberately framed as
