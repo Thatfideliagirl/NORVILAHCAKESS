@@ -21,6 +21,7 @@ export type ProductOption = {
   label: string; // "Chocolate Chip"
   priceNaira: number;
   imageUrl: string | null;
+  ingredients?: string[];
 };
 
 export type Product = {

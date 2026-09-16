@@ -51,10 +51,20 @@ type OptionRow = {
   imageFile: File | null;
   imagePreview: string | null;
   active: boolean;
+  ingredients: string;
 };
 
 function newOptionRow(): OptionRow {
-  return { id: null, label: "", priceNaira: "", imageUrl: null, imageFile: null, imagePreview: null, active: true };
+  return {
+    id: null,
+    label: "",
+    priceNaira: "",
+    imageUrl: null,
+    imageFile: null,
+    imagePreview: null,
+    active: true,
+    ingredients: "",
+  };
 }
 
 function VariantsEditor({
@@ -181,62 +191,70 @@ function OptionsEditor({
       </p>
       <div className="mt-2 flex flex-col gap-2">
         {options.map((option, index) => (
-          <div key={index} className="flex flex-wrap items-center gap-2 rounded-panel border border-clay/15 bg-plaster/10 p-2">
-            <div className="relative size-11 shrink-0 overflow-hidden rounded-panel bg-plaster/40">
-              {(option.imagePreview ?? option.imageUrl) && (
-                <Image
-                  src={option.imagePreview ?? option.imageUrl ?? ""}
-                  alt={option.label || "Option"}
-                  fill
-                  sizes="44px"
-                  className="object-cover"
+          <div key={index} className="rounded-panel border border-clay/15 bg-plaster/10 p-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative size-11 shrink-0 overflow-hidden rounded-panel bg-plaster/40">
+                {(option.imagePreview ?? option.imageUrl) && (
+                  <Image
+                    src={option.imagePreview ?? option.imageUrl ?? ""}
+                    alt={option.label || "Option"}
+                    fill
+                    sizes="44px"
+                    className="object-cover"
+                  />
+                )}
+              </div>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => onImageChange(index, e.target.files?.[0] ?? null)}
+                className="w-24 shrink-0 font-body text-xs text-ink"
+              />
+              <input
+                value={option.label}
+                onChange={(e) => updateRow(index, { label: e.target.value })}
+                placeholder="e.g. Chocolate Chip"
+                className={`${inputClasses} max-w-[160px]`}
+              />
+              <input
+                value={option.priceNaira}
+                onChange={(e) => updateRow(index, { priceNaira: e.target.value })}
+                inputMode="numeric"
+                placeholder="Price (₦)"
+                className={`${inputClasses} max-w-[120px]`}
+              />
+              <button
+                type="button"
+                role="switch"
+                aria-checked={option.active}
+                aria-label={option.active ? "Turn this option off" : "Turn this option on"}
+                onClick={() => updateRow(index, { active: !option.active })}
+                className={`relative h-6 w-11 shrink-0 rounded-pill transition-colors ${
+                  option.active ? "bg-berry" : "bg-clay/30"
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 size-5 rounded-full bg-white transition-transform ${
+                    option.active ? "translate-x-[22px]" : "translate-x-0.5"
+                  }`}
                 />
-              )}
+              </button>
+              <button
+                type="button"
+                onClick={() => removeRow(index)}
+                aria-label={`Delete ${option.label || "option"}`}
+                className="ml-auto flex shrink-0 items-center gap-1 font-body text-small font-medium text-berry"
+              >
+                <Trash2 className="size-3.5" strokeWidth={1.75} />
+                Delete
+              </button>
             </div>
             <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => onImageChange(index, e.target.files?.[0] ?? null)}
-              className="w-24 shrink-0 font-body text-xs text-ink"
+              value={option.ingredients}
+              onChange={(e) => updateRow(index, { ingredients: e.target.value })}
+              placeholder="Ingredients (comma separated)"
+              className={`${inputClasses} mt-2`}
             />
-            <input
-              value={option.label}
-              onChange={(e) => updateRow(index, { label: e.target.value })}
-              placeholder="e.g. Chocolate Chip"
-              className={`${inputClasses} max-w-[160px]`}
-            />
-            <input
-              value={option.priceNaira}
-              onChange={(e) => updateRow(index, { priceNaira: e.target.value })}
-              inputMode="numeric"
-              placeholder="Price (₦)"
-              className={`${inputClasses} max-w-[120px]`}
-            />
-            <button
-              type="button"
-              role="switch"
-              aria-checked={option.active}
-              aria-label={option.active ? "Turn this option off" : "Turn this option on"}
-              onClick={() => updateRow(index, { active: !option.active })}
-              className={`relative h-6 w-11 shrink-0 rounded-pill transition-colors ${
-                option.active ? "bg-berry" : "bg-clay/30"
-              }`}
-            >
-              <span
-                className={`absolute top-0.5 size-5 rounded-full bg-white transition-transform ${
-                  option.active ? "translate-x-[22px]" : "translate-x-0.5"
-                }`}
-              />
-            </button>
-            <button
-              type="button"
-              onClick={() => removeRow(index)}
-              aria-label={`Delete ${option.label || "option"}`}
-              className="ml-auto flex shrink-0 items-center gap-1 font-body text-small font-medium text-berry"
-            >
-              <Trash2 className="size-3.5" strokeWidth={1.75} />
-              Delete
-            </button>
           </div>
         ))}
         <button
@@ -279,6 +297,10 @@ async function saveOptions(productId: string, options: OptionRow[], originalIds:
       price_naira: Number(o.priceNaira),
       image_url: imageUrl,
       active: o.active,
+      ingredients: o.ingredients
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
       sort_order: i,
     };
     if (o.id) {
@@ -660,7 +682,7 @@ function EditProductForm({
       });
     supabase
       .from("product_options")
-      .select("id, label, price_naira, image_url, active")
+      .select("id, label, price_naira, image_url, active, ingredients")
       .eq("product_id", product.id)
       .order("sort_order")
       .then(({ data }) => {
@@ -672,6 +694,7 @@ function EditProductForm({
           imageFile: null,
           imagePreview: null,
           active: o.active as boolean,
+          ingredients: ((o.ingredients as string[] | null) ?? []).join(", "),
         }));
         setOptions(rows);
         setOriginalOptionIds(new Set(rows.map((r) => r.id)));

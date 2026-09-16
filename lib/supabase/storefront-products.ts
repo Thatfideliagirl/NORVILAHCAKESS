@@ -41,6 +41,7 @@ type DbOptionRow = {
   label: string;
   price_naira: number;
   image_url: string | null;
+  ingredients: string[] | null;
 };
 
 type DbProductCategoryRow = {
@@ -72,7 +73,7 @@ export function useStorefrontProducts(): { products: Product[]; loading: boolean
         .returns<DbVariantRow[]>(),
       supabase
         .from("product_options")
-        .select("id, product_id, label, price_naira, image_url")
+        .select("id, product_id, label, price_naira, image_url, ingredients")
         .eq("active", true)
         .order("sort_order")
         .returns<DbOptionRow[]>(),
@@ -113,6 +114,7 @@ export function useStorefrontProducts(): { products: Product[]; loading: boolean
               label: o.label,
               priceNaira: o.price_naira,
               imageUrl: o.image_url,
+              ingredients: o.ingredients ?? undefined,
             }))
           : undefined;
       }

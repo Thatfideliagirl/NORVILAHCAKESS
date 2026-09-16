@@ -943,3 +943,11 @@ join (values
 ) as v(label, price_naira, sort_order) on true
 where p.slug = 'banana-bread-medium'
 and not exists (select 1 from public.product_options where product_id = p.id);
+
+-- =========================================================
+-- 29. INGREDIENTS PER OPTION
+-- Each Mix & Match flavour can now list its own ingredients (same
+-- shape as products.ingredients), shown when a customer opens that
+-- flavour's photo for a closer look.
+-- =========================================================
+alter table public.product_options add column if not exists ingredients text[] default '{}';

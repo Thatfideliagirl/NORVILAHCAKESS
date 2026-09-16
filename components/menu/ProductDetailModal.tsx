@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, ShoppingBag, Sparkles, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, Expand, ShoppingBag, Sparkles, X } from "lucide-react";
 import type { Product } from "@/data/products";
 import { useCartStore } from "@/store/cart";
 import { formatNaira } from "@/lib/format";
@@ -13,14 +13,19 @@ import QuantityStepper from "@/components/menu/QuantityStepper";
 
 // One flavour tile in a Mix & Match picker -- a checkbox card, not a
 // radio: the customer can select as many as they like, never just one.
+// Tapping the photo itself opens a closer look instead of toggling the
+// selection, so someone can check what a flavour actually looks like
+// without accidentally picking (or unpicking) it.
 function OptionTile({
   option,
   selected,
   onToggle,
+  onView,
 }: {
   option: NonNullable<Product["options"]>[number];
   selected: boolean;
   onToggle: () => void;
+  onView: () => void;
 }) {
   return (
     <button
@@ -36,6 +41,25 @@ function OptionTile({
           <Image src={option.imageUrl} alt={option.label} fill sizes="130px" className="object-cover" />
         )}
         <span
+          role="button"
+          tabIndex={0}
+          onClick={(e) => {
+            e.stopPropagation();
+            onView();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              e.stopPropagation();
+              onView();
+            }
+          }}
+          aria-label={`See a closer look at ${option.label}`}
+          className="absolute left-1.5 top-1.5 flex size-6 items-center justify-center rounded-full bg-cream/90 text-ink shadow-warm transition-colors hover:bg-cream"
+        >
+          <Expand className="size-3.5" strokeWidth={2} />
+        </span>
+        <span
           className={`absolute right-1.5 top-1.5 flex size-6 items-center justify-center rounded-full border-2 transition-colors duration-150 ${
             selected ? "border-berry bg-berry text-cream" : "border-clay/40 bg-cream/90 text-transparent"
           }`}
@@ -50,6 +74,89 @@ function OptionTile({
         </p>
       </div>
     </button>
+  );
+}
+
+// Its own portal straight to <body>, independent of the product panel
+// above it -- that panel is a motion.div that applies a transform
+// while it animates, and a transform on an ancestor would otherwise
+// hijack this lightbox's "fixed" positioning and mis-place it instead
+// of covering the real viewport.
+function OptionLightbox({
+  option,
+  onClose,
+}: {
+  option: NonNullable<Product["options"]>[number];
+  onClose: () => void;
+}) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
+  if (!mounted) return null;
+
+  return createPortal(
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-[110] flex items-center justify-center bg-cocoa/70 p-6"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ y: 16, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 16, opacity: 0 }}
+        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+        role="dialog"
+        aria-modal="true"
+        aria-label={option.label}
+        onClick={(e) => e.stopPropagation()}
+        className="relative flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-panel bg-cream"
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute right-3 top-3 z-10 flex size-9 items-center justify-center rounded-full bg-cream/90 text-ink shadow-warm"
+        >
+          <X className="size-4" strokeWidth={1.75} />
+        </button>
+        <div className="relative aspect-square w-full shrink-0 bg-plaster/30">
+          {option.imageUrl && (
+            <Image src={option.imageUrl} alt={option.label} fill sizes="400px" className="object-cover" />
+          )}
+        </div>
+        <div className="overflow-y-auto p-5">
+          <h3 className="font-display text-subheading text-berry">{option.label}</h3>
+          <p className="mt-1 font-body text-product font-semibold text-ink">
+            {formatNaira(option.priceNaira)}
+          </p>
+          {option.ingredients && option.ingredients.length > 0 && (
+            <div className="mt-4 rounded-panel bg-plaster/50 p-4">
+              <h4 className="font-body text-small font-semibold uppercase tracking-[0.08em] text-clay">
+                Ingredients
+              </h4>
+              <p className="mt-2 font-body text-small text-ink/80">
+                {option.ingredients.join(", ")}
+              </p>
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>,
+    document.body
   );
 }
 
@@ -76,6 +183,9 @@ function ProductDetailPanel({
   const [quantity, setQuantity] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
   const [selectedOptionIds, setSelectedOptionIds] = useState<Set<string>>(new Set());
+  const [viewingOption, setViewingOption] = useState<NonNullable<Product["options"]>[number] | null>(
+    null
+  );
 
   const selectedVariant = product.variants?.find((v) => v.id === variantId);
   const unitPrice = selectedVariant?.priceNaira ?? product.priceNaira;
@@ -228,6 +338,7 @@ function ProductDetailPanel({
                 option={option}
                 selected={selectedOptionIds.has(option.id)}
                 onToggle={() => toggleOption(option.id)}
+                onView={() => setViewingOption(option)}
               />
             ))}
           </div>
@@ -378,6 +489,9 @@ function ProductDetailPanel({
           </div>
         )}
       </div>
+      {viewingOption && (
+        <OptionLightbox option={viewingOption} onClose={() => setViewingOption(null)} />
+      )}
     </motion.div>
   );
 }
