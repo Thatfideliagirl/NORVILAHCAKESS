@@ -370,7 +370,7 @@ function fetchProducts() {
   return supabase
     .from("products")
     .select(
-      "id, slug, name, description, ingredients, benefits, image_url, price_naira, active, featured, category_id, on_sale, discount_percent, min_select, sort_order, categories(name)"
+      "id, slug, name, description, ingredients, benefits, image_url, price_naira, active, featured, category_id, on_sale, discount_percent, min_select, sort_order, categories!category_id(name)"
     )
     .order("sort_order")
     .returns<Product[]>();
@@ -1026,7 +1026,7 @@ function AddProductForm({
         .from("products")
         .insert(insertPayload)
         .select(
-          "id, slug, name, description, ingredients, benefits, image_url, price_naira, active, featured, category_id, on_sale, discount_percent, min_select, sort_order, categories(name)"
+          "id, slug, name, description, ingredients, benefits, image_url, price_naira, active, featured, category_id, on_sale, discount_percent, min_select, sort_order, categories!category_id(name)"
         )
         .single<Product>();
       if (insertError) throw insertError;

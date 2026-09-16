@@ -61,7 +61,7 @@ export function useStorefrontProducts(): { products: Product[]; loading: boolean
       supabase
         .from("products")
         .select(
-          "id, slug, name, description, ingredients, benefits, image_url, price_naira, active, featured, on_sale, discount_percent, min_select, categories(slug)"
+          "id, slug, name, description, ingredients, benefits, image_url, price_naira, active, featured, on_sale, discount_percent, min_select, categories!category_id(slug)"
         )
         .order("sort_order")
         .returns<DbProductRow[]>(),
