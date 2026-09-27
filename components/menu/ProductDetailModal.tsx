@@ -309,7 +309,7 @@ function ProductDetailPanel({
         <h2 className="font-display text-heading leading-[1.05] text-berry">
           {product.name}
         </h2>
-        <p className="mt-3 font-body text-lead text-ink/75">
+        <p className="mt-3 whitespace-pre-line font-body text-lead text-ink/75">
           {product.description}
         </p>
         {isMixAndMatch ? (
