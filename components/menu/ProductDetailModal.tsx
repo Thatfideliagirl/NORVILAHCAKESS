@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, Expand, ShoppingBag, Sparkles, X } from "lucide-react";
+import { ArrowLeft, Calendar, Check, ChevronLeft, ChevronRight, Expand, ShoppingBag, Sparkles, X } from "lucide-react";
 import type { Product } from "@/data/products";
 import { useCartStore } from "@/store/cart";
 import { formatNaira } from "@/lib/format";
 import { displayPrice } from "@/lib/menu";
+import { dayAfter, formatPreorderDate, preorderIsOrderable } from "@/lib/preorder";
 import QuantityStepper from "@/components/menu/QuantityStepper";
 
 // One flavour tile in a Mix & Match picker -- a checkbox card, not a
@@ -201,6 +202,10 @@ function ProductDetailPanel({
   const selectionTotal = selectedOptions.reduce((sum, o) => sum + o.priceNaira, 0);
   const selectionReady = selectedOptions.length >= minSelect;
 
+  const preorder = product.preorder;
+  const preorderOrderable = preorder ? preorderIsOrderable(preorder) : true;
+  const slotsLeft = preorder ? Math.max(0, preorder.slotsTotal - preorder.slotsTaken) : Infinity;
+
   function toggleOption(id: string) {
     setSelectedOptionIds((current) => {
       const next = new Set(current);
@@ -330,6 +335,17 @@ function ProductDetailPanel({
           </p>
         )}
 
+        {preorder && (
+          <span className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-pill bg-rose/50 px-3.5 py-1.5 font-body text-small font-semibold text-berry">
+            <Calendar className="size-3.5" strokeWidth={2} />
+            {preorderOrderable
+              ? `Closes ${formatPreorderDate(preorder.cycleEnd)}, ready ${formatPreorderDate(dayAfter(preorder.cycleEnd))} · ${slotsLeft} of ${preorder.slotsTotal} slots left`
+              : !preorder.hasStarted
+                ? `Pre-order opens ${formatPreorderDate(preorder.cycleStart)}`
+                : "Fully booked for this round"}
+          </span>
+        )}
+
         {isMixAndMatch && (
           <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
             {product.options!.map((option) => (
@@ -447,9 +463,13 @@ function ProductDetailPanel({
               </AnimatePresence>
             </motion.button>
           </div>
+        ) : preorder && !preorderOrderable ? (
+          <div className="mt-8 rounded-panel bg-clay/10 px-5 py-4 text-center font-body text-small font-medium text-ink/60">
+            {!preorder.hasStarted ? "Pre-order isn't open yet." : "This round is fully booked."}
+          </div>
         ) : (
           <div className="mt-8 flex items-center gap-4">
-            <QuantityStepper quantity={quantity} onChange={setQuantity} size="large" />
+            <QuantityStepper quantity={quantity} onChange={setQuantity} size="large" max={slotsLeft} />
             <motion.button
               type="button"
               onClick={handleAddToCart}

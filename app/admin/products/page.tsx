@@ -6,6 +6,7 @@ import { GripVertical, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { formatNaira } from "@/lib/format";
 import { compressImage } from "@/lib/compress-image";
+import { dayAfter, formatPreorderDate, preorderCycleLengthDays } from "@/lib/preorder";
 import AdminErrorBanner from "@/components/admin/AdminErrorBanner";
 
 type Product = {
@@ -320,6 +321,118 @@ function cheapestOptionsTotal(options: OptionRow[], minSelect: number): number {
   const usable = options.filter((o) => o.active && o.label.trim() && Number(o.priceNaira) > 0);
   const prices = usable.map((o) => Number(o.priceNaira)).sort((a, b) => a - b);
   return prices.slice(0, Math.max(minSelect, 1)).reduce((sum, p) => sum + p, 0);
+}
+
+function PreorderFields({
+  slots,
+  startsAt,
+  endsAt,
+  recurring,
+  onChangeSlots,
+  onChangeStartsAt,
+  onChangeEndsAt,
+  onChangeRecurring,
+}: {
+  slots: string;
+  startsAt: string;
+  endsAt: string;
+  recurring: boolean;
+  onChangeSlots: (value: string) => void;
+  onChangeStartsAt: (value: string) => void;
+  onChangeEndsAt: (value: string) => void;
+  onChangeRecurring: (value: boolean) => void;
+}) {
+  const validRange = startsAt && endsAt && endsAt >= startsAt;
+  const days = validRange ? preorderCycleLengthDays(startsAt, endsAt) : null;
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="w-40">
+        <label className="font-body text-xs font-medium uppercase tracking-wide text-ink/50">
+          Slots
+        </label>
+        <input
+          value={slots}
+          onChange={(e) => onChangeSlots(e.target.value)}
+          inputMode="numeric"
+          placeholder="e.g. 10"
+          className={`${inputClasses} mt-1`}
+        />
+        <p className="mt-1 font-body text-xs text-ink/50">
+          Once this many people order, it closes until you raise the number.
+        </p>
+      </div>
+      <div className="flex flex-wrap items-end gap-3">
+        <div>
+          <label className="font-body text-xs font-medium uppercase tracking-wide text-ink/50">
+            Orders open
+          </label>
+          <input
+            type="date"
+            value={startsAt}
+            onChange={(e) => onChangeStartsAt(e.target.value)}
+            className={`${inputClasses} mt-1`}
+          />
+        </div>
+        <div>
+          <label className="font-body text-xs font-medium uppercase tracking-wide text-ink/50">
+            Orders close
+          </label>
+          <input
+            type="date"
+            value={endsAt}
+            onChange={(e) => onChangeEndsAt(e.target.value)}
+            className={`${inputClasses} mt-1`}
+          />
+        </div>
+        {days !== null && (
+          <p className="pb-2 font-body text-xs text-ink/50">
+            {days} day{days === 1 ? "" : "s"} — ready {formatPreorderDate(dayAfter(endsAt))}
+          </p>
+        )}
+      </div>
+      <div className="flex max-w-sm items-center justify-between rounded-panel border border-berry/15 bg-rose/20 px-4 py-3">
+        <div>
+          <span className="font-body text-small font-medium text-ink">Recurring</span>
+          <p className="font-body text-xs text-ink/50">
+            Automatically opens a new round right after this one closes.
+          </p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={recurring}
+          onClick={() => onChangeRecurring(!recurring)}
+          className={`relative h-6 w-11 shrink-0 rounded-pill transition-colors ${
+            recurring ? "bg-berry" : "bg-clay/30"
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 size-5 rounded-full bg-white transition-transform ${
+              recurring ? "translate-x-[22px]" : "translate-x-0.5"
+            }`}
+          />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+async function savePreorder(
+  productId: string,
+  data: { slots: number; startsAt: string; endsAt: string; recurring: boolean } | null
+) {
+  if (data) {
+    await supabase.from("product_preorders").upsert({
+      product_id: productId,
+      slots: data.slots,
+      starts_at: data.startsAt,
+      ends_at: data.endsAt,
+      recurring: data.recurring,
+    });
+  } else {
+    await supabase.from("product_preorders").delete().eq("product_id", productId);
+  }
 }
 
 function CategoryCheckboxes({
@@ -658,10 +771,14 @@ function EditProductForm({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [variants, setVariants] = useState<VariantRow[]>([]);
   const [originalVariantIds, setOriginalVariantIds] = useState<Set<string>>(new Set());
-  const [pricingType, setPricingType] = useState<"regular" | "options">("regular");
+  const [pricingType, setPricingType] = useState<"regular" | "options" | "preorder">("regular");
   const [options, setOptions] = useState<OptionRow[]>([]);
   const [originalOptionIds, setOriginalOptionIds] = useState<Set<string>>(new Set());
   const [minSelect, setMinSelect] = useState(String(product.min_select ?? 4));
+  const [preorderSlots, setPreorderSlots] = useState("10");
+  const [preorderStartsAt, setPreorderStartsAt] = useState("");
+  const [preorderEndsAt, setPreorderEndsAt] = useState("");
+  const [preorderRecurring, setPreorderRecurring] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -701,6 +818,19 @@ function EditProductForm({
         if (rows.length > 0) setPricingType("options");
       });
     supabase
+      .from("product_preorders")
+      .select("slots, starts_at, ends_at, recurring")
+      .eq("product_id", product.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) return;
+        setPreorderSlots(String(data.slots));
+        setPreorderStartsAt(data.starts_at);
+        setPreorderEndsAt(data.ends_at);
+        setPreorderRecurring(data.recurring);
+        setPricingType("preorder");
+      });
+    supabase
       .from("product_categories")
       .select("category_id")
       .eq("product_id", product.id)
@@ -727,6 +857,10 @@ function EditProductForm({
       setError("Please pick at least one category.");
       return;
     }
+    if (pricingType === "preorder" && (!preorderStartsAt || !preorderEndsAt || preorderEndsAt < preorderStartsAt)) {
+      setError("Please pick a valid Orders open/close date range.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -743,6 +877,7 @@ function EditProductForm({
       }
       const primaryCategoryId = categories.find((c) => categoryIds.has(c.id))?.id ?? null;
       const isOptions = pricingType === "options";
+      const isPreorder = pricingType === "preorder";
       const updated = {
         name: name.trim(),
         description,
@@ -771,9 +906,20 @@ function EditProductForm({
       if (isOptions) {
         await saveOptions(product.id, options, originalOptionIds);
         await saveVariants(product.id, [], originalVariantIds);
+        await savePreorder(product.id, null);
+      } else if (isPreorder) {
+        await saveVariants(product.id, [], originalVariantIds);
+        await saveOptions(product.id, [], originalOptionIds);
+        await savePreorder(product.id, {
+          slots: Number(preorderSlots) || 1,
+          startsAt: preorderStartsAt,
+          endsAt: preorderEndsAt,
+          recurring: preorderRecurring,
+        });
       } else {
         await saveVariants(product.id, variants, originalVariantIds);
         await saveOptions(product.id, [], originalOptionIds);
+        await savePreorder(product.id, null);
       }
       await saveProductCategories(product.id, categoryIds, originalCategoryIds);
       const categoryName = categories.find((c) => c.id === primaryCategoryId)?.name ?? null;
@@ -887,6 +1033,19 @@ function EditProductForm({
               Customer picks from a list of options, each its own price.
             </p>
           </button>
+          <button
+            type="button"
+            onClick={() => setPricingType("preorder")}
+            aria-pressed={pricingType === "preorder"}
+            className={`flex-1 rounded-panel border-2 p-3 text-left transition-colors ${
+              pricingType === "preorder" ? "border-berry bg-rose/15" : "border-clay/20"
+            }`}
+          >
+            <p className="font-body text-small font-semibold text-ink">Pre-order</p>
+            <p className="mt-0.5 font-body text-xs text-ink/55">
+              Takes orders only within a date window, capped at a number of slots.
+            </p>
+          </button>
         </div>
       </div>
 
@@ -907,6 +1066,30 @@ function EditProductForm({
             </p>
           </div>
           <OptionsEditor options={options} onChange={setOptions} />
+        </>
+      ) : pricingType === "preorder" ? (
+        <>
+          <div className="w-40">
+            <label className="font-body text-xs font-medium uppercase tracking-wide text-ink/50">
+              Price (₦)
+            </label>
+            <input
+              value={priceNaira}
+              onChange={(e) => setPriceNaira(e.target.value)}
+              inputMode="numeric"
+              className={`${inputClasses} mt-1`}
+            />
+          </div>
+          <PreorderFields
+            slots={preorderSlots}
+            startsAt={preorderStartsAt}
+            endsAt={preorderEndsAt}
+            recurring={preorderRecurring}
+            onChangeSlots={setPreorderSlots}
+            onChangeStartsAt={setPreorderStartsAt}
+            onChangeEndsAt={setPreorderEndsAt}
+            onChangeRecurring={setPreorderRecurring}
+          />
         </>
       ) : (
         <>
@@ -989,15 +1172,22 @@ function AddProductForm({
   const [benefits, setBenefits] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [variants, setVariants] = useState<VariantRow[]>([]);
-  const [pricingType, setPricingType] = useState<"regular" | "options">("regular");
+  const [pricingType, setPricingType] = useState<"regular" | "options" | "preorder">("regular");
   const [options, setOptions] = useState<OptionRow[]>([]);
   const [minSelect, setMinSelect] = useState("4");
+  const [preorderSlots, setPreorderSlots] = useState("10");
+  const [preorderStartsAt, setPreorderStartsAt] = useState(() => new Date().toISOString().slice(0, 10));
+  const [preorderEndsAt, setPreorderEndsAt] = useState(() =>
+    new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10)
+  );
+  const [preorderRecurring, setPreorderRecurring] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     const isOptions = pricingType === "options";
+    const isPreorder = pricingType === "preorder";
     const price = isOptions ? cheapestOptionsTotal(options, Number(minSelect) || 1) : Number(priceNaira);
     if (!name.trim() || categoryIds.size === 0) {
       setError("Please fill in a name and pick at least one category.");
@@ -1009,6 +1199,10 @@ function AddProductForm({
     }
     if (isOptions && options.filter((o) => o.label.trim() && Number(o.priceNaira) > 0).length === 0) {
       setError("Please add at least one option.");
+      return;
+    }
+    if (isPreorder && (!preorderStartsAt || !preorderEndsAt || preorderEndsAt < preorderStartsAt)) {
+      setError("Please pick a valid Orders open/close date range.");
       return;
     }
     setSaving(true);
@@ -1055,6 +1249,13 @@ function AddProductForm({
       if (insertError) throw insertError;
       if (isOptions) {
         await saveOptions(created.id, options, new Set());
+      } else if (isPreorder) {
+        await savePreorder(created.id, {
+          slots: Number(preorderSlots) || 1,
+          startsAt: preorderStartsAt,
+          endsAt: preorderEndsAt,
+          recurring: preorderRecurring,
+        });
       } else {
         await saveVariants(created.id, variants, new Set());
       }
@@ -1071,6 +1272,10 @@ function AddProductForm({
       setOptions([]);
       setPricingType("regular");
       setMinSelect("4");
+      setPreorderSlots("10");
+      setPreorderStartsAt(new Date().toISOString().slice(0, 10));
+      setPreorderEndsAt(new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10));
+      setPreorderRecurring(false);
     } catch {
       setError("Could not add this product. Please try again.");
     } finally {
@@ -1168,6 +1373,19 @@ function AddProductForm({
               Customer picks from a list of options, each its own price.
             </p>
           </button>
+          <button
+            type="button"
+            onClick={() => setPricingType("preorder")}
+            aria-pressed={pricingType === "preorder"}
+            className={`flex-1 rounded-panel border-2 p-3 text-left transition-colors ${
+              pricingType === "preorder" ? "border-berry bg-rose/15" : "border-clay/20"
+            }`}
+          >
+            <p className="font-body text-small font-semibold text-ink">Pre-order</p>
+            <p className="mt-0.5 font-body text-xs text-ink/55">
+              Takes orders only within a date window, capped at a number of slots.
+            </p>
+          </button>
         </div>
       </div>
 
@@ -1188,6 +1406,30 @@ function AddProductForm({
             </p>
           </div>
           <OptionsEditor options={options} onChange={setOptions} />
+        </>
+      ) : pricingType === "preorder" ? (
+        <>
+          <div className="w-40">
+            <label className="font-body text-xs font-medium uppercase tracking-wide text-ink/50">
+              Price (₦)
+            </label>
+            <input
+              value={priceNaira}
+              onChange={(e) => setPriceNaira(e.target.value)}
+              inputMode="numeric"
+              className={`${inputClasses} mt-1`}
+            />
+          </div>
+          <PreorderFields
+            slots={preorderSlots}
+            startsAt={preorderStartsAt}
+            endsAt={preorderEndsAt}
+            recurring={preorderRecurring}
+            onChangeSlots={setPreorderSlots}
+            onChangeStartsAt={setPreorderStartsAt}
+            onChangeEndsAt={setPreorderEndsAt}
+            onChangeRecurring={setPreorderRecurring}
+          />
         </>
       ) : (
         <>

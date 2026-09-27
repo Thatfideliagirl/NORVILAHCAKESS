@@ -4,10 +4,12 @@ export default function QuantityStepper({
   quantity,
   onChange,
   size = "default",
+  max = Infinity,
 }: {
   quantity: number;
   onChange: (quantity: number) => void;
   size?: "default" | "large";
+  max?: number;
 }) {
   const buttonSize = size === "large" ? "size-10" : "size-9";
   const iconSize = size === "large" ? "size-4" : "size-3.5";
@@ -28,8 +30,9 @@ export default function QuantityStepper({
       <button
         type="button"
         aria-label="Increase quantity"
-        onClick={() => onChange(quantity + 1)}
-        className={`flex ${buttonSize} items-center justify-center text-ink transition-colors hover:bg-plaster`}
+        disabled={quantity >= max}
+        onClick={() => onChange(Math.min(max, quantity + 1))}
+        className={`flex ${buttonSize} items-center justify-center text-ink transition-colors hover:bg-plaster disabled:pointer-events-none disabled:opacity-30`}
       >
         <Plus className={iconSize} strokeWidth={1.75} />
       </button>

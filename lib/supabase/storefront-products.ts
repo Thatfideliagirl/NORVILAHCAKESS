@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { products as staticProducts, type Product } from "@/data/products";
+import { products as staticProducts, type Product, type ProductPreorder } from "@/data/products";
 
 // Product copy/pricing for the original catalogue lives in the static
 // data/products.ts file, but two things can now happen from the Admin
@@ -49,6 +49,19 @@ type DbProductCategoryRow = {
   categories: { slug: string } | null;
 };
 
+type PreorderStatusMap = Record<
+  string,
+  {
+    slotsTotal: number;
+    slotsTaken: number;
+    cycleStart: string;
+    cycleEnd: string;
+    recurring: boolean;
+    hasStarted: boolean;
+    hasEnded: boolean;
+  }
+>;
+
 function isUploadedImage(url: string | null): url is string {
   return !!url?.includes("/storage/v1/object/public/product-images/");
 }
@@ -81,7 +94,10 @@ export function useStorefrontProducts(): { products: Product[]; loading: boolean
         .from("product_categories")
         .select("product_id, categories(slug)")
         .returns<DbProductCategoryRow[]>(),
-    ]).then(([{ data }, { data: variantRows }, { data: optionRows }, { data: productCategoryRows }]) => {
+      fetch("/api/preorder-status")
+        .then((res) => (res.ok ? (res.json() as Promise<PreorderStatusMap>) : Promise.resolve({} as PreorderStatusMap)))
+        .catch(() => ({}) as PreorderStatusMap),
+    ]).then(([{ data }, { data: variantRows }, { data: optionRows }, { data: productCategoryRows }, preorderStatus]) => {
       if (!data) {
         setLoading(false);
         return;
@@ -154,6 +170,18 @@ export function useStorefrontProducts(): { products: Product[]; loading: boolean
         const fallbackImage = staticProduct?.image ?? "/products/cakes.jpg";
         const dbVariants = variantsFor(row);
         const dbOptions = optionsFor(row);
+        const preorderInfo = preorderStatus[row.id];
+        const preorder: ProductPreorder | undefined = preorderInfo
+          ? {
+              slotsTotal: preorderInfo.slotsTotal,
+              slotsTaken: preorderInfo.slotsTaken,
+              cycleStart: preorderInfo.cycleStart,
+              cycleEnd: preorderInfo.cycleEnd,
+              recurring: preorderInfo.recurring,
+              hasStarted: preorderInfo.hasStarted,
+              hasEnded: preorderInfo.hasEnded,
+            }
+          : undefined;
         return [
           {
             id: staticProduct?.id ?? row.slug,
@@ -167,6 +195,7 @@ export function useStorefrontProducts(): { products: Product[]; loading: boolean
             variants: dbVariants ?? staticProduct?.variants,
             options: dbOptions,
             minSelect: row.min_select ?? undefined,
+            preorder,
             ingredients: row.ingredients ?? staticProduct?.ingredients ?? undefined,
             benefits: row.benefits ?? staticProduct?.benefits ?? undefined,
             available: row.active,

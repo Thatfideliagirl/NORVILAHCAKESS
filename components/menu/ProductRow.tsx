@@ -4,11 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, Heart, ShoppingBag, Sparkles } from "lucide-react";
+import { Calendar, Check, Heart, ShoppingBag, Sparkles } from "lucide-react";
 import type { Product } from "@/data/products";
 import { useCartStore } from "@/store/cart";
 import { formatNaira } from "@/lib/format";
 import { displayPrice, priceLabel } from "@/lib/menu";
+import { dayAfter, formatPreorderDate, preorderIsOrderable } from "@/lib/preorder";
 import { useFavourites } from "@/lib/supabase/use-favourites";
 import QuantityStepper from "@/components/menu/QuantityStepper";
 
@@ -48,6 +49,9 @@ export default function ProductRow({
   // customer has to open it and pick their flavours first, so the row
   // shows neither a price nor the normal quantity/add-to-cart controls.
   const isMixAndMatch = !!product.options && product.options.length > 0;
+  const preorder = product.preorder;
+  const preorderOrderable = preorder ? preorderIsOrderable(preorder) : true;
+  const slotsLeft = preorder ? Math.max(0, preorder.slotsTotal - preorder.slotsTaken) : Infinity;
 
   function handleAddToCart() {
     addItem({
@@ -121,6 +125,16 @@ export default function ProductRow({
             )}
           </p>
         )}
+        {preorder && (
+          <p className="mt-1.5 flex items-center gap-1.5 font-body text-xs font-medium text-clay">
+            <Calendar className="size-3" strokeWidth={2} />
+            {preorderOrderable
+              ? `Pre-order — closes ${formatPreorderDate(preorder.cycleEnd)}, ready ${formatPreorderDate(dayAfter(preorder.cycleEnd))} · ${slotsLeft} of ${preorder.slotsTotal} slots left`
+              : !preorder.hasStarted
+                ? `Pre-order opens ${formatPreorderDate(preorder.cycleStart)}`
+                : "Pre-order — fully booked for this round"}
+          </p>
+        )}
       </div>
 
       <div
@@ -136,6 +150,10 @@ export default function ProductRow({
             <Sparkles className="size-4" strokeWidth={1.75} />
             Choose Flavours
           </button>
+        ) : preorder && !preorderOrderable ? (
+          <span className="whitespace-nowrap rounded-pill bg-clay/15 px-5 py-2.5 font-body text-small font-medium text-ink/50">
+            {!preorder.hasStarted ? "Not open yet" : "Fully booked"}
+          </span>
         ) : (
           <>
             {product.variants && product.variants.length > 0 && (
@@ -154,7 +172,7 @@ export default function ProductRow({
             )}
 
             <div className="flex items-center gap-3">
-              <QuantityStepper quantity={quantity} onChange={setQuantity} />
+              <QuantityStepper quantity={quantity} onChange={setQuantity} max={slotsLeft} />
               <motion.button
                 type="button"
                 onClick={handleAddToCart}

@@ -24,6 +24,21 @@ export type ProductOption = {
   ingredients?: string[];
 };
 
+// A "Pre-order" product's current ordering window -- one price, like
+// a regular product, but only orderable within cycleStart..cycleEnd
+// and capped at slotsTotal. If recurring, cycleStart/cycleEnd are
+// already the *current* window (worked out fresh each time), not the
+// original one the admin typed in.
+export type ProductPreorder = {
+  slotsTotal: number;
+  slotsTaken: number;
+  cycleStart: string; // "YYYY-MM-DD"
+  cycleEnd: string;
+  recurring: boolean;
+  hasStarted: boolean;
+  hasEnded: boolean;
+};
+
 export type Product = {
   id: string;
   slug: string;
@@ -42,6 +57,8 @@ export type Product = {
   // the fewest they must pick (they can always pick more).
   options?: ProductOption[];
   minSelect?: number;
+  // Present only for a "Pre-order" product.
+  preorder?: ProductPreorder;
   // Left undefined until the client supplies real, product-specific
   // copy: these are food-safety-sensitive (allergens, nutrition) and
   // must never be guessed. "benefits" is deliberately framed as

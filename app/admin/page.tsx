@@ -12,6 +12,7 @@ type Stats = {
   totalCustomers: number;
   totalProducts: number;
   revenue: number;
+  preorderOrders: number;
 };
 
 type RecentOrder = {
@@ -74,6 +75,14 @@ export default function AdminDashboardPage() {
     return from ? dayKey(from) : "";
   });
   const [customTo, setCustomTo] = useState(() => dayKey(new Date()));
+  const [preorderProductIds, setPreorderProductIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("product_preorders")
+      .select("product_id")
+      .then(({ data }) => setPreorderProductIds((data ?? []).map((r) => r.product_id)));
+  }, []);
 
   const range = useMemo(() => {
     if (usingCustom) {
@@ -120,6 +129,14 @@ export default function AdminDashboardPage() {
       revenueQuery = revenueQuery.gte("created_at", fromIso);
     }
 
+    const preorderItemsQuery =
+      preorderProductIds.length > 0
+        ? supabase
+            .from("order_items")
+            .select("order_id, orders(created_at)")
+            .in("product_id", preorderProductIds)
+        : Promise.resolve({ data: [], error: null });
+
     Promise.all([
       ordersQuery,
       pendingQuery,
@@ -127,7 +144,8 @@ export default function AdminDashboardPage() {
       supabase.from("products").select("id", { count: "exact", head: true }),
       recentQuery,
       revenueQuery,
-    ]).then(([orders, pending, customers, products, recent, revenueRows]) => {
+      preorderItemsQuery,
+    ]).then(([orders, pending, customers, products, recent, revenueRows, preorderItems]) => {
       const firstError = [
         orders.error,
         pending.error,
@@ -135,18 +153,39 @@ export default function AdminDashboardPage() {
         products.error,
         recent.error,
         revenueRows.error,
+        preorderItems.error,
       ].find((e) => e);
       if (firstError) setLoadError(firstError.message);
+
+      // Counted client-side from every order_item on a pre-order
+      // product, filtered to the selected range here -- rather than a
+      // date-filtered query -- since "orders" is a joined/embedded
+      // resource on this row, not the table being queried.
+      type PreorderItemRow = {
+        order_id: string;
+        orders: { created_at: string } | { created_at: string }[] | null;
+      };
+      const preorderOrderIds = new Set<string>();
+      for (const row of (preorderItems.data ?? []) as PreorderItemRow[]) {
+        const order = Array.isArray(row.orders) ? row.orders[0] : row.orders;
+        if (!order) continue;
+        const createdAt = new Date(order.created_at);
+        if (createdAt > range.to) continue;
+        if (range.from && createdAt < range.from) continue;
+        preorderOrderIds.add(row.order_id);
+      }
+
       setStats({
         totalOrders: orders.count ?? 0,
         pendingOrders: pending.count ?? 0,
         totalCustomers: customers.count ?? 0,
         totalProducts: products.count ?? 0,
         revenue: (revenueRows.data ?? []).reduce((sum, row) => sum + row.total_naira, 0),
+        preorderOrders: preorderOrderIds.size,
       });
       setRecentOrders(recent.data ?? []);
     });
-  }, [range]);
+  }, [range, preorderProductIds]);
 
   useEffect(() => {
     const since = new Date(startOfToday().getTime() - 13 * 86400000);
@@ -178,6 +217,7 @@ export default function AdminDashboardPage() {
     { label: "Orders", value: stats?.totalOrders },
     { label: "Revenue", value: stats ? formatNaira(stats.revenue) : undefined },
     { label: "Pending orders", value: stats?.pendingOrders },
+    { label: "Pre-orders", value: stats?.preorderOrders },
     { label: "New customers", value: stats?.totalCustomers },
     { label: "Products (all time)", value: stats?.totalProducts },
   ];

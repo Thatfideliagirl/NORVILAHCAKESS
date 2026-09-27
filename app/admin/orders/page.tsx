@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import { CalendarClock } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { formatNaira } from "@/lib/format";
 import AdminErrorBanner from "@/components/admin/AdminErrorBanner";
@@ -28,8 +29,10 @@ type Order = {
   created_at: string;
   viewed_at: string | null;
   profiles: { full_name: string | null; phone: string | null } | null;
-  order_items: { products: { image_url: string | null } | null }[];
+  order_items: { product_id: string | null; products: { image_url: string | null } | null }[];
 };
+
+type OrderFilter = "all" | "orders" | "preorders";
 
 function paymentMethodLabel(order: Pick<Order, "channel" | "payment_method">): string {
   if (order.channel === "whatsapp") return "WhatsApp";
@@ -40,7 +43,7 @@ function fetchOrders() {
   return supabase
     .from("orders")
     .select(
-      "id, order_number, status, channel, payment_status, payment_method, total_naira, created_at, viewed_at, profiles(full_name, phone), order_items(products(image_url))"
+      "id, order_number, status, channel, payment_status, payment_method, total_naira, created_at, viewed_at, profiles(full_name, phone), order_items(product_id, products(image_url))"
     )
     .order("created_at", { ascending: false })
     .returns<Order[]>();
@@ -52,13 +55,30 @@ export default function AdminOrdersPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [detailId, setDetailId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [preorderProductIds, setPreorderProductIds] = useState<Set<string>>(new Set());
+  const [filter, setFilter] = useState<OrderFilter>("all");
 
   useEffect(() => {
     fetchOrders().then(({ data, error }) => {
       if (error) setLoadError(error.message);
       setOrders(data ?? []);
     });
+    supabase
+      .from("product_preorders")
+      .select("product_id")
+      .then(({ data }) => setPreorderProductIds(new Set((data ?? []).map((r) => r.product_id))));
   }, []);
+
+  function isPreorderOrder(order: Order): boolean {
+    return order.order_items.some((item) => item.product_id && preorderProductIds.has(item.product_id));
+  }
+
+  const filteredOrders = useMemo(() => {
+    if (filter === "orders") return orders.filter((o) => !isPreorderOrder(o));
+    if (filter === "preorders") return orders.filter((o) => isPreorderOrder(o));
+    return orders;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders, filter, preorderProductIds]);
 
   async function updateStatus(order: Order, status: string) {
     setOrders((current) => current.map((o) => (o.id === order.id ? { ...o, status } : o)));
@@ -120,7 +140,28 @@ export default function AdminOrdersPage() {
 
       {loadError && <AdminErrorBanner message={loadError} />}
 
-      <div className="mt-8 overflow-x-auto rounded-panel bg-white shadow-warm-lg">
+      <div className="mt-6 flex gap-2">
+        {(
+          [
+            { key: "all", label: "All" },
+            { key: "orders", label: "Orders" },
+            { key: "preorders", label: "Pre-orders" },
+          ] as { key: OrderFilter; label: string }[]
+        ).map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setFilter(tab.key)}
+            className={`rounded-pill px-4 py-1.5 font-body text-xs font-semibold ${
+              filter === tab.key ? "bg-berry text-cream" : "bg-plaster/40 text-ink/70"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-4 overflow-x-auto rounded-panel bg-white shadow-warm-lg">
         <table className="w-full min-w-[680px] text-left font-body text-small">
           <thead>
             <tr className="border-b border-clay/15 text-ink/50">
@@ -136,16 +177,17 @@ export default function AdminOrdersPage() {
             </tr>
           </thead>
           <tbody>
-            {orders.length === 0 && (
+            {filteredOrders.length === 0 && (
               <tr>
                 <td colSpan={9} className="px-4 py-8 text-center text-ink/50">
-                  No orders yet.
+                  {filter === "preorders" ? "No pre-orders yet." : "No orders yet."}
                 </td>
               </tr>
             )}
-            {orders.map((order) => {
+            {filteredOrders.map((order) => {
               const thumbnail = order.order_items.find((item) => item.products?.image_url)?.products
                 ?.image_url;
+              const isPreorder = isPreorderOrder(order);
               return (
               <tr
                 key={order.id}
@@ -167,6 +209,15 @@ export default function AdminOrdersPage() {
                 <td className="px-4 py-3 text-ink">
                   <div className="flex items-center gap-2">
                     {order.order_number}
+                    {isPreorder && (
+                      <span
+                        title="Pre-order"
+                        className="flex items-center gap-1 rounded-pill bg-clay/15 px-2 py-0.5 text-[10px] font-semibold text-clay"
+                      >
+                        <CalendarClock className="size-2.5" strokeWidth={2.5} />
+                        Pre-order
+                      </span>
+                    )}
                     {!order.viewed_at && (
                       <span className="rounded-pill bg-berry px-2 py-0.5 text-[10px] font-semibold text-cream">
                         New

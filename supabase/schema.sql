@@ -951,3 +951,33 @@ and not exists (select 1 from public.product_options where product_id = p.id);
 -- flavour's photo for a closer look.
 -- =========================================================
 alter table public.product_options add column if not exists ingredients text[] default '{}';
+
+-- =========================================================
+-- 30. PRE-ORDER PRODUCTS
+-- A third pricing mode, alongside Sizes and Mix & Match: a product
+-- with one row here takes orders only within a date window, capped at
+-- a fixed number of slots. starts_at/ends_at describe the *first*
+-- window; if recurring is on, later windows are computed fresh every
+-- time from those two dates (same length, shifted forward) rather
+-- than stored and reset by a scheduled job -- there is nothing to
+-- reset, and nothing that can silently stop resetting. Same
+-- convention as Sizes/Options: a product only becomes a Pre-order
+-- product when it actually has a row here.
+-- =========================================================
+create table if not exists public.product_preorders (
+  product_id uuid primary key references public.products (id) on delete cascade,
+  slots integer not null,
+  starts_at date not null,
+  ends_at date not null,
+  recurring boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+alter table public.product_preorders enable row level security;
+
+drop policy if exists "preorders_public_read" on public.product_preorders;
+create policy "preorders_public_read" on public.product_preorders
+  for select using (true);
+drop policy if exists "preorders_admin_write" on public.product_preorders;
+create policy "preorders_admin_write" on public.product_preorders
+  for all using (public.is_admin()) with check (public.is_admin());
