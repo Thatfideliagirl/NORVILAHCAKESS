@@ -469,7 +469,7 @@ export default function CheckoutPage() {
   return (
     <main className="min-h-screen bg-cream px-6 pb-24 pt-32 lg:px-11">
       <div className="mx-auto grid max-w-content gap-12 md:grid-cols-2">
-        <div>
+        <div className="min-w-0">
           <h1 className="font-display text-heading text-berry">Checkout</h1>
           <div className="mt-6 divide-y divide-clay/15">
             {items.map((item) => {
@@ -510,7 +510,7 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <form onSubmit={onSubmit} className="flex min-w-0 flex-col gap-4">
           {!session && (
             <p className="rounded-panel bg-berry/10 px-4 py-3 font-body text-small text-berry">
               <Link href="/account" className="underline">
