@@ -9,6 +9,7 @@ type Zone = {
   id: string;
   name: string;
   fee_naira: number;
+  places_included: string | null;
   active: boolean;
 };
 
@@ -16,12 +17,16 @@ export default function AdminDeliveryPage() {
   const [zones, setZones] = useState<Zone[]>([]);
   const [name, setName] = useState("");
   const [fee, setFee] = useState("");
+  const [places, setPlaces] = useState("");
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   function fetchZones() {
-    return supabase.from("delivery_locations").select("id, name, fee_naira, active").order("sort_order");
+    return supabase
+      .from("delivery_locations")
+      .select("id, name, fee_naira, places_included, active")
+      .order("sort_order");
   }
 
   useEffect(() => {
@@ -36,9 +41,14 @@ export default function AdminDeliveryPage() {
     const feeValue = Number(fee);
     if (!name.trim() || !Number.isFinite(feeValue)) return;
     setSaving(true);
-    await supabase.from("delivery_locations").insert({ name: name.trim(), fee_naira: feeValue });
+    await supabase.from("delivery_locations").insert({
+      name: name.trim(),
+      fee_naira: feeValue,
+      places_included: places.trim() || null,
+    });
     setName("");
     setFee("");
+    setPlaces("");
     setSaving(false);
     fetchZones().then(({ data }) => setZones(data ?? []));
   }
@@ -63,27 +73,36 @@ export default function AdminDeliveryPage() {
     <div>
       <p className="font-display text-heading text-berry">Delivery</p>
       <p className="mt-2 font-body text-body text-ink/60">
-        Add new delivery zones and set the fee for each.
+        Add new delivery zones, the areas each one covers, and the fee for each.
       </p>
 
-      <form onSubmit={addZone} className="mt-6 flex flex-col gap-3 sm:max-w-lg sm:flex-row">
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Zone name (e.g. Ikeja)"
-          className="flex-1 rounded-panel border border-clay/25 bg-cream px-4 py-2.5 font-body text-body text-ink"
-        />
-        <input
-          value={fee}
-          onChange={(e) => setFee(e.target.value)}
-          placeholder="Fee (₦)"
-          inputMode="numeric"
-          className="rounded-panel border border-clay/25 bg-cream px-4 py-2.5 font-body text-body text-ink sm:w-32"
+      <form onSubmit={addZone} className="mt-6 flex flex-col gap-3 sm:max-w-lg">
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Zone name (e.g. Lagos Mainland Zone 1)"
+            className="flex-1 rounded-panel border border-clay/25 bg-cream px-4 py-2.5 font-body text-body text-ink"
+          />
+          <input
+            value={fee}
+            onChange={(e) => setFee(e.target.value)}
+            placeholder="Fee (₦)"
+            inputMode="numeric"
+            className="rounded-panel border border-clay/25 bg-cream px-4 py-2.5 font-body text-body text-ink sm:w-32"
+          />
+        </div>
+        <textarea
+          value={places}
+          onChange={(e) => setPlaces(e.target.value)}
+          placeholder="Places included (e.g. Amuwo Odofin, Festac, Ago Palace Way...)"
+          rows={2}
+          className="rounded-panel border border-clay/25 bg-cream px-4 py-2.5 font-body text-body text-ink resize-none"
         />
         <button
           type="submit"
           disabled={saving}
-          className="shrink-0 rounded-pill bg-cocoa px-6 py-2.5 font-body text-small font-medium text-cream disabled:opacity-60"
+          className="self-start rounded-pill bg-cocoa px-6 py-2.5 font-body text-small font-medium text-cream disabled:opacity-60"
         >
           Add
         </button>
@@ -96,6 +115,7 @@ export default function AdminDeliveryPage() {
           <thead>
             <tr className="border-b border-clay/15 text-ink/50">
               <th className="px-4 py-3 font-medium">Zone</th>
+              <th className="px-4 py-3 font-medium">Places Included</th>
               <th className="px-4 py-3 font-medium">Fee</th>
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 font-medium">Actions</th>
@@ -113,6 +133,9 @@ export default function AdminDeliveryPage() {
               ) : (
                 <tr key={zone.id} className="border-b border-clay/10 last:border-none">
                   <td className="px-4 py-3 text-ink">{zone.name}</td>
+                  <td className="max-w-[280px] truncate px-4 py-3 text-ink/60">
+                    {zone.places_included ?? "-"}
+                  </td>
                   <td className="px-4 py-3 font-medium text-berry">{formatNaira(zone.fee_naira)}</td>
                   <td className="px-4 py-3">
                     <button
@@ -164,18 +187,20 @@ function EditZoneRow({
 }) {
   const [name, setName] = useState(zone.name);
   const [fee, setFee] = useState(String(zone.fee_naira));
+  const [places, setPlaces] = useState(zone.places_included ?? "");
   const [saving, setSaving] = useState(false);
 
   async function onSave() {
     const feeValue = Number(fee);
     if (!name.trim() || !Number.isFinite(feeValue)) return;
     setSaving(true);
+    const placesValue = places.trim() || null;
     await supabase
       .from("delivery_locations")
-      .update({ name: name.trim(), fee_naira: feeValue })
+      .update({ name: name.trim(), fee_naira: feeValue, places_included: placesValue })
       .eq("id", zone.id);
     setSaving(false);
-    onSaved({ ...zone, name: name.trim(), fee_naira: feeValue });
+    onSaved({ ...zone, name: name.trim(), fee_naira: feeValue, places_included: placesValue });
   }
 
   return (
@@ -185,6 +210,14 @@ function EditZoneRow({
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="w-full rounded-panel border border-clay/25 bg-cream px-3 py-1.5 font-body text-small text-ink"
+        />
+      </td>
+      <td className="px-4 py-3">
+        <textarea
+          value={places}
+          onChange={(e) => setPlaces(e.target.value)}
+          rows={2}
+          className="w-full min-w-[220px] resize-none rounded-panel border border-clay/25 bg-cream px-3 py-1.5 font-body text-small text-ink"
         />
       </td>
       <td className="px-4 py-3">

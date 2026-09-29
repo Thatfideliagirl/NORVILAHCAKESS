@@ -981,3 +981,26 @@ create policy "preorders_public_read" on public.product_preorders
 drop policy if exists "preorders_admin_write" on public.product_preorders;
 create policy "preorders_admin_write" on public.product_preorders
   for all using (public.is_admin()) with check (public.is_admin());
+
+-- =========================================================
+-- 31. DELIVERY ZONES: PLACES INCLUDED
+-- Each delivery_locations row can now list the areas it covers (e.g.
+-- "Amuwo Odofin, Festac, Ago Palace Way...") alongside its existing
+-- name and fee, shown on checkout under a "Places included" toggle.
+-- Also replaces the old flat delivery list with the real Lagos zones.
+-- =========================================================
+alter table public.delivery_locations add column if not exists places_included text;
+
+delete from public.delivery_locations;
+
+insert into public.delivery_locations (name, fee_naira, places_included, sort_order) values
+  ('Lagos Mainland Zone 1', 3500,
+    'Amuwo Odofin, Festac, Ago Palace Way, Okota, Satellite Town, Maza-Maza, Tradefair, Ojo-Barracks, Orile-Iganmu, Mile 2', 1),
+  ('Lagos Mainland Zone 2', 4000,
+    'Isolo, Surulere, Yaba, Shomolu, Bariga, Ajao Estate, Gbagada, Oshodi, Anthony, Ojo Alaba, LASU, Ikotun, Ejigbo, Ilupeju, Ikeja, Ketu, Ojota, Iyana-Ipaja, Fagba, Apapa, Omole Phase 1 & 2', 2),
+  ('Lagos Mainland Zone 3 (Outskirts)', 5000,
+    'Agege, Owode, Mile 12, Ikorodu, Mowe, Okoko-Badagary, Ibafo, Opic-Isheri, Meiran, Abule-Egba, Alagbado, Akute, Mangoro, Ijaiye, Magodo, Ojodu Berger', 3),
+  ('Lagos Island Zone 1', 4500,
+    'Marina, CMS, Lekki Phase 1, VGC, Osapa, Chevron, Ikate', 4),
+  ('Lagos Island Zone 2 (Outskirts)', 5000,
+    'Lekki Phase 2 & 3, Ajah & Areas After Ajah, Abraham Adesanya, Sangotedo, Ibeju, Awoyaya, Lakowe, Ogombo, Ado Road, Epe, Ologolo', 5);

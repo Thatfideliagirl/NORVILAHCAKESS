@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { ChevronDown } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 import { useCartStore } from "@/store/cart";
@@ -15,6 +16,7 @@ type DeliveryZone = {
   id: string;
   name: string;
   fee_naira: number;
+  places_included: string | null;
 };
 
 type Channels = {
@@ -90,6 +92,7 @@ export default function CheckoutPage() {
   });
   const [name, setName] = useState("");
   const [zoneId, setZoneId] = useState("");
+  const [expandedZoneIds, setExpandedZoneIds] = useState<Set<string>>(new Set());
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [additionalInfo, setAdditionalInfo] = useState("");
@@ -107,7 +110,7 @@ export default function CheckoutPage() {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
     supabase
       .from("delivery_locations")
-      .select("id, name, fee_naira")
+      .select("id, name, fee_naira, places_included")
       .eq("active", true)
       .order("sort_order")
       .then(({ data }) => setZones(data ?? []));
@@ -406,6 +409,15 @@ export default function CheckoutPage() {
     }
   }
 
+  function toggleZoneExpanded(id: string) {
+    setExpandedZoneIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!session) {
@@ -531,21 +543,70 @@ export default function CheckoutPage() {
             onChange={(e) => setAddress(e.target.value)}
             className={`${inputClasses} resize-none`}
           />
-          <select
-            required
-            value={zoneId}
-            onChange={(e) => setZoneId(e.target.value)}
-            className={inputClasses}
-          >
-            <option value="" disabled>
-              Choose your delivery location
-            </option>
-            {zones.map((zone) => (
-              <option key={zone.id} value={zone.id}>
-                {zone.name} — {formatNaira(zone.fee_naira)}
-              </option>
-            ))}
-          </select>
+          <div>
+            <p className="font-body text-small font-medium text-ink/70">Choose your delivery location</p>
+            <div className="mt-2 flex flex-col gap-2">
+              {zones.map((zone) => {
+                const isSelected = zone.id === zoneId;
+                const isExpanded = expandedZoneIds.has(zone.id);
+                return (
+                  <div
+                    key={zone.id}
+                    className={`rounded-panel border-[1.5px] bg-cream transition-colors ${
+                      isSelected ? "border-berry" : "border-clay/25"
+                    }`}
+                  >
+                    <label className="flex cursor-pointer items-center gap-3 px-3.5 py-3">
+                      <input
+                        type="radio"
+                        name="deliveryZone"
+                        required
+                        value={zone.id}
+                        checked={isSelected}
+                        onChange={() => setZoneId(zone.id)}
+                        className="size-[18px] shrink-0 accent-berry"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-body text-small font-semibold text-ink">{zone.name}</p>
+                        {zone.places_included && (
+                          <p className="mt-0.5 truncate font-body text-xs text-ink/50">
+                            {zone.places_included}
+                          </p>
+                        )}
+                      </div>
+                      <span className="shrink-0 font-body text-small font-semibold text-berry">
+                        {formatNaira(zone.fee_naira)}
+                      </span>
+                      {zone.places_included && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            toggleZoneExpanded(zone.id);
+                          }}
+                          aria-label={isExpanded ? "Hide places included" : "Show places included"}
+                          className="flex size-7 shrink-0 items-center justify-center rounded-full bg-plaster/40 text-cocoa"
+                        >
+                          <ChevronDown
+                            className={`size-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                            strokeWidth={2}
+                          />
+                        </button>
+                      )}
+                    </label>
+                    {zone.places_included && isExpanded && (
+                      <div className="px-3.5 pb-3.5 pl-[46px] font-body text-xs leading-relaxed text-ink">
+                        <span className="mb-0.5 block font-semibold uppercase tracking-wide text-ink/40">
+                          Places included
+                        </span>
+                        {zone.places_included}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
           <textarea
             rows={2}
             placeholder="Additional information / special delivery details (optional)"
