@@ -65,7 +65,7 @@ export default function AnnouncementPopup() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[110] bg-cocoa/50"
+            className="fixed inset-0 z-[110] bg-cocoa/20"
             onClick={dismiss}
             aria-hidden="true"
           />

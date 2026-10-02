@@ -9,7 +9,7 @@ import { useStorefrontCategories } from "@/lib/supabase/storefront-categories";
 import { revealContainer, revealUp } from "@/lib/motion";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 
-function CategoryCard({ category }: { category: Category }) {
+function CategoryCard({ category, priority }: { category: Category; priority?: boolean }) {
   return (
     <Link
       href={`/menu?category=${category.slug}`}
@@ -19,6 +19,7 @@ function CategoryCard({ category }: { category: Category }) {
         src={category.image}
         alt={`${category.name}: ${category.blurb}`}
         sizes="(min-width: 1024px) 220px, (min-width: 768px) 180px, 150px"
+        priority={priority}
         imageClassName="transition-transform duration-[450ms] ease-out group-hover:scale-105"
       />
       <div className="mt-4 flex items-center justify-between">
@@ -67,7 +68,10 @@ export default function CategoryStrip() {
           <div className="overflow-hidden">
             <div className="flex w-max animate-marquee gap-5 px-6 pb-4 hover:[animation-play-state:paused] focus-within:[animation-play-state:paused] md:gap-6">
               {[...categories, ...categories].map((category, i) => (
-                <CategoryCard key={`${category.slug}-${i}`} category={category} />
+                // Eagerly loaded: this strip scrolls via a CSS transform, not
+                // real scrolling, so the browser's native lazy-load can miss
+                // that an image has slid into view, leaving a blank gap.
+                <CategoryCard key={`${category.slug}-${i}`} category={category} priority />
               ))}
             </div>
           </div>
