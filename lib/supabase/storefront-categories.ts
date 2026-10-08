@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { categories as staticCategories, type Category } from "@/data/categories";
+import type { Category } from "@/data/categories";
 
 type DbCategoryRow = {
   slug: string;
@@ -13,10 +13,12 @@ type DbCategoryRow = {
 };
 
 // Categories are managed in Admin -> Categories (name, image, delete) and
-// live in the database. The static list in data/categories.ts is only a
-// fallback shown until this loads, so the site never renders empty.
+// live in the database. Starts empty rather than from a hardcoded
+// placeholder list -- on a slow connection, showing old stock photos
+// while the real ones load looked like the site was stuck on an
+// outdated version, which was more confusing than a brief empty strip.
 export function useStorefrontCategories(): Category[] {
-  const [categories, setCategories] = useState<Category[]>(staticCategories);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   useEffect(() => {
     supabase
