@@ -1193,3 +1193,37 @@ Call {{pickup_phone}} when you''re on your way or once you arrive.
 -- The Norvilah Cakes team'
   )
 on conflict (key) do nothing;
+
+-- =========================================================
+-- 36. FIX: GUEST ORDER_ITEMS INSERT (the real root cause)
+-- order_items_insert_via_order's subquery reads from public.orders,
+-- which is itself RLS-protected by orders_select_own_or_admin
+-- (customer_id = auth.uid() or is_admin()) -- that policy was never
+-- updated to allow customer_id is null, so a guest's own just-created
+-- order row is invisible to the subquery no matter how the
+-- order_items policy's own WITH CHECK is written. That's why the
+-- order row saved fine (201) but every order_items row for a guest
+-- order kept failing with the same RLS error, no matter how many
+-- times the order_items policy itself was recreated.
+--
+-- Fixed with a security-definer helper (same pattern as
+-- public.is_admin()) so the lookup bypasses RLS on orders entirely,
+-- instead of widening orders' own select policy to all guest rows
+-- (which would let any anonymous visitor read any guest order).
+-- =========================================================
+create or replace function public.order_belongs_to(check_order_id uuid)
+returns boolean
+language sql
+security definer set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from public.orders o
+    where o.id = check_order_id
+      and (o.customer_id = auth.uid() or o.customer_id is null)
+  );
+$$;
+
+drop policy if exists order_items_insert_via_order on public.order_items;
+create policy order_items_insert_via_order on public.order_items
+  for insert with check (public.order_belongs_to(order_id));
