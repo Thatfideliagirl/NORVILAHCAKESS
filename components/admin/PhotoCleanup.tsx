@@ -80,7 +80,13 @@ export default function PhotoCleanup() {
           if (!url) continue;
           let sizeBytes = 0;
           try {
-            const head = await fetch(url, { method: "HEAD" });
+            // A cache-busting query param, not just cache:"no-store" --
+            // Supabase's storage CDN caches by exact URL regardless of
+            // the browser's own cache headers, so re-scanning the same
+            // URL right after compressing it could still read back the
+            // old (larger) size for a while without this.
+            const bustUrl = `${url}${url.includes("?") ? "&" : "?"}cb=${Date.now()}`;
+            const head = await fetch(bustUrl, { method: "HEAD", cache: "no-store" });
             sizeBytes = Number(head.headers.get("content-length") ?? 0);
           } catch {
             continue;
