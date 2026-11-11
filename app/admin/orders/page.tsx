@@ -119,8 +119,19 @@ export default function AdminOrdersPage() {
       return;
     setDeleting(true);
     const ids = Array.from(selected);
-    await supabase.from("orders").delete().in("id", ids);
-    setOrders((current) => current.filter((o) => !selected.has(o.id)));
+    const { data, error } = await supabase.from("orders").delete().in("id", ids).select("id");
+    if (error) {
+      setLoadError(`Could not delete: ${error.message}`);
+      setDeleting(false);
+      return;
+    }
+    const deletedIds = new Set((data ?? []).map((o) => o.id));
+    if (deletedIds.size < ids.length) {
+      setLoadError(
+        `${ids.length - deletedIds.size} of ${ids.length} order(s) could not be deleted (permission denied).`
+      );
+    }
+    setOrders((current) => current.filter((o) => !deletedIds.has(o.id)));
     setSelected(new Set());
     setDeleting(false);
   }

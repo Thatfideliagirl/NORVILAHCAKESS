@@ -1142,3 +1142,15 @@ create policy "receipts_owner_upload" on storage.objects
       or (storage.foldername(name))[1] = 'guest'
     )
   );
+
+-- Orders never had a delete policy at all, so Admin > Orders' "Delete
+-- selected" silently did nothing (RLS blocks the delete with no error,
+-- and the admin page removed the row from the screen regardless --
+-- it reappeared on refresh). Add the missing policies.
+drop policy if exists "orders_delete_admin" on public.orders;
+create policy "orders_delete_admin" on public.orders
+  for delete using (public.is_admin());
+
+drop policy if exists "order_items_delete_admin" on public.order_items;
+create policy "order_items_delete_admin" on public.order_items
+  for delete using (public.is_admin());
