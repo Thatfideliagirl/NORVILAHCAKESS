@@ -230,6 +230,7 @@ export default function CheckoutPage() {
     setSubmitting(true);
     setError(null);
     try {
+      const orderId = crypto.randomUUID();
       const orderNumber = generateOrderNumber();
       const ext = receiptFile.name.split(".").pop();
       const path = `${customerId ?? "guest"}/${orderNumber}.${ext}`;
@@ -238,30 +239,33 @@ export default function CheckoutPage() {
         .upload(path, receiptFile);
       if (uploadError) throw uploadError;
 
-      const { data: order, error: orderError } = await supabase
-        .from("orders")
-        .insert({
-          order_number: orderNumber,
-          customer_id: customerId,
-          channel: "whatsapp",
-          delivery_location_id: selectedZone.id,
-          delivery_address: address,
-          customer_name: name,
-          customer_phone: phone,
-          customer_email: customerEmail || null,
-          notes: additionalInfo || null,
-          subtotal_naira: subtotal,
-          delivery_fee_naira: fee,
-          total_naira: total,
-          payment_status: "awaiting_confirmation",
-          payment_method: "bank_transfer",
-          receipt_url: path,
-        })
-        .select("id")
-        .single();
+      // Inserting with a client-generated id (instead of relying on
+      // `.select().single()` to read the row back) because a guest
+      // order's customer_id is null -- it can't satisfy the orders
+      // select policy, so Postgres would insert the row but RETURNING
+      // would come back empty and `.single()` would throw as if the
+      // insert itself had failed.
+      const { error: orderError } = await supabase.from("orders").insert({
+        id: orderId,
+        order_number: orderNumber,
+        customer_id: customerId,
+        channel: "whatsapp",
+        delivery_location_id: selectedZone.id,
+        delivery_address: address,
+        customer_name: name,
+        customer_phone: phone,
+        customer_email: customerEmail || null,
+        notes: additionalInfo || null,
+        subtotal_naira: subtotal,
+        delivery_fee_naira: fee,
+        total_naira: total,
+        payment_status: "awaiting_confirmation",
+        payment_method: "bank_transfer",
+        receipt_url: path,
+      });
       if (orderError) throw orderError;
 
-      await insertOrderItems(order.id);
+      await insertOrderItems(orderId);
 
       sendAdminOrderNotification({
         adminEmail: notificationEmail,
@@ -320,6 +324,7 @@ export default function CheckoutPage() {
     setSubmitting(true);
     setError(null);
     try {
+      const orderId = crypto.randomUUID();
       const orderNumber = generateOrderNumber();
       const ext = receiptFile.name.split(".").pop();
       const path = `${customerId ?? "guest"}/${orderNumber}.${ext}`;
@@ -328,30 +333,30 @@ export default function CheckoutPage() {
         .upload(path, receiptFile);
       if (uploadError) throw uploadError;
 
-      const { data: order, error: orderError } = await supabase
-        .from("orders")
-        .insert({
-          order_number: orderNumber,
-          customer_id: customerId,
-          channel: "website",
-          delivery_location_id: selectedZone.id,
-          delivery_address: address,
-          customer_name: name,
-          customer_phone: phone,
-          customer_email: customerEmail || null,
-          notes: additionalInfo || null,
-          subtotal_naira: subtotal,
-          delivery_fee_naira: fee,
-          total_naira: total,
-          payment_status: "awaiting_confirmation",
-          payment_method: "bank_transfer",
-          receipt_url: path,
-        })
-        .select("id")
-        .single();
+      // See the matching comment in onWhatsAppOrder: a client-generated
+      // id avoids needing `.select().single()` to read the row back,
+      // which a guest order (customer_id null) can't satisfy anyway.
+      const { error: orderError } = await supabase.from("orders").insert({
+        id: orderId,
+        order_number: orderNumber,
+        customer_id: customerId,
+        channel: "website",
+        delivery_location_id: selectedZone.id,
+        delivery_address: address,
+        customer_name: name,
+        customer_phone: phone,
+        customer_email: customerEmail || null,
+        notes: additionalInfo || null,
+        subtotal_naira: subtotal,
+        delivery_fee_naira: fee,
+        total_naira: total,
+        payment_status: "awaiting_confirmation",
+        payment_method: "bank_transfer",
+        receipt_url: path,
+      });
       if (orderError) throw orderError;
 
-      await insertOrderItems(order.id);
+      await insertOrderItems(orderId);
 
       sendAdminOrderNotification({
         adminEmail: notificationEmail,
@@ -394,30 +399,31 @@ export default function CheckoutPage() {
     setSubmitting(true);
     setError(null);
     try {
+      const orderId = crypto.randomUUID();
       const orderNumber = generateOrderNumber();
-      const { data: order, error: orderError } = await supabase
-        .from("orders")
-        .insert({
-          order_number: orderNumber,
-          customer_id: customerId,
-          channel: "website",
-          delivery_location_id: selectedZone.id,
-          delivery_address: address,
-          customer_name: name,
-          customer_phone: phone,
-          customer_email: customerEmail,
-          notes: additionalInfo || null,
-          subtotal_naira: subtotal,
-          delivery_fee_naira: fee,
-          total_naira: total,
-          payment_status: "unpaid",
-          payment_method: "card",
-        })
-        .select("id")
-        .single();
+      // See the matching comment in onWhatsAppOrder: a client-generated
+      // id avoids needing `.select().single()` to read the row back,
+      // which a guest order (customer_id null) can't satisfy anyway.
+      const { error: orderError } = await supabase.from("orders").insert({
+        id: orderId,
+        order_number: orderNumber,
+        customer_id: customerId,
+        channel: "website",
+        delivery_location_id: selectedZone.id,
+        delivery_address: address,
+        customer_name: name,
+        customer_phone: phone,
+        customer_email: customerEmail,
+        notes: additionalInfo || null,
+        subtotal_naira: subtotal,
+        delivery_fee_naira: fee,
+        total_naira: total,
+        payment_status: "unpaid",
+        payment_method: "card",
+      });
       if (orderError) throw orderError;
 
-      await insertOrderItems(order.id);
+      await insertOrderItems(orderId);
 
       // Loaded dynamically: this SDK touches `window` at import time,
       // which breaks Next.js's server-side prerendering of this page
@@ -434,7 +440,7 @@ export default function CheckoutPage() {
             const res = await fetch("/api/paystack/verify", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ reference: transaction.reference, orderId: order.id }),
+              body: JSON.stringify({ reference: transaction.reference, orderId }),
             });
             if (!res.ok) throw new Error("verification failed");
 
