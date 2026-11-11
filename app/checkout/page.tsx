@@ -10,7 +10,6 @@ import { useCartStore } from "@/store/cart";
 import { formatNaira } from "@/lib/format";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 import { useStorefrontProducts } from "@/lib/supabase/storefront-products";
-import { sendOrderAlert } from "@/lib/emailjs";
 
 type DeliveryZone = {
   id: string;
@@ -68,6 +67,27 @@ function formatOrderItemsList(items: ReturnType<typeof useCartStore.getState>["i
       return `${item.quantity} x ${item.name}${variant} — ${formatNaira(item.priceNaira * item.quantity)}`;
     })
     .join("\n");
+}
+
+function sendAdminOrderNotification(params: {
+  adminEmail: string | null | undefined;
+  orderNumber: string;
+  customerName: string;
+  customerPhone: string;
+  orderItems: string;
+  orderTotal: string;
+  deliveryLocation: string;
+  orderChannel: string;
+  paymentMethod: string;
+}) {
+  if (!params.adminEmail) return;
+  fetch("/api/send-order-notification", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  }).catch(() => {
+    // Non-critical -- the order itself was already placed either way.
+  });
 }
 
 function sendOrderConfirmationEmail(params: {
@@ -240,16 +260,16 @@ export default function CheckoutPage() {
 
       await insertOrderItems(order.id);
 
-      sendOrderAlert({
-        to_email: notificationEmail,
-        order_number: orderNumber,
-        customer_name: name,
-        customer_phone: phone,
-        order_items: formatOrderItemsList(items),
-        order_total: formatNaira(total),
-        delivery_location: selectedZone.name,
-        order_channel: "WhatsApp",
-        payment_method: "Bank transfer (receipt uploaded)",
+      sendAdminOrderNotification({
+        adminEmail: notificationEmail,
+        orderNumber,
+        customerName: name,
+        customerPhone: phone,
+        orderItems: formatOrderItemsList(items),
+        orderTotal: formatNaira(total),
+        deliveryLocation: selectedZone.name,
+        orderChannel: "WhatsApp",
+        paymentMethod: "Bank transfer (receipt uploaded)",
       });
       sendOrderConfirmationEmail({
         email: session?.user.email,
@@ -328,16 +348,16 @@ export default function CheckoutPage() {
 
       await insertOrderItems(order.id);
 
-      sendOrderAlert({
-        to_email: notificationEmail,
-        order_number: orderNumber,
-        customer_name: name,
-        customer_phone: phone,
-        order_items: formatOrderItemsList(items),
-        order_total: formatNaira(total),
-        delivery_location: selectedZone.name,
-        order_channel: "Website",
-        payment_method: "Bank transfer (receipt uploaded)",
+      sendAdminOrderNotification({
+        adminEmail: notificationEmail,
+        orderNumber,
+        customerName: name,
+        customerPhone: phone,
+        orderItems: formatOrderItemsList(items),
+        orderTotal: formatNaira(total),
+        deliveryLocation: selectedZone.name,
+        orderChannel: "Website",
+        paymentMethod: "Bank transfer (receipt uploaded)",
       });
       sendOrderConfirmationEmail({
         email: session?.user.email,
@@ -411,16 +431,16 @@ export default function CheckoutPage() {
             });
             if (!res.ok) throw new Error("verification failed");
 
-            sendOrderAlert({
-              to_email: notificationEmail,
-              order_number: orderNumber,
-              customer_name: name,
-              customer_phone: phone,
-              order_items: formatOrderItemsList(items),
-              order_total: formatNaira(total),
-              delivery_location: selectedZone.name,
-              order_channel: "Website",
-              payment_method: "Card (paid via Paystack)",
+            sendAdminOrderNotification({
+              adminEmail: notificationEmail,
+              orderNumber,
+              customerName: name,
+              customerPhone: phone,
+              orderItems: formatOrderItemsList(items),
+              orderTotal: formatNaira(total),
+              deliveryLocation: selectedZone.name,
+              orderChannel: "Website",
+              paymentMethod: "Card (paid via Paystack)",
             });
             sendOrderConfirmationEmail({
               email: session.user.email,

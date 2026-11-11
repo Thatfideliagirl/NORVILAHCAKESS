@@ -27,6 +27,20 @@ const TEMPLATE_INFO: Record<string, { title: string; description: string; tokens
       "{{delivery_location}}",
     ],
   },
+  admin_new_order: {
+    title: "New order notification (to you)",
+    description: "Sent to your notification email (Admin -> Settings) the moment a customer places an order.",
+    tokens: [
+      "{{order_number}}",
+      "{{customer_name}}",
+      "{{customer_phone}}",
+      "{{order_items}}",
+      "{{order_total}}",
+      "{{delivery_location}}",
+      "{{order_channel}}",
+      "{{payment_method}}",
+    ],
+  },
 };
 
 const inputClasses =

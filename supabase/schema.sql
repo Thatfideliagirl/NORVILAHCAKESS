@@ -1032,11 +1032,16 @@ insert into public.email_templates (key, subject, body) values
     'Welcome to Norvilah Cakes, {{name}}!',
     'Hi {{name}},
 
-Welcome to Norvilah Cakes! Your account is all set up.
+Welcome to the Norvilah Cakes family! We''re so glad you''re here -- get ready for fresh bakes, warm flavours, and a little sweetness whenever a craving strikes.
 
-From here you can browse the menu, save your favourites, and track your orders any time from your account page.
+Here''s what you can do from your account:
+- Browse the full menu at norvilahcakes.com
+- Save your favourite treats so they''re easy to find again
+- Track your orders any time, right from your account page
 
-We can''t wait to make something delicious for you.
+Have a question or a special request? Just reach out to us -- we''re always happy to help.
+
+Welcome aboard, and happy cravings!
 
 -- The Norvilah Cakes team'
   ),
@@ -1055,5 +1060,24 @@ Delivery to: {{delivery_location}}
 We''ll be in touch as your order is prepared. You can check its status any time from your account page.
 
 -- The Norvilah Cakes team'
+  ),
+  (
+    'admin_new_order',
+    'New order {{order_number}} from {{customer_name}}',
+    'Hi,
+
+A new order has just come in:
+
+Order #{{order_number}}
+Customer: {{customer_name}} ({{customer_phone}})
+Channel: {{order_channel}}
+Payment: {{payment_method}}
+
+{{order_items}}
+
+Total: {{order_total}}
+Delivery to: {{delivery_location}}
+
+Log in to Admin to view and manage this order.'
   )
 on conflict (key) do nothing;
