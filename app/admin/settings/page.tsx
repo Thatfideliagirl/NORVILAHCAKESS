@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import AdminErrorBanner from "@/components/admin/AdminErrorBanner";
+import PhotoCleanup from "@/components/admin/PhotoCleanup";
 
 type Settings = {
   website_ordering_enabled: boolean;
@@ -185,6 +186,8 @@ export default function AdminSettingsPage() {
           </div>
         </form>
       )}
+
+      <PhotoCleanup />
     </div>
   );
 }
