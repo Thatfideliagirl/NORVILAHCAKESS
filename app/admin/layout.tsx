@@ -36,6 +36,7 @@ const NAV_GROUPS = [
     label: "Business",
     links: [
       { href: "/admin/delivery", label: "Delivery" },
+      { href: "/admin/emails", label: "Emails" },
       { href: "/admin/settings", label: "Settings" },
       { href: "/admin/profile", label: "Profile" },
     ],

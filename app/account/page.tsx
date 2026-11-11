@@ -293,6 +293,13 @@ function SignUpForm({ onSignedUp }: { onSignedUp: (email: string) => void }) {
         setError(error.message);
         return;
       }
+      fetch("/api/send-welcome-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: fullName, email }),
+      }).catch(() => {
+        // Non-critical -- the account itself was created either way.
+      });
       onSignedUp(email);
     } catch {
       setError("Could not reach the account service. Check your connection and try again.");

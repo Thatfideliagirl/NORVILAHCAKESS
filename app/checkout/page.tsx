@@ -70,6 +70,24 @@ function formatOrderItemsList(items: ReturnType<typeof useCartStore.getState>["i
     .join("\n");
 }
 
+function sendOrderConfirmationEmail(params: {
+  email: string | null | undefined;
+  name: string;
+  orderNumber: string;
+  orderItems: string;
+  orderTotal: string;
+  deliveryLocation: string;
+}) {
+  if (!params.email) return;
+  fetch("/api/send-order-confirmation", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  }).catch(() => {
+    // Non-critical -- the order itself was already placed either way.
+  });
+}
+
 const inputClasses =
   "w-full rounded-panel border border-clay/25 bg-cream px-4 py-3 font-body text-body text-ink placeholder:text-ink/40 focus-visible:border-berry";
 
@@ -233,6 +251,14 @@ export default function CheckoutPage() {
         order_channel: "WhatsApp",
         payment_method: "Bank transfer (receipt uploaded)",
       });
+      sendOrderConfirmationEmail({
+        email: session?.user.email,
+        name,
+        orderNumber,
+        orderItems: formatOrderItemsList(items),
+        orderTotal: formatNaira(total),
+        deliveryLocation: selectedZone.name,
+      });
 
       const message = buildOrderMessage(
         items,
@@ -313,6 +339,14 @@ export default function CheckoutPage() {
         order_channel: "Website",
         payment_method: "Bank transfer (receipt uploaded)",
       });
+      sendOrderConfirmationEmail({
+        email: session?.user.email,
+        name,
+        orderNumber,
+        orderItems: formatOrderItemsList(items),
+        orderTotal: formatNaira(total),
+        deliveryLocation: selectedZone.name,
+      });
 
       clearCart();
       setConfirmedOrder({ orderNumber, total });
@@ -387,6 +421,14 @@ export default function CheckoutPage() {
               delivery_location: selectedZone.name,
               order_channel: "Website",
               payment_method: "Card (paid via Paystack)",
+            });
+            sendOrderConfirmationEmail({
+              email: session.user.email,
+              name,
+              orderNumber,
+              orderItems: formatOrderItemsList(items),
+              orderTotal: formatNaira(total),
+              deliveryLocation: selectedZone.name,
             });
 
             clearCart();

@@ -1004,3 +1004,56 @@ insert into public.delivery_locations (name, fee_naira, places_included, sort_or
     'Marina, CMS, Lekki Phase 1, VGC, Osapa, Chevron, Ikate', 4),
   ('Lagos Island Zone 2 (Outskirts)', 5000,
     'Lekki Phase 2 & 3, Ajah & Areas After Ajah, Abraham Adesanya, Sangotedo, Ibeju, Awoyaya, Lakowe, Ogombo, Ado Road, Epe, Ologolo', 5);
+
+-- =========================================================
+-- 32. EMAIL TEMPLATES (RESEND)
+-- Subject/body for the automatic customer emails (signup welcome,
+-- order confirmation) sent via Resend. Kept editable here rather than
+-- hardcoded in the app so the admin can rewrite the wording herself
+-- without needing a code change. {{tokens}} are filled in at send time
+-- -- see lib/resend.ts for which tokens each template supports.
+-- =========================================================
+create table if not exists public.email_templates (
+  key text primary key,
+  subject text not null,
+  body text not null,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.email_templates enable row level security;
+
+drop policy if exists "email_templates_admin_only" on public.email_templates;
+create policy "email_templates_admin_only" on public.email_templates
+  for all using (public.is_admin()) with check (public.is_admin());
+
+insert into public.email_templates (key, subject, body) values
+  (
+    'welcome',
+    'Welcome to Norvilah Cakes, {{name}}!',
+    'Hi {{name}},
+
+Welcome to Norvilah Cakes! Your account is all set up.
+
+From here you can browse the menu, save your favourites, and track your orders any time from your account page.
+
+We can''t wait to make something delicious for you.
+
+-- The Norvilah Cakes team'
+  ),
+  (
+    'order_confirmation',
+    'Your Norvilah Cakes order {{order_number}} is confirmed',
+    'Hi {{name}},
+
+Thanks for your order! Here''s a quick summary:
+
+{{order_items}}
+
+Total: {{order_total}}
+Delivery to: {{delivery_location}}
+
+We''ll be in touch as your order is prepared. You can check its status any time from your account page.
+
+-- The Norvilah Cakes team'
+  )
+on conflict (key) do nothing;
