@@ -28,6 +28,9 @@ type Order = {
   total_naira: number;
   created_at: string;
   viewed_at: string | null;
+  customer_id: string | null;
+  customer_name: string | null;
+  customer_phone: string | null;
   profiles: { full_name: string | null; phone: string | null } | null;
   order_items: { product_id: string | null; products: { image_url: string | null } | null }[];
 };
@@ -43,7 +46,7 @@ function fetchOrders() {
   return supabase
     .from("orders")
     .select(
-      "id, order_number, status, channel, payment_status, payment_method, total_naira, created_at, viewed_at, profiles(full_name, phone), order_items(product_id, products(image_url))"
+      "id, order_number, status, channel, payment_status, payment_method, total_naira, created_at, viewed_at, customer_id, customer_name, customer_phone, profiles(full_name, phone), order_items(product_id, products(image_url))"
     )
     .order("created_at", { ascending: false })
     .returns<Order[]>();
@@ -226,8 +229,17 @@ export default function AdminOrdersPage() {
                   </div>
                 </td>
                 <td className="hidden px-4 py-3 text-ink/70 md:table-cell">
-                  {order.profiles?.full_name ?? "-"}
-                  {order.profiles?.phone ? ` · ${order.profiles.phone}` : ""}
+                  <div className="flex items-center gap-1.5">
+                    {order.customer_name ?? order.profiles?.full_name ?? "-"}
+                    {!order.customer_id && (
+                      <span className="rounded-pill bg-clay/15 px-2 py-0.5 text-[10px] font-semibold text-clay">
+                        Guest
+                      </span>
+                    )}
+                  </div>
+                  {(order.customer_phone ?? order.profiles?.phone) && (
+                    <div>{order.customer_phone ?? order.profiles?.phone}</div>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-ink/70">{paymentMethodLabel(order)}</td>
                 <td className="px-4 py-3">

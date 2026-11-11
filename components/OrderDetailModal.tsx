@@ -23,7 +23,10 @@ type OrderDetail = {
   channel: string;
   payment_status: string;
   payment_method: string;
+  customer_id: string | null;
   customer_name: string | null;
+  customer_phone: string | null;
+  customer_email: string | null;
   delivery_address: string | null;
   notes: string | null;
   subtotal_naira: number;
@@ -52,7 +55,7 @@ export default function OrderDetailModal({
     supabase
       .from("orders")
       .select(
-        "id, order_number, status, channel, payment_status, payment_method, customer_name, delivery_address, notes, subtotal_naira, delivery_fee_naira, total_naira, receipt_url, created_at, delivery_locations(name), order_items(product_name, variant_label, unit_price_naira, quantity, line_total_naira, products(image_url)), profiles(full_name, phone)"
+        "id, order_number, status, channel, payment_status, payment_method, customer_id, customer_name, customer_phone, customer_email, delivery_address, notes, subtotal_naira, delivery_fee_naira, total_naira, receipt_url, created_at, delivery_locations(name), order_items(product_name, variant_label, unit_price_naira, quantity, line_total_naira, products(image_url)), profiles(full_name, phone)"
       )
       .eq("id", orderId)
       .single<OrderDetail>()
@@ -141,17 +144,27 @@ export default function OrderDetailModal({
             </div>
 
             {showCustomer && (
-              <p className="text-ink/70">
-                {order.profiles?.full_name ?? "-"}
-                {order.profiles?.phone ? ` · ${order.profiles.phone}` : ""}
+              <p className="flex items-center gap-1.5 text-ink/70">
+                {order.customer_name ?? order.profiles?.full_name ?? "-"}
+                {!order.customer_id && (
+                  <span className="rounded-pill bg-clay/15 px-2 py-0.5 text-[10px] font-semibold text-clay">
+                    Guest
+                  </span>
+                )}
               </p>
             )}
 
             <div className="rounded-panel bg-plaster/20 p-4">
-              {order.customer_name && (
+              {(order.customer_phone ?? order.profiles?.phone) && (
                 <p>
-                  <span className="text-ink/50">Name: </span>
-                  {order.customer_name}
+                  <span className="text-ink/50">Phone: </span>
+                  {order.customer_phone ?? order.profiles?.phone}
+                </p>
+              )}
+              {order.customer_email && (
+                <p className="mt-1">
+                  <span className="text-ink/50">Email: </span>
+                  {order.customer_email}
                 </p>
               )}
               {order.delivery_locations?.name && (

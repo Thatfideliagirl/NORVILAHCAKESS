@@ -129,6 +129,7 @@ export default function CheckoutPage() {
     accountNumber: null,
   });
   const [name, setName] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
   const [zoneId, setZoneId] = useState("");
   const [expandedZoneIds, setExpandedZoneIds] = useState<Set<string>>(new Set());
   const [phone, setPhone] = useState("");
@@ -211,7 +212,7 @@ export default function CheckoutPage() {
     if (itemsError) throw itemsError;
   }
 
-  async function onWhatsAppOrder(customerId: string) {
+  async function onWhatsAppOrder(customerId: string | null, customerEmail: string) {
     if (!receiptFile) {
       setError("Please upload your payment receipt.");
       return;
@@ -231,7 +232,7 @@ export default function CheckoutPage() {
     try {
       const orderNumber = generateOrderNumber();
       const ext = receiptFile.name.split(".").pop();
-      const path = `${customerId}/${orderNumber}.${ext}`;
+      const path = `${customerId ?? "guest"}/${orderNumber}.${ext}`;
       const { error: uploadError } = await supabase.storage
         .from("receipts")
         .upload(path, receiptFile);
@@ -246,6 +247,8 @@ export default function CheckoutPage() {
           delivery_location_id: selectedZone.id,
           delivery_address: address,
           customer_name: name,
+          customer_phone: phone,
+          customer_email: customerEmail || null,
           notes: additionalInfo || null,
           subtotal_naira: subtotal,
           delivery_fee_naira: fee,
@@ -272,7 +275,7 @@ export default function CheckoutPage() {
         paymentMethod: "Bank transfer (receipt uploaded)",
       });
       sendOrderConfirmationEmail({
-        email: session?.user.email,
+        email: customerEmail,
         name,
         orderNumber,
         orderItems: formatOrderItemsList(items),
@@ -305,7 +308,7 @@ export default function CheckoutPage() {
     }
   }
 
-  async function onWebsiteOrder(customerId: string) {
+  async function onWebsiteOrder(customerId: string | null, customerEmail: string) {
     if (!receiptFile) {
       setError("Please upload your payment receipt.");
       return;
@@ -319,7 +322,7 @@ export default function CheckoutPage() {
     try {
       const orderNumber = generateOrderNumber();
       const ext = receiptFile.name.split(".").pop();
-      const path = `${customerId}/${orderNumber}.${ext}`;
+      const path = `${customerId ?? "guest"}/${orderNumber}.${ext}`;
       const { error: uploadError } = await supabase.storage
         .from("receipts")
         .upload(path, receiptFile);
@@ -334,6 +337,8 @@ export default function CheckoutPage() {
           delivery_location_id: selectedZone.id,
           delivery_address: address,
           customer_name: name,
+          customer_phone: phone,
+          customer_email: customerEmail || null,
           notes: additionalInfo || null,
           subtotal_naira: subtotal,
           delivery_fee_naira: fee,
@@ -360,7 +365,7 @@ export default function CheckoutPage() {
         paymentMethod: "Bank transfer (receipt uploaded)",
       });
       sendOrderConfirmationEmail({
-        email: session?.user.email,
+        email: customerEmail,
         name,
         orderNumber,
         orderItems: formatOrderItemsList(items),
@@ -377,13 +382,13 @@ export default function CheckoutPage() {
     }
   }
 
-  async function onCardOrder(session: Session) {
+  async function onCardOrder(customerId: string | null, customerEmail: string) {
     if (!selectedZone) {
       setError("Please choose a delivery location.");
       return;
     }
-    if (!session.user.email) {
-      setError("Your account needs an email address to pay by card.");
+    if (!customerEmail) {
+      setError("Please enter your email to pay by card.");
       return;
     }
     setSubmitting(true);
@@ -394,11 +399,13 @@ export default function CheckoutPage() {
         .from("orders")
         .insert({
           order_number: orderNumber,
-          customer_id: session.user.id,
+          customer_id: customerId,
           channel: "website",
           delivery_location_id: selectedZone.id,
           delivery_address: address,
           customer_name: name,
+          customer_phone: phone,
+          customer_email: customerEmail,
           notes: additionalInfo || null,
           subtotal_naira: subtotal,
           delivery_fee_naira: fee,
@@ -419,7 +426,7 @@ export default function CheckoutPage() {
       const popup = new PaystackPop();
       popup.newTransaction({
         key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY as string,
-        email: session.user.email,
+        email: customerEmail,
         amount: total * 100,
         reference: orderNumber,
         onSuccess: async (transaction) => {
@@ -443,7 +450,7 @@ export default function CheckoutPage() {
               paymentMethod: "Card (paid via Paystack)",
             });
             sendOrderConfirmationEmail({
-              email: session.user.email,
+              email: customerEmail,
               name,
               orderNumber,
               orderItems: formatOrderItemsList(items),
@@ -482,13 +489,16 @@ export default function CheckoutPage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!session) {
-      setError("Please create an account or log in to place an order.");
+    if (session === undefined) return; // still checking for a logged-in session
+    const customerId = session?.user.id ?? null;
+    const customerEmail = session?.user.email ?? guestEmail.trim();
+    if (!customerEmail) {
+      setError("Please enter your email so we can send your order confirmation.");
       return;
     }
-    if (channel === "whatsapp") await onWhatsAppOrder(session.user.id);
-    else if (payByCard) await onCardOrder(session);
-    else await onWebsiteOrder(session.user.id);
+    if (channel === "whatsapp") await onWhatsAppOrder(customerId, customerEmail);
+    else if (payByCard) await onCardOrder(customerId, customerEmail);
+    else await onWebsiteOrder(customerId, customerEmail);
   }
 
   if (confirmedOrder) {
@@ -503,12 +513,30 @@ export default function CheckoutPage() {
           <p className="mt-2 font-display text-product text-ink">
             Total: <span className="text-berry">{formatNaira(confirmedOrder.total)}</span>
           </p>
-          <Link
-            href="/account"
-            className="mt-8 inline-block rounded-pill bg-cocoa px-8 py-3.5 font-body font-medium text-cream"
-          >
-            View My Orders
-          </Link>
+          {session ? (
+            <Link
+              href="/account"
+              className="mt-8 inline-block rounded-pill bg-cocoa px-8 py-3.5 font-body font-medium text-cream"
+            >
+              View My Orders
+            </Link>
+          ) : (
+            <div className="mt-8">
+              <Link
+                href="/menu"
+                className="inline-block rounded-pill bg-cocoa px-8 py-3.5 font-body font-medium text-cream"
+              >
+                Back to Menu
+              </Link>
+              <p className="mt-6 font-body text-small text-ink/50">
+                Want to save your favourites and hear about new menus?{" "}
+                <Link href="/account" className="text-berry underline">
+                  Create a free account
+                </Link>
+                .
+              </p>
+            </div>
+          )}
         </div>
       </main>
     );
@@ -574,11 +602,12 @@ export default function CheckoutPage() {
 
         <form onSubmit={onSubmit} className="flex min-w-0 flex-col gap-4">
           {!session && (
-            <p className="rounded-panel bg-berry/10 px-4 py-3 font-body text-small text-berry">
-              <Link href="/account" className="underline">
-                Create an account or log in
+            <p className="rounded-panel bg-plaster/30 px-4 py-3 font-body text-small text-ink/60">
+              Checking out as a guest — no account needed.{" "}
+              <Link href="/account" className="text-berry underline">
+                Have an account? Log in
               </Link>{" "}
-              to place an order — this applies whether you check out on the website or via WhatsApp.
+              to track this order from your dashboard.
             </p>
           )}
           <input
@@ -597,6 +626,16 @@ export default function CheckoutPage() {
             onChange={(e) => setPhone(e.target.value)}
             className={inputClasses}
           />
+          {!session && (
+            <input
+              required
+              type="email"
+              placeholder="Email (for your order confirmation)"
+              value={guestEmail}
+              onChange={(e) => setGuestEmail(e.target.value)}
+              className={inputClasses}
+            />
+          )}
           <textarea
             required
             rows={2}
@@ -749,7 +788,7 @@ export default function CheckoutPage() {
 
           <button
             type="submit"
-            disabled={submitting || !session}
+            disabled={submitting || session === undefined}
             className="mt-2 rounded-pill bg-berry px-8 py-3.5 font-body font-medium text-cream transition-colors duration-200 hover:bg-cocoa disabled:opacity-60"
           >
             {submitting

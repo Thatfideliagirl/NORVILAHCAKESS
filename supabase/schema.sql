@@ -1107,3 +1107,38 @@ Might be worth a warm welcome next time you''re online.
 Log in to Admin to see their account.'
   )
 on conflict (key) do nothing;
+
+-- =========================================================
+-- 34. GUEST CHECKOUT
+-- Lets a customer place an order without creating an account first.
+-- Every order already stores customer_name; add phone/email too so a
+-- guest order carries its own contact details directly (there's no
+-- profiles row to join to), and relax the policies below that assumed
+-- every order belonged to a signed-in customer.
+-- =========================================================
+alter table public.orders add column if not exists customer_phone text;
+alter table public.orders add column if not exists customer_email text;
+
+drop policy if exists "orders_insert_own" on public.orders;
+create policy "orders_insert_own" on public.orders
+  for insert with check (customer_id = auth.uid() or customer_id is null);
+
+drop policy if exists "order_items_insert_via_order" on public.order_items;
+create policy "order_items_insert_via_order" on public.order_items
+  for insert with check (
+    exists (
+      select 1 from public.orders o
+      where o.id = order_items.order_id
+        and (o.customer_id = auth.uid() or o.customer_id is null)
+    )
+  );
+
+drop policy if exists "receipts_owner_upload" on storage.objects;
+create policy "receipts_owner_upload" on storage.objects
+  for insert with check (
+    bucket_id = 'receipts'
+    and (
+      auth.uid()::text = (storage.foldername(name))[1]
+      or (storage.foldername(name))[1] = 'guest'
+    )
+  );
