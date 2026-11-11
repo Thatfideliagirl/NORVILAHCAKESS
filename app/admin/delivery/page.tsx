@@ -13,6 +13,12 @@ type Zone = {
   active: boolean;
 };
 
+type PickupSettings = {
+  pickup_location: string | null;
+  pickup_phone: string | null;
+  pickup_message: string | null;
+};
+
 export default function AdminDeliveryPage() {
   const [zones, setZones] = useState<Zone[]>([]);
   const [name, setName] = useState("");
@@ -21,6 +27,9 @@ export default function AdminDeliveryPage() {
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [pickup, setPickup] = useState<PickupSettings | null>(null);
+  const [pickupSaving, setPickupSaving] = useState(false);
+  const [pickupSaved, setPickupSaved] = useState(false);
 
   function fetchZones() {
     return supabase
@@ -34,7 +43,34 @@ export default function AdminDeliveryPage() {
       if (error) setLoadError(error.message);
       setZones(data ?? []);
     });
+    supabase
+      .from("settings")
+      .select("pickup_location, pickup_phone, pickup_message")
+      .eq("id", true)
+      .single()
+      .then(({ data, error }) => {
+        if (error) setLoadError(error.message);
+        setPickup(data ?? { pickup_location: null, pickup_phone: null, pickup_message: null });
+      });
   }, []);
+
+  async function savePickup(e: React.FormEvent) {
+    e.preventDefault();
+    if (!pickup) return;
+    setPickupSaving(true);
+    setPickupSaved(false);
+    const { error } = await supabase
+      .from("settings")
+      .update({
+        pickup_location: pickup.pickup_location,
+        pickup_phone: pickup.pickup_phone,
+        pickup_message: pickup.pickup_message,
+      })
+      .eq("id", true);
+    if (error) setLoadError(error.message);
+    else setPickupSaved(true);
+    setPickupSaving(false);
+  }
 
   async function addZone(e: React.FormEvent) {
     e.preventDefault();
@@ -171,6 +207,48 @@ export default function AdminDeliveryPage() {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="mt-10 border-t border-clay/15 pt-8">
+        <p className="font-display text-product text-berry">Pickup</p>
+        <p className="mt-2 font-body text-body text-ink/60">
+          Shown to customers who choose &quot;Pick Up Myself&quot; at checkout instead of
+          delivery, and included in their confirmation email.
+        </p>
+        {pickup && (
+          <form onSubmit={savePickup} className="mt-6 flex max-w-lg flex-col gap-3">
+            <textarea
+              placeholder="Pickup location / address"
+              rows={2}
+              value={pickup.pickup_location ?? ""}
+              onChange={(e) => setPickup({ ...pickup, pickup_location: e.target.value })}
+              className="w-full resize-none rounded-panel border border-clay/25 bg-cream px-4 py-2.5 font-body text-body text-ink"
+            />
+            <input
+              placeholder="Phone number to call"
+              value={pickup.pickup_phone ?? ""}
+              onChange={(e) => setPickup({ ...pickup, pickup_phone: e.target.value })}
+              className="w-full rounded-panel border border-clay/25 bg-cream px-4 py-2.5 font-body text-body text-ink"
+            />
+            <textarea
+              placeholder="A warm message (e.g. opening hours, what to say at the gate...)"
+              rows={2}
+              value={pickup.pickup_message ?? ""}
+              onChange={(e) => setPickup({ ...pickup, pickup_message: e.target.value })}
+              className="w-full resize-none rounded-panel border border-clay/25 bg-cream px-4 py-2.5 font-body text-body text-ink"
+            />
+            <div className="flex items-center gap-4">
+              <button
+                type="submit"
+                disabled={pickupSaving}
+                className="self-start rounded-pill bg-cocoa px-6 py-2.5 font-body text-small font-medium text-cream disabled:opacity-60"
+              >
+                {pickupSaving ? "Saving..." : "Save Pickup Details"}
+              </button>
+              {pickupSaved && <p className="font-body text-small text-berry">Saved.</p>}
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );
