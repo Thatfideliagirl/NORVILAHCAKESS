@@ -13,7 +13,7 @@ function render(template: string, tokens: Record<string, string>): string {
 }
 
 export async function sendTemplateEmail(
-  templateKey: "welcome" | "order_confirmation" | "admin_new_order",
+  templateKey: "welcome" | "order_confirmation" | "admin_new_order" | "admin_new_signup",
   to: string,
   tokens: Record<string, string>
 ): Promise<{ sent: boolean; reason?: string }> {

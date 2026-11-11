@@ -300,6 +300,13 @@ function SignUpForm({ onSignedUp }: { onSignedUp: (email: string) => void }) {
       }).catch(() => {
         // Non-critical -- the account itself was created either way.
       });
+      fetch("/api/send-signup-notification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: fullName, email, phone, location, howHeard }),
+      }).catch(() => {
+        // Non-critical -- the account itself was created either way.
+      });
       onSignedUp(email);
     } catch {
       setError("Could not reach the account service. Check your connection and try again.");

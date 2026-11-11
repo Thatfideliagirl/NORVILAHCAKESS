@@ -41,6 +41,17 @@ const TEMPLATE_INFO: Record<string, { title: string; description: string; tokens
       "{{payment_method}}",
     ],
   },
+  admin_new_signup: {
+    title: "New customer signup (to you)",
+    description: "Sent to your notification email (Admin -> Settings) the moment someone creates an account.",
+    tokens: [
+      "{{customer_name}}",
+      "{{customer_email}}",
+      "{{customer_phone}}",
+      "{{customer_location}}",
+      "{{how_heard}}",
+    ],
+  },
 };
 
 const inputClasses =

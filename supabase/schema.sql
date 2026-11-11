@@ -1081,3 +1081,29 @@ Delivery to: {{delivery_location}}
 Log in to Admin to view and manage this order.'
   )
 on conflict (key) do nothing;
+
+-- =========================================================
+-- 33. EMAIL TEMPLATE: NEW SIGNUP NOTIFICATION (RESEND)
+-- Admin alert sent the moment a new customer creates an account,
+-- alongside the existing "new order" alert. Editable the same way --
+-- see app/admin/emails for the editor, lib/resend.ts for the tokens.
+-- =========================================================
+insert into public.email_templates (key, subject, body) values
+  (
+    'admin_new_signup',
+    'New customer: {{customer_name}} just signed up',
+    'Hi,
+
+Good news -- someone new just joined Norvilah Cakes!
+
+Name: {{customer_name}}
+Email: {{customer_email}}
+Phone: {{customer_phone}}
+Location: {{customer_location}}
+Heard about us via: {{how_heard}}
+
+Might be worth a warm welcome next time you''re online.
+
+Log in to Admin to see their account.'
+  )
+on conflict (key) do nothing;
