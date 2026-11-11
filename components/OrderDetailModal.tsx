@@ -27,6 +27,7 @@ type OrderDetail = {
   customer_name: string | null;
   customer_phone: string | null;
   customer_email: string | null;
+  fulfillment_type: string;
   delivery_address: string | null;
   notes: string | null;
   subtotal_naira: number;
@@ -55,7 +56,7 @@ export default function OrderDetailModal({
     supabase
       .from("orders")
       .select(
-        "id, order_number, status, channel, payment_status, payment_method, customer_id, customer_name, customer_phone, customer_email, delivery_address, notes, subtotal_naira, delivery_fee_naira, total_naira, receipt_url, created_at, delivery_locations(name), order_items(product_name, variant_label, unit_price_naira, quantity, line_total_naira, products(image_url)), profiles(full_name, phone)"
+        "id, order_number, status, channel, payment_status, payment_method, customer_id, customer_name, customer_phone, customer_email, fulfillment_type, delivery_address, notes, subtotal_naira, delivery_fee_naira, total_naira, receipt_url, created_at, delivery_locations(name), order_items(product_name, variant_label, unit_price_naira, quantity, line_total_naira, products(image_url)), profiles(full_name, phone)"
       )
       .eq("id", orderId)
       .single<OrderDetail>()
@@ -124,6 +125,11 @@ export default function OrderDetailModal({
                     ? "Website · Paystack"
                     : "Website · Bank Transfer"}
               </span>
+              {order.fulfillment_type === "pickup" && (
+                <span className="rounded-pill bg-berry/15 px-3 py-1 text-xs font-semibold text-berry">
+                  Pickup
+                </span>
+              )}
               {showCustomer &&
                 (order.payment_status === "unpaid" ? (
                   <span className="rounded-pill bg-berry px-3 py-1 text-xs font-semibold text-cream">

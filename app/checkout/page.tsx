@@ -29,12 +29,21 @@ type BankDetails = {
   accountNumber: string | null;
 };
 
+type PickupDetails = {
+  location: string | null;
+  phone: string | null;
+  message: string | null;
+};
+
+type FulfillmentType = "delivery" | "pickup";
+
 function generateOrderNumber(): string {
   return `NV${Date.now().toString().slice(-8)}`;
 }
 
 function buildOrderMessage(
   items: ReturnType<typeof useCartStore.getState>["items"],
+  fulfillmentType: FulfillmentType,
   zoneName: string | null,
   fee: number,
   total: number,
@@ -51,8 +60,12 @@ function buildOrderMessage(
   }
   lines.push("");
   if (name.trim()) lines.push(`Name: ${name}`);
-  if (zoneName) lines.push(`Delivery to: ${zoneName} (${formatNaira(fee)})`);
-  if (address.trim()) lines.push(`Address: ${address}`);
+  if (fulfillmentType === "pickup") {
+    lines.push("I'll come to pick this up myself.");
+  } else {
+    if (zoneName) lines.push(`Delivery to: ${zoneName} (${formatNaira(fee)})`);
+    if (address.trim()) lines.push(`Address: ${address}`);
+  }
   if (phone.trim()) lines.push(`Phone: ${phone}`);
   if (additionalInfo.trim()) lines.push(`Additional info: ${additionalInfo}`);
   lines.push(`Total: ${formatNaira(total)}`);
@@ -96,7 +109,11 @@ function sendOrderConfirmationEmail(params: {
   orderNumber: string;
   orderItems: string;
   orderTotal: string;
-  deliveryLocation: string;
+  fulfillmentType: FulfillmentType;
+  deliveryLocation?: string;
+  pickupLocation?: string | null;
+  pickupPhone?: string | null;
+  pickupMessage?: string | null;
 }) {
   if (!params.email) return;
   fetch("/api/send-order-confirmation", {
@@ -128,6 +145,12 @@ export default function CheckoutPage() {
     accountName: null,
     accountNumber: null,
   });
+  const [pickupDetails, setPickupDetails] = useState<PickupDetails>({
+    location: null,
+    phone: null,
+    message: null,
+  });
+  const [fulfillmentType, setFulfillmentType] = useState<FulfillmentType>("delivery");
   const [name, setName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
   const [zoneId, setZoneId] = useState("");
@@ -143,7 +166,11 @@ export default function CheckoutPage() {
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [confirmedOrder, setConfirmedOrder] = useState<{ orderNumber: string; total: number } | null>(null);
+  const [confirmedOrder, setConfirmedOrder] = useState<{
+    orderNumber: string;
+    total: number;
+    fulfillmentType: FulfillmentType;
+  } | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -156,7 +183,7 @@ export default function CheckoutPage() {
     supabase
       .from("settings")
       .select(
-        "website_ordering_enabled, whatsapp_ordering_enabled, bank_name, bank_account_name, bank_account_number, website_payment_method, notification_email"
+        "website_ordering_enabled, whatsapp_ordering_enabled, bank_name, bank_account_name, bank_account_number, website_payment_method, notification_email, pickup_location, pickup_phone, pickup_message"
       )
       .eq("id", true)
       .single()
@@ -175,6 +202,11 @@ export default function CheckoutPage() {
           });
           setWebsitePaymentMethod(data.website_payment_method);
           setNotificationEmail(data.notification_email ?? "");
+          setPickupDetails({
+            location: data.pickup_location,
+            phone: data.pickup_phone,
+            message: data.pickup_message,
+          });
         }
       });
   }, []);
@@ -187,7 +219,7 @@ export default function CheckoutPage() {
 
   const subtotal = items.reduce((sum, item) => sum + item.priceNaira * item.quantity, 0);
   const selectedZone = zones.find((z) => z.id === zoneId);
-  const fee = selectedZone?.fee_naira ?? 0;
+  const fee = fulfillmentType === "pickup" ? 0 : (selectedZone?.fee_naira ?? 0);
   const total = subtotal + fee;
 
   async function insertOrderItems(orderId: string) {
@@ -217,7 +249,7 @@ export default function CheckoutPage() {
       setError("Please upload your payment receipt.");
       return;
     }
-    if (!selectedZone) {
+    if (fulfillmentType === "delivery" && !selectedZone) {
       setError("Please choose a delivery location.");
       return;
     }
@@ -245,13 +277,15 @@ export default function CheckoutPage() {
       // select policy, so Postgres would insert the row but RETURNING
       // would come back empty and `.single()` would throw as if the
       // insert itself had failed.
+      const isPickup = fulfillmentType === "pickup";
       const { error: orderError } = await supabase.from("orders").insert({
         id: orderId,
         order_number: orderNumber,
         customer_id: customerId,
         channel: "whatsapp",
-        delivery_location_id: selectedZone.id,
-        delivery_address: address,
+        fulfillment_type: fulfillmentType,
+        delivery_location_id: isPickup ? null : (selectedZone?.id ?? null),
+        delivery_address: isPickup ? null : address,
         customer_name: name,
         customer_phone: phone,
         customer_email: customerEmail || null,
@@ -274,7 +308,7 @@ export default function CheckoutPage() {
         customerPhone: phone,
         orderItems: formatOrderItemsList(items),
         orderTotal: formatNaira(total),
-        deliveryLocation: selectedZone.name,
+        deliveryLocation: isPickup ? "Pickup (self-pickup)" : (selectedZone?.name ?? ""),
         orderChannel: "WhatsApp",
         paymentMethod: "Bank transfer (receipt uploaded)",
       });
@@ -284,12 +318,17 @@ export default function CheckoutPage() {
         orderNumber,
         orderItems: formatOrderItemsList(items),
         orderTotal: formatNaira(total),
-        deliveryLocation: selectedZone.name,
+        fulfillmentType,
+        deliveryLocation: selectedZone?.name,
+        pickupLocation: pickupDetails.location,
+        pickupPhone: pickupDetails.phone,
+        pickupMessage: pickupDetails.message,
       });
 
       const message = buildOrderMessage(
         items,
-        selectedZone.name,
+        fulfillmentType,
+        selectedZone?.name ?? null,
         fee,
         total,
         name,
@@ -303,7 +342,7 @@ export default function CheckoutPage() {
       else window.open(whatsappLink, "_blank", "noopener,noreferrer");
 
       clearCart();
-      setConfirmedOrder({ orderNumber, total });
+      setConfirmedOrder({ orderNumber, total, fulfillmentType });
     } catch {
       whatsappWindow?.close();
       setError("Something went wrong placing your order. Please try again.");
@@ -317,7 +356,7 @@ export default function CheckoutPage() {
       setError("Please upload your payment receipt.");
       return;
     }
-    if (!selectedZone) {
+    if (fulfillmentType === "delivery" && !selectedZone) {
       setError("Please choose a delivery location.");
       return;
     }
@@ -336,13 +375,15 @@ export default function CheckoutPage() {
       // See the matching comment in onWhatsAppOrder: a client-generated
       // id avoids needing `.select().single()` to read the row back,
       // which a guest order (customer_id null) can't satisfy anyway.
+      const isPickup = fulfillmentType === "pickup";
       const { error: orderError } = await supabase.from("orders").insert({
         id: orderId,
         order_number: orderNumber,
         customer_id: customerId,
         channel: "website",
-        delivery_location_id: selectedZone.id,
-        delivery_address: address,
+        fulfillment_type: fulfillmentType,
+        delivery_location_id: isPickup ? null : (selectedZone?.id ?? null),
+        delivery_address: isPickup ? null : address,
         customer_name: name,
         customer_phone: phone,
         customer_email: customerEmail || null,
@@ -365,7 +406,7 @@ export default function CheckoutPage() {
         customerPhone: phone,
         orderItems: formatOrderItemsList(items),
         orderTotal: formatNaira(total),
-        deliveryLocation: selectedZone.name,
+        deliveryLocation: isPickup ? "Pickup (self-pickup)" : (selectedZone?.name ?? ""),
         orderChannel: "Website",
         paymentMethod: "Bank transfer (receipt uploaded)",
       });
@@ -375,11 +416,15 @@ export default function CheckoutPage() {
         orderNumber,
         orderItems: formatOrderItemsList(items),
         orderTotal: formatNaira(total),
-        deliveryLocation: selectedZone.name,
+        fulfillmentType,
+        deliveryLocation: selectedZone?.name,
+        pickupLocation: pickupDetails.location,
+        pickupPhone: pickupDetails.phone,
+        pickupMessage: pickupDetails.message,
       });
 
       clearCart();
-      setConfirmedOrder({ orderNumber, total });
+      setConfirmedOrder({ orderNumber, total, fulfillmentType });
     } catch {
       setError("Something went wrong placing your order. Please try again.");
     } finally {
@@ -388,7 +433,7 @@ export default function CheckoutPage() {
   }
 
   async function onCardOrder(customerId: string | null, customerEmail: string) {
-    if (!selectedZone) {
+    if (fulfillmentType === "delivery" && !selectedZone) {
       setError("Please choose a delivery location.");
       return;
     }
@@ -404,13 +449,15 @@ export default function CheckoutPage() {
       // See the matching comment in onWhatsAppOrder: a client-generated
       // id avoids needing `.select().single()` to read the row back,
       // which a guest order (customer_id null) can't satisfy anyway.
+      const isPickup = fulfillmentType === "pickup";
       const { error: orderError } = await supabase.from("orders").insert({
         id: orderId,
         order_number: orderNumber,
         customer_id: customerId,
         channel: "website",
-        delivery_location_id: selectedZone.id,
-        delivery_address: address,
+        fulfillment_type: fulfillmentType,
+        delivery_location_id: isPickup ? null : (selectedZone?.id ?? null),
+        delivery_address: isPickup ? null : address,
         customer_name: name,
         customer_phone: phone,
         customer_email: customerEmail,
@@ -451,7 +498,7 @@ export default function CheckoutPage() {
               customerPhone: phone,
               orderItems: formatOrderItemsList(items),
               orderTotal: formatNaira(total),
-              deliveryLocation: selectedZone.name,
+              deliveryLocation: isPickup ? "Pickup (self-pickup)" : (selectedZone?.name ?? ""),
               orderChannel: "Website",
               paymentMethod: "Card (paid via Paystack)",
             });
@@ -461,11 +508,15 @@ export default function CheckoutPage() {
               orderNumber,
               orderItems: formatOrderItemsList(items),
               orderTotal: formatNaira(total),
-              deliveryLocation: selectedZone.name,
+              fulfillmentType,
+              deliveryLocation: selectedZone?.name,
+              pickupLocation: pickupDetails.location,
+              pickupPhone: pickupDetails.phone,
+              pickupMessage: pickupDetails.message,
             });
 
             clearCart();
-            setConfirmedOrder({ orderNumber, total });
+            setConfirmedOrder({ orderNumber, total, fulfillmentType });
           } catch {
             setError(
               "Payment went through but we couldn't confirm it automatically. We'll verify it shortly -- contact us if it doesn't show as paid."
@@ -519,6 +570,20 @@ export default function CheckoutPage() {
           <p className="mt-2 font-display text-product text-ink">
             Total: <span className="text-berry">{formatNaira(confirmedOrder.total)}</span>
           </p>
+          {confirmedOrder.fulfillmentType === "pickup" && (
+            <div className="mt-6 rounded-panel bg-plaster/30 p-4 text-left">
+              <p className="font-body text-small font-semibold text-ink">Come pick it up here:</p>
+              {pickupDetails.location && (
+                <p className="mt-1 font-body text-small text-ink/70">{pickupDetails.location}</p>
+              )}
+              {pickupDetails.phone && (
+                <p className="mt-1 font-body text-small text-ink/70">Call: {pickupDetails.phone}</p>
+              )}
+              {pickupDetails.message && (
+                <p className="mt-2 font-body text-small text-ink/60">{pickupDetails.message}</p>
+              )}
+            </div>
+          )}
           {session ? (
             <Link
               href="/account"
@@ -596,8 +661,10 @@ export default function CheckoutPage() {
               <span>{formatNaira(subtotal)}</span>
             </div>
             <div className="flex justify-between">
-              <span>Delivery</span>
-              <span>{selectedZone ? formatNaira(fee) : "-"}</span>
+              <span>{fulfillmentType === "pickup" ? "Pickup" : "Delivery"}</span>
+              <span>
+                {fulfillmentType === "pickup" ? "Free" : selectedZone ? formatNaira(fee) : "-"}
+              </span>
             </div>
             <div className="flex justify-between font-display text-product text-ink">
               <span>Total</span>
@@ -642,18 +709,51 @@ export default function CheckoutPage() {
               className={inputClasses}
             />
           )}
-          <textarea
-            required
-            rows={2}
-            placeholder="Delivery address"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            className={`${inputClasses} resize-none`}
-          />
-          <div>
-            <p className="font-body text-small font-medium text-ink/70">Choose your delivery location</p>
-            <div className="mt-2 flex flex-col gap-2">
-              {zones.map((zone) => {
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setFulfillmentType("delivery")}
+              className={`flex-1 rounded-pill border px-4 py-2.5 font-body text-small font-medium ${
+                fulfillmentType === "delivery"
+                  ? "border-berry bg-berry text-cream"
+                  : "border-clay/30 text-ink/70"
+              }`}
+            >
+              Delivery
+            </button>
+            <button
+              type="button"
+              onClick={() => setFulfillmentType("pickup")}
+              className={`flex-1 rounded-pill border px-4 py-2.5 font-body text-small font-medium ${
+                fulfillmentType === "pickup"
+                  ? "border-berry bg-berry text-cream"
+                  : "border-clay/30 text-ink/70"
+              }`}
+            >
+              Pick Up Myself
+            </button>
+          </div>
+
+          {fulfillmentType === "pickup" ? (
+            <p className="rounded-panel bg-plaster/30 px-4 py-3 font-body text-small text-ink/60">
+              No delivery fee — we&apos;ll show you the pickup location and contact number once
+              your order is placed.
+            </p>
+          ) : (
+            <>
+              <textarea
+                required
+                rows={2}
+                placeholder="Delivery address"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className={`${inputClasses} resize-none`}
+              />
+              <div>
+                <p className="font-body text-small font-medium text-ink/70">Choose your delivery location</p>
+                <div className="mt-2 flex flex-col gap-2">
+                  {zones.map((zone) => {
                 const isSelected = zone.id === zoneId;
                 const isExpanded = expandedZoneIds.has(zone.id);
                 return (
@@ -711,9 +811,11 @@ export default function CheckoutPage() {
                     )}
                   </div>
                 );
-              })}
-            </div>
-          </div>
+                  })}
+                </div>
+              </div>
+            </>
+          )}
           <textarea
             rows={2}
             placeholder="Additional information / special delivery details (optional)"

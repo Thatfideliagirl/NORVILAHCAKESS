@@ -13,13 +13,16 @@ type Settings = {
   bank_account_number: string | null;
   website_payment_method: "bank_transfer" | "paystack";
   notification_email: string | null;
+  pickup_location: string | null;
+  pickup_phone: string | null;
+  pickup_message: string | null;
 };
 
 function fetchSettings() {
   return supabase
     .from("settings")
     .select(
-      "website_ordering_enabled, whatsapp_ordering_enabled, bank_name, bank_account_name, bank_account_number, website_payment_method, notification_email"
+      "website_ordering_enabled, whatsapp_ordering_enabled, bank_name, bank_account_name, bank_account_number, website_payment_method, notification_email, pickup_location, pickup_phone, pickup_message"
     )
     .eq("id", true)
     .single();
@@ -53,6 +56,9 @@ export default function AdminSettingsPage() {
         bank_account_number: settings.bank_account_number,
         website_payment_method: settings.website_payment_method,
         notification_email: settings.notification_email,
+        pickup_location: settings.pickup_location,
+        pickup_phone: settings.pickup_phone,
+        pickup_message: settings.pickup_message,
       })
       .eq("id", true);
     if (error) setLoadError(error.message);
@@ -171,6 +177,33 @@ export default function AdminSettingsPage() {
               value={settings.bank_account_number ?? ""}
               onChange={(e) => setSettings({ ...settings, bank_account_number: e.target.value })}
               className={inputClasses}
+            />
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <p className="font-body text-small font-semibold text-ink/70">
+              Pickup details (shown to customers who choose &quot;Pick Up Myself&quot; at
+              checkout, and in their confirmation email)
+            </p>
+            <textarea
+              placeholder="Pickup location / address"
+              rows={2}
+              value={settings.pickup_location ?? ""}
+              onChange={(e) => setSettings({ ...settings, pickup_location: e.target.value })}
+              className={`${inputClasses} resize-none`}
+            />
+            <input
+              placeholder="Phone number to call"
+              value={settings.pickup_phone ?? ""}
+              onChange={(e) => setSettings({ ...settings, pickup_phone: e.target.value })}
+              className={inputClasses}
+            />
+            <textarea
+              placeholder="A warm message (e.g. opening hours, what to say at the gate...)"
+              rows={2}
+              value={settings.pickup_message ?? ""}
+              onChange={(e) => setSettings({ ...settings, pickup_message: e.target.value })}
+              className={`${inputClasses} resize-none`}
             />
           </div>
 

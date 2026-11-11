@@ -1154,3 +1154,42 @@ create policy "orders_delete_admin" on public.orders
 drop policy if exists "order_items_delete_admin" on public.order_items;
 create policy "order_items_delete_admin" on public.order_items
   for delete using (public.is_admin());
+
+-- =========================================================
+-- 35. PICKUP (SELF-COLLECTION) ORDERS
+-- Lets a customer choose "Pick Up Myself" at checkout instead of
+-- delivery -- no delivery zone/fee, and after placing the order they
+-- see the pickup location/phone/message the admin sets below. A
+-- separate email template covers pickup orders since there's no
+-- delivery zone to mention.
+-- =========================================================
+alter table public.settings add column if not exists pickup_location text;
+alter table public.settings add column if not exists pickup_phone text;
+alter table public.settings add column if not exists pickup_message text;
+
+alter table public.orders add column if not exists fulfillment_type text not null default 'delivery'
+  check (fulfillment_type in ('delivery', 'pickup'));
+
+insert into public.email_templates (key, subject, body) values
+  (
+    'order_confirmation_pickup',
+    'Your Norvilah Cakes order {{order_number}} is confirmed -- ready for pickup',
+    'Hi {{name}},
+
+Thanks for your order! Here''s a quick summary:
+
+{{order_items}}
+
+Total: {{order_total}}
+
+You chose to pick this up yourself -- here''s where to come:
+
+{{pickup_location}}
+
+Call {{pickup_phone}} when you''re on your way or once you arrive.
+
+{{pickup_message}}
+
+-- The Norvilah Cakes team'
+  )
+on conflict (key) do nothing;

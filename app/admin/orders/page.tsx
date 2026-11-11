@@ -31,6 +31,7 @@ type Order = {
   customer_id: string | null;
   customer_name: string | null;
   customer_phone: string | null;
+  fulfillment_type: string;
   profiles: { full_name: string | null; phone: string | null } | null;
   order_items: { product_id: string | null; products: { image_url: string | null } | null }[];
 };
@@ -46,7 +47,7 @@ function fetchOrders() {
   return supabase
     .from("orders")
     .select(
-      "id, order_number, status, channel, payment_status, payment_method, total_naira, created_at, viewed_at, customer_id, customer_name, customer_phone, profiles(full_name, phone), order_items(product_id, products(image_url))"
+      "id, order_number, status, channel, payment_status, payment_method, total_naira, created_at, viewed_at, customer_id, customer_name, customer_phone, fulfillment_type, profiles(full_name, phone), order_items(product_id, products(image_url))"
     )
     .order("created_at", { ascending: false })
     .returns<Order[]>();
@@ -252,7 +253,14 @@ export default function AdminOrdersPage() {
                     <div>{order.customer_phone ?? order.profiles?.phone}</div>
                   )}
                 </td>
-                <td className="px-4 py-3 text-ink/70">{paymentMethodLabel(order)}</td>
+                <td className="px-4 py-3 text-ink/70">
+                  {paymentMethodLabel(order)}
+                  {order.fulfillment_type === "pickup" && (
+                    <span className="ml-2 rounded-pill bg-berry/15 px-2 py-0.5 text-[10px] font-semibold text-berry">
+                      Pickup
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-3">
                   {order.payment_status === "unpaid" ? (
                     <span className="rounded-pill bg-berry px-3 py-1 text-xs font-semibold text-cream">

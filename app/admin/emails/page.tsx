@@ -17,14 +17,28 @@ const TEMPLATE_INFO: Record<string, { title: string; description: string; tokens
     tokens: ["{{name}}"],
   },
   order_confirmation: {
-    title: "Order confirmation email",
-    description: "Sent automatically to the customer right after they place an order.",
+    title: "Order confirmation email (delivery)",
+    description: "Sent automatically to the customer right after they place a delivery order.",
     tokens: [
       "{{name}}",
       "{{order_number}}",
       "{{order_items}}",
       "{{order_total}}",
       "{{delivery_location}}",
+    ],
+  },
+  order_confirmation_pickup: {
+    title: "Order confirmation email (pickup)",
+    description:
+      "Sent automatically to the customer right after they place an order they'll pick up themselves.",
+    tokens: [
+      "{{name}}",
+      "{{order_number}}",
+      "{{order_items}}",
+      "{{order_total}}",
+      "{{pickup_location}}",
+      "{{pickup_phone}}",
+      "{{pickup_message}}",
     ],
   },
   admin_new_order: {
